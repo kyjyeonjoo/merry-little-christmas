@@ -102,6 +102,11 @@
         <div class="cocoa-table">☕</div>
 
         <!-- 좌석과 캐릭터는 app.js가 여기에 그려요 -->
+        <div class="cake-table" id="cakeTable" title="다 같이 케이크 만들기">
+          <div class="clabel">🎂 케이크 만들기</div>
+          <div class="mini"></div>
+          <div class="ttop"></div><div class="tleg"></div>
+        </div>
         <div id="entities"></div>
         <div id="fx"></div>
         <div class="stage-hint" id="stageHint">바닥을 누르면 걸어가요 · 의자를 누르면 앉아요 · 방향키/WASD로도 움직여요 · 스페이스바 점프 · 친구를 누르면 눈덩이를 던져요</div>
@@ -184,11 +189,30 @@
     </div>
   </div>
 
+  <!-- ───────── 🎂 다 같이 케이크 만들기 ───────── -->
+  <div class="modal" id="cakeModal" hidden>
+    <div class="modal-card cake-card">
+      <button class="icon-btn close" data-close-cake>✕</button>
+      <h2>🎂 다 같이 케이크 만들기</h2>
+      <div class="cake-steps" id="cakeSteps"></div>
+      <div class="cake-main">
+        <div class="cake-view" id="cakeView"></div>
+        <div class="cake-side">
+          <div class="cake-panel" id="cakePanel"></div>
+          <ul class="cake-log" id="cakeLog"></ul>
+          <button class="cake-restart" id="cakeRestart">처음부터</button>
+        </div>
+      </div>
+      <div class="confetti" id="confetti"></div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
   <script src="vendor/qrcode.js"></script>
   <script src="sound.js"></script>
   <script src="avatar.js"></script>
+  <script src="cake.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

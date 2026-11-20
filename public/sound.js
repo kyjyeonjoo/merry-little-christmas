@@ -141,6 +141,11 @@
     whoosh() { tone({ freq: 600, freqEnd: 260, type: 'sine', dur: 0.3, vol: 0.15 }); },
     splat() { noise(0.18, 0.7); tone({ freq: 160, freqEnd: 70, dur: 0.12, vol: 0.5 }); },
     pop() { tone({ freq: 660, freqEnd: 990, type: 'sine', dur: 0.09, vol: 0.4 }); },
+    plop() { bloop(380 + Math.random() * 120, 0, 0.1, 0.8); },
+    ding() { [1319, 1760, 2093].forEach((f, i) => tone({ freq: f, type: 'sine', dur: 0.6, vol: 0.3, delay: i * 0.12 })); },
+    blow() { noise(0.45, 0.35); },
+    nyam() { tone({ freq: 700, freqEnd: 900, type: 'sine', dur: 0.08, vol: 0.4 }); tone({ freq: 900, freqEnd: 1200, type: 'sine', dur: 0.1, vol: 0.4, delay: 0.12 }); },
+    tada() { [784, 988, 1175, 1568].forEach((f, i) => tone({ freq: f, type: 'triangle', dur: 0.35, vol: 0.28, delay: i * 0.09 })); },
   };
 
   // ───────── 캐롤 BGM: 서버가 받아둔 무료 음원(OpenGameArt)을 차례로 틀어요 ─────────

@@ -13,7 +13,7 @@
     sofa3: { x: 640, y: 578, kind: 'sofa' },
     cush1: { x: 380, y: 470, kind: 'cush', face: 1 },
     cush2: { x: 620, y: 470, kind: 'cush', face: -1 },
-    cush3: { x: 500, y: 438, kind: 'cush' },
+    cush3: { x: 262, y: 512, kind: 'cush', face: 1 },
     poufL: { x: 105, y: 520, kind: 'pouf', face: 1 },
     poufR: { x: 895, y: 520, kind: 'pouf', face: -1 },
   };
@@ -50,6 +50,42 @@
     t.classList.add('show');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+  }
+
+  const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  // ───────── 🎂 케이크 ─────────
+  let cakeState = null;
+  const cakeUI = CakeUI({
+    send: (m) => send(m), toast, Sound, esc,
+    playerCount: () => players.size,
+    close: () => closeCake(),
+  });
+  function openCake() { $('#cakeModal').hidden = false; cakeUI.setOpen(true); }
+  function closeCake() { $('#cakeModal').hidden = true; cakeUI.setOpen(false); }
+  $('#cakeModal').addEventListener('click', (e) => { if (e.target.id === 'cakeModal') closeCake(); });
+  function confetti(box) {
+    const colors = ['#e8474f', '#ffc94a', '#3f9c6d', '#8b7cf2', '#ff86a6', '#6fb6ff'];
+    for (let i = 0; i < 40; i++) {
+      const c = document.createElement('i');
+      c.style.background = colors[i % colors.length];
+      c.style.left = Math.random() * 100 + '%';
+      box.appendChild(c);
+      c.animate([
+        { transform: `translate(0, -20px) rotate(0)`, opacity: 1 },
+        { transform: `translate(${(Math.random() - 0.5) * 120}px, ${260 + Math.random() * 200}px) rotate(${Math.random() * 720}deg)`, opacity: 0 },
+      ], { duration: 1400 + Math.random() * 900, easing: 'cubic-bezier(.2,.6,.4,1)', delay: Math.random() * 300 }).onfinish = () => c.remove();
+    }
+  }
+  function onCake(c) {
+    const prev = cakeState;
+    cakeState = c;
+    if (prev && !prev.candlesOut && c.candlesOut) {
+      Sound.Sfx.tada();
+      confetti($('#confetti'));
+    }
+    if (prev && prev.stage !== 'done' && c.stage === 'done') Sound.Sfx.tada();
+    cakeUI.update(c);
   }
 
   // ───────── 연결 ─────────
@@ -129,6 +165,9 @@
       case 'sys': addLog({ kind: 'sys', text: m.text }); break;
       case 'emote': showEmote(m.id, m.e); Sound.Sfx.pop(); break;
       case 'jump': doJump(m.id); break;
+      case 'cake': onCake(m.cake); break;
+      case 'cakeBlow': showEmote(m.id, '🌬️'); Sound.Sfx.blow(); break;
+      case 'cakeEat': showEmote(m.id, '😋'); Sound.Sfx.nyam(); break;
       case 'snow': doSnow(m.id); break;
       case 'throw': doThrow(m.from, m.to); break;
       case 'pupdate': {
@@ -214,6 +253,7 @@
     m.players.forEach(addPlayer);
     $('#chatLog').innerHTML = '';
     m.history.forEach((h) => addLog(h));
+    if (m.cake) onCake(m.cake);
     renderMe();
     updateCount();
     fitStage();
@@ -422,6 +462,7 @@
     if (!me) return;
     const mine = players.get(me.id);
     if (!mine) return;
+    if (e.target.closest('.cake-table')) { openCake(); return; }
     const seatEl = e.target.closest('.seat');
     if (seatEl) {
       const id = seatEl.dataset.seat;
@@ -454,7 +495,7 @@
     return a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA');
   }
   window.addEventListener('keydown', (e) => {
-    if (!me || typing() || !$('#profileModal').hidden || !$('#inviteModal').hidden) return;
+    if (!me || typing() || !$('#profileModal').hidden || !$('#inviteModal').hidden || !$('#cakeModal').hidden) return;
     if (e.key === 'Enter') { $('#chatInput').focus(); e.preventDefault(); return; }
     if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (!e.repeat) send({ t: 'jump' }); return; }
     if ((e.key === 'e' || e.key === 'E' || e.key === 'ㄷ') && !e.repeat) { send({ t: 'snow' }); return; }
@@ -673,14 +714,14 @@
 
   // ───────── 아래 메뉴 ─────────
   const COMING = {
-    cake: '🎂 케이크 투표·만들기·같이 먹기는 곧 열려요!',
     gift: '🎁 그림 선물·쪽지 나눔은 곧 열려요!',
     tree: '🎄 다 같이 트리 꾸미기는 곧 열려요!',
     mafia: '🎅 산타 마피아는 곧 열려요!',
   };
   document.querySelectorAll('.dock-item').forEach((b) =>
     b.addEventListener('click', () => {
-      if (b.dataset.feature !== 'room') toast(COMING[b.dataset.feature]);
+      if (b.dataset.feature === 'cake') openCake();
+      else if (b.dataset.feature !== 'room') toast(COMING[b.dataset.feature]);
     })
   );
 
