@@ -69,114 +69,55 @@
     o.start(t); o.stop(t + dur + 0.02);
   }
 
-  // ───────── 동물 울음소리 (브라우저가 직접 합성) ─────────
-  // voice: 발진기 → (필터) → 음량, 주파수/음량 곡선을 [시각, 값] 목록으로 줘요
-  function voice({ type = 'sawtooth', t0, dur, freq, gain, filter, q = 1, vibrato }) {
-    const o = ctx.createOscillator(), g = ctx.createGain();
-    o.type = type;
-    o.frequency.setValueAtTime(freq[0][1], t0);
-    for (const [dt, f] of freq.slice(1)) o.frequency.linearRampToValueAtTime(f, t0 + dt);
-    g.gain.setValueAtTime(0.0001, t0);
-    for (const [dt, v] of gain) g.gain.linearRampToValueAtTime(v, t0 + dt);
-    g.gain.linearRampToValueAtTime(0.0001, t0 + dur);
-    let node = o;
-    if (filter) {
-      const f = ctx.createBiquadFilter();
-      f.type = filter.type || 'bandpass'; f.Q.value = q;
-      f.frequency.setValueAtTime(filter.f[0][1], t0);
-      for (const [dt, v] of filter.f.slice(1)) f.frequency.linearRampToValueAtTime(v, t0 + dt);
-      node.connect(f); node = f;
+  // ───────── 동물 말소리 ─────────
+  // 귀여운 "말소리": 부드러운 사인파가 휙 올라가거나 내려가는 짧은 음절들
+  // notes: [시작(초), 길이(초), 시작음, 끝음(, 중간음)]
+  function cute(t0, notes, { vib = 0, vol = 0.5, low = false } = {}) {
+    for (const [dt, dur, f0, f1, fm] of notes) {
+      const t = t0 + dt;
+      const o = ctx.createOscillator(), o2 = ctx.createOscillator(), g = ctx.createGain(), g2 = ctx.createGain();
+      const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 3200;
+      o.type = 'sine'; o2.type = 'triangle';
+      for (const osc of [o, o2]) {
+        const mul = osc === o ? 1 : 2;
+        osc.frequency.setValueAtTime(f0 * mul, t);
+        if (fm) {
+          osc.frequency.exponentialRampToValueAtTime(fm * mul, t + dur * 0.45);
+          osc.frequency.exponentialRampToValueAtTime(f1 * mul, t + dur);
+        } else {
+          osc.frequency.exponentialRampToValueAtTime(f1 * mul, t + dur * 0.8);
+        }
+      }
+      if (vib) {
+        const l = ctx.createOscillator(), lg = ctx.createGain();
+        l.frequency.value = 11; lg.gain.value = vib;
+        l.connect(lg); lg.connect(o.frequency); l.start(t); l.stop(t + dur + 0.05);
+      }
+      g2.gain.value = low ? 0.05 : 0.1; // 살짝 반짝이는 배음
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + 0.012);
+      g.gain.setValueAtTime(vol, t + dur * 0.6);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.04);
+      o.connect(g); o2.connect(g2); g2.connect(g); g.connect(f); f.connect(sfxGain);
+      o.start(t); o2.start(t); o.stop(t + dur + 0.06); o2.stop(t + dur + 0.06);
     }
-    if (vibrato) {
-      const l = ctx.createOscillator(), lg = ctx.createGain();
-      l.frequency.value = vibrato.rate; lg.gain.value = vibrato.depth;
-      l.connect(lg); lg.connect(o.frequency); l.start(t0); l.stop(t0 + dur + 0.05);
-    }
-    node.connect(g); g.connect(sfxGain);
-    o.start(t0); o.stop(t0 + dur + 0.05);
   }
-  function puff(t0, dur, vol, fc) { // 짧은 바람 소리
-    const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2);
-    const src = ctx.createBufferSource(); src.buffer = buf;
-    const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = fc; f.Q.value = 1.2;
-    const g = ctx.createGain(); g.gain.value = vol;
-    src.connect(f); f.connect(g); g.connect(sfxGain); src.start(t0);
-  }
-  const CRY_LEN = { cat: 0.5, puppy: 0.45, bear: 0.5, bunny: 0.32, hamster: 0.3, fox: 0.42, sheep: 0.65, penguin: 0.4, chick: 0.42, monkey: 0.5, turtle: 0.4 };
+  const CRY_LEN = { cat: 0.48, puppy: 0.36, bear: 0.36, bunny: 0.3, hamster: 0.3, fox: 0.34, sheep: 0.5, penguin: 0.26, chick: 0.32, monkey: 0.36, turtle: 0.32 };
   const CRIES = {
-    // 고양이: 냐~옹 (올라갔다 내려오는 음 + 모음처럼 바뀌는 필터)
-    cat(t, p) {
-      voice({ t0: t, dur: 0.42, freq: [[0, 620 * p], [0.12, 880 * p], [0.42, 560 * p]],
-        gain: [[0.03, 0.7], [0.3, 0.55]], filter: { f: [[0, 900], [0.15, 1700], [0.42, 900]] }, q: 3 });
-    },
-    // 멍멍이: 멍! 멍!
-    puppy(t, p) {
-      for (const dt of [0, 0.2]) {
-        voice({ type: 'square', t0: t + dt, dur: 0.12, freq: [[0, 420 * p], [0.03, 520 * p], [0.12, 260 * p]],
-          gain: [[0.01, 0.65]], filter: { type: 'lowpass', f: [[0, 1500], [0.12, 600]] }, q: 2 });
-        puff(t + dt, 0.06, 0.25, 900);
-      }
-    },
-    // 곰돌이: 우웅~ (낮고 둥근 소리)
-    bear(t, p) {
-      voice({ type: 'triangle', t0: t, dur: 0.45, freq: [[0, 150 * p], [0.12, 190 * p], [0.45, 135 * p]],
-        gain: [[0.06, 0.95], [0.32, 0.8]], filter: { type: 'lowpass', f: [[0, 500], [0.15, 800], [0.45, 400]] }, q: 1,
-        vibrato: { rate: 6, depth: 6 } });
-    },
-    // 토끼: 뿅뿅 (높게 튀어오르는 소리)
-    bunny(t, p) {
-      for (const dt of [0, 0.13]) {
-        voice({ type: 'sine', t0: t + dt, dur: 0.09, freq: [[0, 700 * p], [0.05, 1700 * p], [0.09, 1300 * p]], gain: [[0.008, 0.75]] });
-      }
-    },
-    // 햄찌: 찍찍
-    hamster(t, p) {
-      for (const dt of [0, 0.1]) {
-        voice({ type: 'square', t0: t + dt, dur: 0.06, freq: [[0, 2300 * p], [0.03, 2900 * p], [0.06, 2500 * p]],
-          gain: [[0.005, 0.32]], filter: { type: 'lowpass', f: [[0, 4500]] } });
-      }
-    },
-    // 여우: 캥캥 (날카롭게 짧은 소리)
-    fox(t, p) {
-      for (const dt of [0, 0.18]) {
-        voice({ t0: t + dt, dur: 0.13, freq: [[0, 900 * p], [0.04, 1350 * p], [0.13, 750 * p]],
-          gain: [[0.01, 0.6]], filter: { f: [[0, 1400], [0.05, 2200], [0.13, 1200]] }, q: 4 });
-      }
-    },
-    // 양: 메에에~ (떨리는 소리)
-    sheep(t, p) {
-      voice({ t0: t, dur: 0.6, freq: [[0, 420 * p], [0.1, 470 * p], [0.6, 400 * p]],
-        gain: [[0.04, 0.6], [0.45, 0.5]], filter: { f: [[0, 1000], [0.1, 1300], [0.6, 900]] }, q: 2.5,
-        vibrato: { rate: 9, depth: 28 } });
-    },
-    // 병아리: 삐약삐약
-    chick(t, p) {
-      for (const dt of [0, 0.17]) {
-        voice({ type: 'sine', t0: t + dt, dur: 0.13, freq: [[0, 1900 * p], [0.04, 2700 * p], [0.13, 2100 * p]], gain: [[0.01, 0.55], [0.09, 0.4]] });
-        voice({ type: 'triangle', t0: t + dt, dur: 0.13, freq: [[0, 3800 * p], [0.04, 5400 * p], [0.13, 4200 * p]], gain: [[0.01, 0.08]] });
-      }
-    },
-    // 원숭이: 우끼끼!
-    monkey(t, p) {
-      voice({ t0: t, dur: 0.14, freq: [[0, 320 * p], [0.14, 460 * p]], gain: [[0.02, 0.55]], filter: { f: [[0, 700], [0.14, 1100]] }, q: 2.5 });
-      for (const dt of [0.17, 0.29]) {
-        voice({ type: 'square', t0: t + dt, dur: 0.08, freq: [[0, 1300 * p], [0.03, 1850 * p], [0.08, 1500 * p]],
-          gain: [[0.006, 0.35]], filter: { type: 'lowpass', f: [[0, 3500]] } });
-      }
-    },
-    // 거북이: 뽀록뽀록 (물방울 소리)
-    turtle(t, p) {
+    cat: (t, p) => cute(t, [[0, 0.15, 880 * p, 1320 * p], [0.17, 0.22, 1240 * p, 980 * p]], { vib: 18 }),          // 냐~옹
+    puppy: (t, p) => cute(t, [[0, 0.1, 640 * p, 960 * p], [0.15, 0.1, 640 * p, 960 * p]]),                         // 왕왕
+    bear: (t, p) => cute(t, [[0, 0.26, 420 * p, 470 * p, 560 * p]], { vol: 0.6, low: true }),                      // 뽀옹
+    bunny: (t, p) => cute(t, [[0, 0.08, 1000 * p, 1900 * p], [0.11, 0.08, 1000 * p, 1900 * p]], { vol: 0.42 }),     // 뿅뿅
+    hamster: (t, p) => cute(t, [[0, 0.05, 2000 * p, 2500 * p], [0.075, 0.05, 2000 * p, 2500 * p], [0.15, 0.06, 2100 * p, 2700 * p]], { vol: 0.32 }), // 찍찍찍
+    fox: (t, p) => cute(t, [[0, 0.1, 1100 * p, 1200 * p, 1500 * p], [0.14, 0.1, 1100 * p, 1200 * p, 1500 * p]], { vol: 0.45 }), // 콩콩
+    sheep: (t, p) => cute(t, [[0, 0.38, 700 * p, 700 * p, 780 * p]], { vib: 28 }),                                  // 메에~
+    penguin: (t, p) => cute(t, [[0, 0.13, 900 * p, 1000 * p, 1400 * p]], { vol: 0.5 }),                            // 뾱!
+    chick: (t, p) => cute(t, [[0, 0.08, 1800 * p, 2400 * p], [0.1, 0.12, 2300 * p, 1900 * p]], { vol: 0.38 }),      // 삐약
+    monkey: (t, p) => cute(t, [[0, 0.07, 1300 * p, 1800 * p], [0.09, 0.07, 1300 * p, 1800 * p], [0.18, 0.09, 1400 * p, 2000 * p]], { vol: 0.4 }), // 끼끼끼
+    turtle(t, p) {                                                                                                  // 뽀록
       const d = t - ctx.currentTime;
-      bloop(330 * p, d, 0.09, 0.85);
-      bloop(420 * p, d + 0.12, 0.08, 0.7);
-    },
-    // 펭귄: 꽥! (코맹맹이 소리)
-    penguin(t, p) {
-      voice({ type: 'square', t0: t, dur: 0.22, freq: [[0, 560 * p], [0.05, 640 * p], [0.22, 430 * p]],
-        gain: [[0.01, 0.55], [0.15, 0.45]], filter: { f: [[0, 1300], [0.22, 1000]] }, q: 6 });
-      puff(t, 0.05, 0.2, 1500);
+      bloop(330 * p, d, 0.09, 0.8);
+      bloop(420 * p, d + 0.12, 0.08, 0.65);
     },
   };
 
@@ -191,7 +132,7 @@
       const gap = CRY_LEN[type] || 0.4;
       for (let k = 0; k < times; k++) fn(ctx.currentTime + k * gap, 0.92 + Math.random() * 0.16);
     },
-    jump() { tone({ freq: 380, freqEnd: 980, type: 'square', dur: 0.14, vol: 0.18 }); },
+    jump() { tone({ freq: 520, freqEnd: 1250, type: 'sine', dur: 0.14, vol: 0.4 }); },
     land() { tone({ freq: 220, freqEnd: 120, type: 'sine', dur: 0.08, vol: 0.4 }); },
     sparkle() {
       [1568, 2093, 1760, 2349, 2637].forEach((f, i) =>
