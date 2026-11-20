@@ -319,6 +319,24 @@ function handle(client, msg) {
       broadcast({ t: 'pupdate', id: p.id, nick: p.nick, avatar: p.avatar });
       break;
     }
+    case 'jump':
+    case 'snow':
+    case 'throw': {
+      // 너무 자주 못 하게: 3초에 8번까지
+      const now = Date.now();
+      client.fxTimes = (client.fxTimes || []).filter((t) => now - t < 3000);
+      if (client.fxTimes.length >= 8) return;
+      client.fxTimes.push(now);
+      if (msg.t === 'throw') {
+        const target = players.get(Number(msg.to));
+        if (!target || target.id === p.id) return;
+        p.facing = target.x < p.x ? -1 : 1;
+        broadcast({ t: 'throw', from: p.id, to: target.id });
+      } else {
+        broadcast({ t: msg.t, id: p.id });
+      }
+      break;
+    }
     case 'hb': break; // 연결 유지용
     case 'logout': {
       if (client.token) { delete db.tokens[client.token]; saveDb(); }

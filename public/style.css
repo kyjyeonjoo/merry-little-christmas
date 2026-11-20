@@ -429,6 +429,45 @@ input:focus { border-color: #ffc9cf; }
 .modal-actions { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 .spacer { flex: 1; }
 
+/* ───────── 점프 · 눈 · 눈덩이 ───────── */
+#fx { position: absolute; inset: 0; pointer-events: none; z-index: 1500; }
+.sprite.jump { animation: jump .56s cubic-bezier(.3,.7,.4,1); }
+@keyframes jump {
+  0% { transform: scaleX(var(--face, 1)) translateY(0) scaleY(1); }
+  12% { transform: scaleX(var(--face, 1)) translateY(0) scale(1.08, .86); }
+  45% { transform: scaleX(var(--face, 1)) translateY(-46px) scale(.94, 1.08); }
+  82% { transform: scaleX(var(--face, 1)) translateY(0) scale(1.1, .85); }
+  100% { transform: scaleX(var(--face, 1)) translateY(0) scale(1, 1); }
+}
+.flake { position: absolute; color: #fff; text-shadow: 0 0 6px #bfe3ff, 0 1px 0 rgba(91,64,54,.25); }
+.snowball {
+  position: absolute; left: -9px; top: -9px; width: 18px; height: 18px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fff 0 45%, #dceeff 75%, #b9d7f2);
+  box-shadow: 0 2px 0 rgba(91,64,54,.25);
+}
+.splat { position: absolute; border-radius: 50%; background: #fff; box-shadow: 0 0 4px #cfe8ff; }
+.player.hit .sprite svg { animation: shiver .6s ease-in-out; }
+@keyframes shiver {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-5px) rotate(-6deg); } 30% { transform: translateX(5px) rotate(6deg); }
+  45% { transform: translateX(-4px) rotate(-4deg); } 60% { transform: translateX(3px) rotate(3deg); }
+}
+.player:not(.is-me) .sprite { cursor: crosshair; }
+.actions { display: flex; gap: 6px; }
+.act-btn {
+  border: 0; background: #fff; border-radius: 999px; height: 34px; padding: 0 12px 0 8px; cursor: pointer; display: flex; align-items: center; gap: 4px;
+  font-size: 16px; box-shadow: 0 3px 0 rgba(91,64,54,.15); transition: transform .1s; white-space: nowrap;
+}
+.act-btn span { font-family: 'Jua', sans-serif; font-size: 13px; }
+.act-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(91,64,54,.15); }
+.sound-box { display: flex; gap: 4px; }
+.snd-btn {
+  border: 0; background: #fff; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 15px;
+  box-shadow: 0 3px 0 rgba(91,64,54,.15); position: relative;
+}
+.snd-btn.off { opacity: .45; }
+.snd-btn.off::after { content: ''; position: absolute; left: 6px; right: 6px; top: 50%; height: 2.5px; background: var(--red); transform: rotate(-35deg); border-radius: 2px; }
+
 /* ───────── 친구 초대 ───────── */
 .invite-btn {
   border: 0; background: var(--green); color: #fff; border-radius: 999px; padding: 6px 12px; cursor: pointer;
@@ -466,7 +505,14 @@ input:focus { border-color: #ffc9cf; }
   .chat-panel { width: 200px; top: 64px; right: 8px; max-height: 34dvh; }
   .chat-log { min-height: 60px; }
   .input-bar { flex-wrap: wrap; gap: 6px; padding: 6px 10px; }
-  .emotes { width: 100%; justify-content: center; gap: 6px; }
+  .emotes { justify-content: center; gap: 4px; }
+  .emotes button { width: 30px; height: 30px; font-size: 15px; }
+  .actions { width: auto; }
+  .act-btn span { display: none; }
+  .act-btn { padding: 0 9px; }
+  .input-bar > .actions, .input-bar > .emotes { flex: none; }
+  .input-bar { justify-content: center; }
+  .logo-text { display: none; }
   #chatForm .btn { padding: 8px 14px; }
   .chat-log li.sys { font-size: 11px; }
   .dock-item { min-width: 0; padding: 5px 8px; flex: 1; }

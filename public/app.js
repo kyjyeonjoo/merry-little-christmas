@@ -127,7 +127,10 @@
       }
       case 'chat': showChat(m); break;
       case 'sys': addLog({ kind: 'sys', text: m.text }); break;
-      case 'emote': showEmote(m.id, m.e); break;
+      case 'emote': showEmote(m.id, m.e); Sound.Sfx.pop(); break;
+      case 'jump': doJump(m.id); break;
+      case 'snow': doSnow(m.id); break;
+      case 'throw': doThrow(m.from, m.to); break;
       case 'pupdate': {
         const p = players.get(m.id);
         if (p) { p.data.nick = m.nick; p.data.avatar = m.avatar; renderPlayer(p); refreshSeats(); }
@@ -289,6 +292,7 @@
     if (players.has(d.id)) removePlayer(d.id);
     const el = document.createElement('div');
     el.className = 'player';
+    el.dataset.id = d.id;
     if (d.id === me.id) el.classList.add('is-me');
     el.innerHTML = `<div class="bubble"></div><div class="emote"></div><div class="sprite"></div><div class="name"></div>`;
     const p = { data: d, el };
@@ -364,7 +368,12 @@
       else send({ t: 'sit', seat: id });
       return;
     }
-    if (e.target.closest('.player')) return;
+    const other = e.target.closest('.player');
+    if (other) {
+      const id = Number(other.dataset.id);
+      if (id && id !== me.id) send({ t: 'throw', to: id });
+      return;
+    }
     const pt = stagePoint(e);
     const x = clamp(pt.x, BOUNDS.minX, BOUNDS.maxX);
     const y = clamp(pt.y, BOUNDS.minY, BOUNDS.maxY);
@@ -386,6 +395,8 @@
   window.addEventListener('keydown', (e) => {
     if (!me || typing() || !$('#profileModal').hidden || !$('#inviteModal').hidden) return;
     if (e.key === 'Enter') { $('#chatInput').focus(); e.preventDefault(); return; }
+    if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (!e.repeat) send({ t: 'jump' }); return; }
+    if ((e.key === 'e' || e.key === 'E' || e.key === 'ㄷ') && !e.repeat) { send({ t: 'snow' }); return; }
     if (!KEYS[e.key]) return;
     e.preventDefault();
     if (held.size === 0) { lastFrame = performance.now(); requestAnimationFrame(kbLoop); }
@@ -429,6 +440,7 @@
     addLog(m);
     const p = players.get(m.id);
     if (!p) return;
+    Sound.Sfx.chirp(p.data.avatar && p.data.avatar.type, m.text);
     const b = p.el.querySelector('.bubble');
     b.textContent = m.text;
     b.classList.remove('show');
@@ -470,6 +482,109 @@
     const c = $('#chatPanel').classList.toggle('collapsed');
     $('#chatToggle').textContent = c ? '+' : '–';
   });
+
+  // ───────── 점프 · 눈 뿌리기 · 눈덩이 ─────────
+  function doJump(id) {
+    const p = players.get(id);
+    if (!p) return;
+    const sp = p.el.querySelector('.sprite');
+    sp.classList.remove('jump');
+    void sp.offsetWidth;
+    sp.classList.add('jump');
+    clearTimeout(p.jumpTimer);
+    p.jumpTimer = setTimeout(() => { sp.classList.remove('jump'); Sound.Sfx.land(); }, 560);
+    Sound.Sfx.jump();
+  }
+  function fxLayer() { return $('#fx'); }
+  function posOf(p) { const c = curPos(p); return { x: c.x, y: c.y }; }
+  function doSnow(id) {
+    const p = players.get(id);
+    if (!p) return;
+    const { x, y } = posOf(p);
+    const flakes = ['❄', '❅', '❆', '•', '✦'];
+    for (let i = 0; i < 22; i++) {
+      const f = document.createElement('span');
+      f.className = 'flake';
+      f.textContent = flakes[i % flakes.length];
+      f.style.left = x + 'px';
+      f.style.top = (y - 70) + 'px';
+      f.style.fontSize = 10 + Math.random() * 14 + 'px';
+      fxLayer().appendChild(f);
+      const ang = Math.random() * Math.PI * 2, dist = 40 + Math.random() * 70;
+      const dx = Math.cos(ang) * dist, up = -30 - Math.random() * 50, fall = 40 + Math.random() * 60;
+      f.animate([
+        { transform: 'translate(-50%,-50%) scale(.3)', opacity: 0 },
+        { transform: `translate(calc(-50% + ${dx * 0.6}px), calc(-50% + ${up}px)) scale(1)`, opacity: 1, offset: 0.3 },
+        { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${fall}px)) rotate(${Math.random() * 360}deg) scale(.8)`, opacity: 0 },
+      ], { duration: 1300 + Math.random() * 600, easing: 'ease-out' }).onfinish = () => f.remove();
+    }
+    Sound.Sfx.sparkle();
+  }
+  function doThrow(fromId, toId) {
+    const a = players.get(fromId), b = players.get(toId);
+    if (!a || !b) return;
+    a.data.facing = curPos(b).x < curPos(a).x ? -1 : 1;
+    applyFacing(a);
+    const s0 = posOf(a), s1 = posOf(b);
+    const from = { x: s0.x + a.data.facing * 18, y: s0.y - 50 }, to = { x: s1.x, y: s1.y - 45 };
+    const dist = Math.hypot(to.x - from.x, to.y - from.y);
+    const peak = Math.min(160, 40 + dist * 0.35);
+    const ball = document.createElement('div');
+    ball.className = 'snowball';
+    fxLayer().appendChild(ball);
+    const frames = [];
+    for (let i = 0; i <= 12; i++) {
+      const t = i / 12;
+      const x = from.x + (to.x - from.x) * t;
+      const y = from.y + (to.y - from.y) * t - peak * 4 * t * (1 - t);
+      frames.push({ transform: `translate(${x}px, ${y}px) rotate(${t * 540}deg)` });
+    }
+    Sound.Sfx.whoosh();
+    ball.animate(frames, { duration: 380 + dist * 0.6, easing: 'linear' }).onfinish = () => {
+      ball.remove();
+      const hit = curPos(b);
+      splat(hit.x, hit.y - 45);
+      b.el.classList.remove('hit');
+      void b.el.offsetWidth;
+      b.el.classList.add('hit');
+      setTimeout(() => b.el.classList.remove('hit'), 600);
+      Sound.Sfx.splat();
+    };
+  }
+  function splat(x, y) {
+    for (let i = 0; i < 10; i++) {
+      const d = document.createElement('span');
+      d.className = 'splat';
+      d.style.left = x + 'px'; d.style.top = y + 'px';
+      const s = 5 + Math.random() * 8;
+      d.style.width = d.style.height = s + 'px';
+      fxLayer().appendChild(d);
+      const ang = Math.random() * Math.PI * 2, r = 18 + Math.random() * 26;
+      d.animate([
+        { transform: 'translate(-50%,-50%)', opacity: 1 },
+        { transform: `translate(calc(-50% + ${Math.cos(ang) * r}px), calc(-50% + ${Math.sin(ang) * r + 16}px))`, opacity: 0 },
+      ], { duration: 500 + Math.random() * 200, easing: 'ease-out' }).onfinish = () => d.remove();
+    }
+  }
+  $('#jumpBtn').addEventListener('click', () => send({ t: 'jump' }));
+  $('#snowBtn').addEventListener('click', () => send({ t: 'snow' }));
+
+  // ───────── 소리 켜기/끄기 ─────────
+  function renderSoundBtns() {
+    $('#bgmBtn').classList.toggle('off', !Sound.bgmOn);
+    $('#sfxBtn').classList.toggle('off', !Sound.sfxOn);
+    $('#bgmBtn').title = Sound.bgmOn ? '캐롤 끄기' : '캐롤 켜기';
+    $('#sfxBtn').title = Sound.sfxOn ? '효과음 끄기' : '효과음 켜기';
+  }
+  $('#bgmBtn').addEventListener('click', () => {
+    Sound.setBgm(!Sound.bgmOn); renderSoundBtns();
+    toast(Sound.bgmOn ? '🎵 캐롤을 틀었어요' : '🎵 캐롤을 껐어요');
+  });
+  $('#sfxBtn').addEventListener('click', () => {
+    Sound.setSfx(!Sound.sfxOn); renderSoundBtns();
+    toast(Sound.sfxOn ? '🔔 효과음을 켰어요' : '🔕 효과음을 껐어요');
+  });
+  renderSoundBtns();
 
   function showEmote(id, e) {
     const p = players.get(id);

@@ -37,9 +37,13 @@
   <!-- ───────── 메인 ───────── -->
   <section id="app" class="screen" hidden>
     <header class="topbar">
-      <div class="logo">🎄 메리 리틀 크리스마스</div>
+      <div class="logo">🎄 <span class="logo-text">메리 리틀 크리스마스</span></div>
       <div class="online" id="onlineCount">🔥 0명</div>
       <button class="invite-btn" id="inviteBtn">🔗 친구 초대</button>
+      <div class="sound-box">
+        <button class="snd-btn" id="bgmBtn" title="캐롤 BGM 켜기/끄기">🎵</button>
+        <button class="snd-btn" id="sfxBtn" title="효과음 켜기/끄기">🔔</button>
+      </div>
       <button class="me-chip" id="meChip" title="내 캐릭터 꾸미기">
         <span class="me-avatar" id="meAvatar"></span>
         <span id="meNick">-</span>
@@ -85,7 +89,8 @@
 
         <!-- 좌석과 캐릭터는 app.js가 여기에 그려요 -->
         <div id="entities"></div>
-        <div class="stage-hint" id="stageHint">바닥을 누르면 걸어가요 · 의자를 누르면 앉아요 · 방향키/WASD로도 움직여요</div>
+        <div id="fx"></div>
+        <div class="stage-hint" id="stageHint">바닥을 누르면 걸어가요 · 의자를 누르면 앉아요 · 방향키/WASD로도 움직여요 · 스페이스바 점프 · 친구를 누르면 눈덩이를 던져요</div>
       </div>
     </main>
 
@@ -99,6 +104,10 @@
     </aside>
 
     <div class="input-bar">
+      <div class="actions">
+        <button class="act-btn" id="jumpBtn" title="점프 (스페이스바)">🦘<span>점프</span></button>
+        <button class="act-btn" id="snowBtn" title="눈 뿌리기 (E)">❄️<span>눈 뿌리기</span></button>
+      </div>
       <div class="emotes" id="emotes">
         <button data-e="❤️">❤️</button><button data-e="🎄">🎄</button><button data-e="⛄">⛄</button>
         <button data-e="😆">😆</button><button data-e="🎁">🎁</button><button data-e="✨">✨</button>
@@ -168,6 +177,7 @@
   <div class="toast" id="toast"></div>
 
   <script src="vendor/qrcode.js"></script>
+  <script src="sound.js"></script>
   <script src="avatar.js"></script>
   <script src="app.js"></script>
 </body>
