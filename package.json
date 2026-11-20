@@ -1,0 +1,8 @@
+{
+  "name": "christmas-playroom",
+  "version": "0.2.0",
+  "private": true,
+  "description": "크리스마스 놀이방 - 벽난로 채팅방",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" }
+}

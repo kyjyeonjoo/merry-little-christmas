@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>🎄 메리 리틀 크리스마스</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="snow" aria-hidden="true"></div>
+
+  <!-- ───────── 로그인 / 회원가입 ───────── -->
+  <section id="authScreen" class="screen">
+    <div class="auth-card">
+      <div class="auth-deco">🎄</div>
+      <h1>메리 리틀 크리스마스</h1>
+      <p class="sub">벽난로 앞에 옹기종기 모여 이야기해요</p>
+      <div class="auth-preview" id="authPreview"></div>
+      <div class="tabs">
+        <button class="tab active" data-mode="login">들어가기</button>
+        <button class="tab" data-mode="signup">처음 왔어요</button>
+      </div>
+      <form id="authForm" autocomplete="on">
+        <label>닉네임<input id="authNick" maxlength="12" placeholder="2~12자" autocomplete="username" required /></label>
+        <label>비밀번호<input id="authPw" type="password" maxlength="64" placeholder="4자 이상" autocomplete="current-password" required /></label>
+        <label class="pw2" hidden>비밀번호 확인<input id="authPw2" type="password" maxlength="64" autocomplete="new-password" /></label>
+        <p class="err" id="authErr"></p>
+        <button type="submit" class="btn primary" id="authSubmit">벽난로 곁으로 🔥</button>
+      </form>
+      <p class="hint">이메일 없이 닉네임이랑 비밀번호만 있으면 돼요</p>
+    </div>
+  </section>
+
+  <!-- ───────── 메인 ───────── -->
+  <section id="app" class="screen" hidden>
+    <header class="topbar">
+      <div class="logo">🎄 메리 리틀 크리스마스</div>
+      <div class="online" id="onlineCount">🔥 0명</div>
+      <button class="invite-btn" id="inviteBtn">🔗 친구 초대</button>
+      <button class="me-chip" id="meChip" title="내 캐릭터 꾸미기">
+        <span class="me-avatar" id="meAvatar"></span>
+        <span id="meNick">-</span>
+        <span class="caret">✎</span>
+      </button>
+    </header>
+
+    <main class="stage-wrap" id="stageWrap">
+      <div class="stage" id="stage">
+        <!-- 벽 -->
+        <div class="wall">
+          <div class="garland"></div>
+          <div class="window w-left"><div class="win-snow"></div><div class="moon"></div></div>
+          <div class="window w-right"><div class="win-snow"></div></div>
+          <div class="frame">🦌</div>
+        </div>
+        <div class="floor"></div>
+        <div class="rug"></div>
+
+        <!-- 벽난로 -->
+        <div class="fireplace">
+          <div class="mantel">
+            <span class="candle"></span><span class="candle c2"></span>
+            <div class="stockings"><i></i><i class="s2"></i><i class="s3"></i></div>
+          </div>
+          <div class="hearth">
+            <div class="fire">
+              <span class="flame f1"></span><span class="flame f2"></span><span class="flame f3"></span>
+              <span class="log"></span><span class="log l2"></span>
+            </div>
+          </div>
+          <div class="glow"></div>
+        </div>
+
+        <!-- 장식 트리 -->
+        <div class="deco-tree">
+          <div class="star">★</div>
+          <div class="layer l1"></div><div class="layer l2"></div><div class="layer l3"></div>
+          <div class="trunk"></div>
+          <div class="gifts"><i></i><i class="g2"></i></div>
+        </div>
+        <div class="cocoa-table">☕</div>
+
+        <!-- 좌석과 캐릭터는 app.js가 여기에 그려요 -->
+        <div id="entities"></div>
+        <div class="stage-hint" id="stageHint">바닥을 누르면 걸어가요 · 의자를 누르면 앉아요 · 방향키/WASD로도 움직여요</div>
+      </div>
+    </main>
+
+    <!-- 채팅 -->
+    <aside class="chat-panel" id="chatPanel">
+      <div class="chat-head">
+        <span>💬 이야기</span>
+        <button class="icon-btn" id="chatToggle" title="접기">–</button>
+      </div>
+      <ul class="chat-log" id="chatLog"></ul>
+    </aside>
+
+    <div class="input-bar">
+      <div class="emotes" id="emotes">
+        <button data-e="❤️">❤️</button><button data-e="🎄">🎄</button><button data-e="⛄">⛄</button>
+        <button data-e="😆">😆</button><button data-e="🎁">🎁</button><button data-e="✨">✨</button>
+      </div>
+      <form id="chatForm">
+        <input id="chatInput" maxlength="120" placeholder="벽난로 앞에서 한마디… (Enter)" autocomplete="off" />
+        <button class="btn primary" type="submit">말하기</button>
+      </form>
+    </div>
+
+    <nav class="dock">
+      <button class="dock-item active" data-feature="room"><b>🔥</b><span>벽난로</span></button>
+      <button class="dock-item" data-feature="cake"><b>🎂</b><span>케이크</span></button>
+      <button class="dock-item" data-feature="gift"><b>🎁</b><span>선물 나눔</span></button>
+      <button class="dock-item" data-feature="tree"><b>🎄</b><span>트리 꾸미기</span></button>
+      <button class="dock-item" data-feature="mafia"><b>🎅</b><span>산타 마피아</span></button>
+    </nav>
+  </section>
+
+  <!-- ───────── 캐릭터/계정 설정 ───────── -->
+  <div class="modal" id="profileModal" hidden>
+    <div class="modal-card">
+      <button class="icon-btn close" data-close>✕</button>
+      <h2 id="profileTitle">내 캐릭터 꾸미기</h2>
+      <div class="editor">
+        <div class="editor-preview">
+          <div class="preview-stage"><div id="previewAvatar"></div></div>
+          <button class="btn ghost small" id="randomBtn">🎲 랜덤</button>
+        </div>
+        <div class="editor-controls">
+          <h3>동물</h3><div class="choice-row" id="typeRow"></div>
+          <h3>색깔</h3><div class="choice-row" id="colorRow"></div>
+          <h3>장식</h3><div class="choice-row" id="accRow"></div>
+        </div>
+      </div>
+      <details class="account-box" id="accountBox">
+        <summary>닉네임 · 비밀번호 바꾸기</summary>
+        <label>닉네임<input id="editNick" maxlength="12" /></label>
+        <label>지금 비밀번호<input id="oldPw" type="password" maxlength="64" placeholder="비밀번호를 바꿀 때만" /></label>
+        <label>새 비밀번호<input id="newPw" type="password" maxlength="64" placeholder="비밀번호를 바꿀 때만" /></label>
+      </details>
+      <p class="err" id="profileErr"></p>
+      <div class="modal-actions">
+        <button class="btn ghost" id="logoutBtn">로그아웃</button>
+        <span class="spacer"></span>
+        <button class="btn ghost" data-close id="skipBtn">닫기</button>
+        <button class="btn primary" id="saveProfile">저장하기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ───────── 친구 초대 (링크 + QR) ───────── -->
+  <div class="modal" id="inviteModal" hidden>
+    <div class="modal-card invite-card">
+      <button class="icon-btn close" data-close-invite>✕</button>
+      <h2>🔗 친구 초대하기</h2>
+      <p class="invite-sub" id="inviteSub">QR을 찍거나 링크를 보내면 바로 들어올 수 있어요</p>
+      <div class="qr-box" id="qrBox"><div class="qr-loading">❄️</div></div>
+      <div class="link-row">
+        <input id="inviteLink" readonly />
+        <button class="btn primary small" id="copyLink">복사</button>
+      </div>
+      <p class="invite-note" id="inviteNote"></p>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="vendor/qrcode.js"></script>
+  <script src="avatar.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
