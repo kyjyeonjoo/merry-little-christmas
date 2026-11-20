@@ -8,10 +8,14 @@
   const SEATS = {
     armL: { x: 200, y: 395, kind: 'arm', face: 1 },
     armR: { x: 800, y: 395, kind: 'arm', face: -1 },
-    sofa1: { x: 430, y: 575, kind: 'sofa' },
-    sofa2: { x: 570, y: 575, kind: 'sofa' },
-    cush1: { x: 400, y: 470, kind: 'cush', face: 1 },
-    cush2: { x: 600, y: 470, kind: 'cush', face: -1 },
+    sofa1: { x: 360, y: 578, kind: 'sofa' },
+    sofa2: { x: 500, y: 578, kind: 'sofa' },
+    sofa3: { x: 640, y: 578, kind: 'sofa' },
+    cush1: { x: 380, y: 470, kind: 'cush', face: 1 },
+    cush2: { x: 620, y: 470, kind: 'cush', face: -1 },
+    cush3: { x: 500, y: 438, kind: 'cush' },
+    poufL: { x: 105, y: 520, kind: 'pouf', face: 1 },
+    poufR: { x: 895, y: 520, kind: 'pouf', face: -1 },
   };
 
   // ───────── 상태 ─────────
@@ -126,7 +130,7 @@
       case 'emote': showEmote(m.id, m.e); break;
       case 'pupdate': {
         const p = players.get(m.id);
-        if (p) { p.data.nick = m.nick; p.data.avatar = m.avatar; renderPlayer(p); }
+        if (p) { p.data.nick = m.nick; p.data.avatar = m.avatar; renderPlayer(p); refreshSeats(); }
         break;
       }
       case 'profileOk':
@@ -166,7 +170,8 @@
       const d = document.createElement('div');
       d.className = 'mini bob';
       d.style.animationDelay = i * 0.25 + 's';
-      d.innerHTML = Avatar.svg({ type: types[i], color: pick(Avatar.COLORS), acc: pick(['santa', 'scarf', 'antlers', 'ribbon']) });
+      const accs = Avatar.ACCS.map((a) => a.id).sort(() => Math.random() - 0.5).slice(0, 1 + Math.floor(Math.random() * 3));
+      d.innerHTML = Avatar.svg({ type: types[i], color: pick(Avatar.COLORS), accs });
       prev.appendChild(d);
     }
   }
@@ -252,8 +257,11 @@
       } else if (s.kind === 'cush') {
         el.innerHTML = `<div class="cushion"></div>`;
         el.style.zIndex = 5;
+      } else if (s.kind === 'pouf') {
+        el.innerHTML = `<div class="pouf"></div>`;
+        el.style.zIndex = s.y - 2;
       } else {
-        el.innerHTML = `<div class="sofa-back"></div>`;
+        el.innerHTML = `<div class="sofa-back"><span class="plate"></span></div>`;
         el.style.zIndex = s.y + 15;
       }
       el.title = '누르면 앉아요';
@@ -262,8 +270,18 @@
     }
   }
   function refreshSeats() {
-    const taken = new Set([...players.values()].map((p) => p.data.seat).filter(Boolean));
-    for (const [id, el] of Object.entries(seatEls)) el.classList.toggle('taken', taken.has(id));
+    const bySeat = {};
+    players.forEach((p) => { if (p.data.seat) bySeat[p.data.seat] = p; });
+    for (const [id, el] of Object.entries(seatEls)) {
+      el.classList.toggle('taken', !!bySeat[id]);
+      const plate = el.querySelector('.plate');
+      if (plate) {
+        // 소파에 앉은 사람 이름은 소파 등받이에 보여줘요
+        const p = bySeat[id];
+        plate.textContent = p ? p.data.nick : '';
+        plate.classList.toggle('mine', !!(p && me && p.data.id === me.id));
+      }
+    }
   }
 
   // ───────── 캐릭터 ─────────
@@ -483,7 +501,7 @@
   // ───────── 캐릭터 꾸미기 / 계정 ─────────
   let draft = null;
   function openModal(first) {
-    draft = { ...myUser.avatar };
+    draft = { type: myUser.avatar.type, color: myUser.avatar.color, accs: [...Avatar.accList(myUser.avatar)] };
     $('#profileTitle').textContent = first ? '반가워요! 내 캐릭터를 골라봐요 🎁' : '내 캐릭터 꾸미기';
     $('#skipBtn').textContent = first ? '나중에 할래요' : '닫기';
     $('#logoutBtn').hidden = !!first;
@@ -502,7 +520,7 @@
     Avatar.TYPES.forEach((t) => {
       const b = document.createElement('button');
       b.className = 'choice' + (draft.type === t.id ? ' on' : '');
-      b.innerHTML = `<span class="ch-av">${Avatar.svg({ ...draft, type: t.id, acc: 'none' })}</span><small>${t.name}</small>`;
+      b.innerHTML = `<span class="ch-av">${Avatar.svg({ ...draft, type: t.id, accs: [] })}</span><small>${t.name}</small>`;
       b.onclick = () => { draft.type = t.id; renderEditor(); };
       typeRow.appendChild(b);
     });
@@ -518,11 +536,23 @@
     });
     const accRow = $('#accRow');
     accRow.innerHTML = '';
+    $('#accCount').textContent = `${draft.accs.length} / ${Avatar.MAX_ACCS}`;
+    const none = document.createElement('button');
+    none.className = 'choice' + (draft.accs.length === 0 ? ' on' : '');
+    none.innerHTML = `<span class="ch-av">${Avatar.svg({ ...draft, accs: [] })}</span><small>없음</small>`;
+    none.onclick = () => { draft.accs = []; renderEditor(); };
+    accRow.appendChild(none);
     Avatar.ACCS.forEach((a) => {
+      const on = draft.accs.includes(a.id);
       const b = document.createElement('button');
-      b.className = 'choice' + (draft.acc === a.id ? ' on' : '');
-      b.innerHTML = `<span class="ch-av">${Avatar.svg({ ...draft, acc: a.id })}</span><small>${a.name}</small>`;
-      b.onclick = () => { draft.acc = a.id; renderEditor(); };
+      b.className = 'choice' + (on ? ' on' : '') + (!on && draft.accs.length >= Avatar.MAX_ACCS ? ' full' : '');
+      b.innerHTML = `<span class="ch-av">${Avatar.svg({ ...draft, accs: [a.id] })}</span><small>${a.name}</small>${on ? '<i class="check">✓</i>' : ''}`;
+      b.onclick = () => {
+        if (on) draft.accs = draft.accs.filter((x) => x !== a.id);
+        else if (draft.accs.length >= Avatar.MAX_ACCS) return toast(`장식은 ${Avatar.MAX_ACCS}개까지 할 수 있어요 🎀`);
+        else draft.accs = [...draft.accs, a.id];
+        renderEditor();
+      };
       accRow.appendChild(b);
     });
   }
@@ -531,7 +561,8 @@
   $('#profileModal').addEventListener('click', (e) => { if (e.target.id === 'profileModal') closeModal(); });
   $('#randomBtn').addEventListener('click', () => {
     const pick = (a) => a[Math.floor(Math.random() * a.length)];
-    draft = { type: pick(Avatar.TYPES).id, color: pick(Avatar.COLORS), acc: pick(Avatar.ACCS).id };
+    const accs = Avatar.ACCS.map((a) => a.id).sort(() => Math.random() - 0.5).slice(0, Math.floor(Math.random() * (Avatar.MAX_ACCS + 1)));
+    draft = { type: pick(Avatar.TYPES).id, color: pick(Avatar.COLORS), accs };
     renderEditor();
   });
   $('#saveProfile').addEventListener('click', () => {

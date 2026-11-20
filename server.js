@@ -78,18 +78,32 @@ function findUserByNick(nick) {
   return Object.values(db.users).find((u) => u.nick.toLowerCase() === n);
 }
 
-const ANIMALS = ['bear', 'bunny', 'cat', 'hamster', 'puppy'];
+const ANIMALS = ['bear', 'bunny', 'cat', 'hamster', 'puppy', 'fox', 'sheep', 'penguin'];
 const COLORS = ['#ffffff', '#fff1d6', '#ffd6e0', '#ffd9b8', '#d4f2e1', '#d6ebff', '#e6dcff', '#d9b99b', '#d8d8de'];
-const ACCS = ['none', 'santa', 'scarf', 'antlers', 'ribbon'];
+const ACCS = ['santa', 'scarf', 'antlers', 'ribbon', 'glasses', 'star', 'earmuffs', 'bell', 'mittens'];
+const MAX_ACCS = 3;
 
+function shuffle(a) { return [...a].sort(() => Math.random() - 0.5); }
 function randomAvatar() {
   const pick = (a) => a[Math.floor(Math.random() * a.length)];
-  return { type: pick(ANIMALS), color: pick(COLORS), acc: pick(ACCS.slice(1)) };
+  return { type: pick(ANIMALS), color: pick(COLORS), accs: shuffle(ACCS).slice(0, 1 + Math.floor(Math.random() * 2)) };
+}
+// 예전 형식({acc:'santa'})도 새 형식({accs:[...]})으로 바꿔줘요
+function normAvatar(a) {
+  a = a || {};
+  let accs = Array.isArray(a.accs) ? a.accs : a.acc && a.acc !== 'none' ? [a.acc] : [];
+  accs = [...new Set(accs.filter((x) => ACCS.includes(x)))].slice(0, MAX_ACCS);
+  return {
+    type: ANIMALS.includes(a.type) ? a.type : 'bear',
+    color: COLORS.includes(a.color) ? a.color : COLORS[1],
+    accs,
+  };
 }
 function cleanAvatar(a) {
-  if (!a || typeof a !== 'object') return null;
-  if (!ANIMALS.includes(a.type) || !COLORS.includes(a.color) || !ACCS.includes(a.acc)) return null;
-  return { type: a.type, color: a.color, acc: a.acc };
+  if (!a || typeof a !== 'object' || !ANIMALS.includes(a.type) || !COLORS.includes(a.color)) return null;
+  if (!Array.isArray(a.accs) || a.accs.length > MAX_ACCS) return null;
+  if (a.accs.some((x) => !ACCS.includes(x))) return null;
+  return { type: a.type, color: a.color, accs: [...new Set(a.accs)] };
 }
 function validNick(nick) {
   return typeof nick === 'string' && /^[^\s<>"'&]{2,12}$/.test(nick.trim());
@@ -104,7 +118,7 @@ function newToken(uid) {
   return t;
 }
 function publicUser(u) {
-  return { id: u.id, nick: u.nick, avatar: u.avatar };
+  return { id: u.id, nick: u.nick, avatar: normAvatar(u.avatar) };
 }
 
 // ───────────────────────── 방 (벽난로 거실) ─────────────────────────
@@ -113,10 +127,14 @@ const ROOM = { w: 1000, h: 620, minX: 40, maxX: 960, minY: 340, maxY: 600 };
 const SEATS = {
   armL: { x: 200, y: 395 },
   armR: { x: 800, y: 395 },
-  sofa1: { x: 430, y: 575 },
-  sofa2: { x: 570, y: 575 },
-  cush1: { x: 400, y: 470 },
-  cush2: { x: 600, y: 470 },
+  sofa1: { x: 360, y: 578 },
+  sofa2: { x: 500, y: 578 },
+  sofa3: { x: 640, y: 578 },
+  cush1: { x: 380, y: 470 },
+  cush2: { x: 620, y: 470 },
+  cush3: { x: 500, y: 438 },
+  poufL: { x: 105, y: 520 },
+  poufR: { x: 895, y: 520 },
 };
 const seatOwner = {}; // seatId -> playerId
 const players = new Map(); // playerId -> { id, uid, nick, avatar, x, y, seat, facing, client }
@@ -152,7 +170,7 @@ function enterRoom(client, user) {
     }
   }
   const p = {
-    id: nextPid++, uid: user.id, nick: user.nick, avatar: user.avatar,
+    id: nextPid++, uid: user.id, nick: user.nick, avatar: normAvatar(user.avatar),
     x: 380 + Math.random() * 240, y: 520 + Math.random() * 40, seat: null, facing: 1, client,
   };
   client.player = p;
@@ -296,7 +314,7 @@ function handle(client, msg) {
         user.hash = hashPw(msg.newPw, user.salt);
       }
       saveDb();
-      p.nick = user.nick; p.avatar = user.avatar;
+      p.nick = user.nick; p.avatar = normAvatar(user.avatar);
       client.send({ t: 'profileOk', user: publicUser(user) });
       broadcast({ t: 'pupdate', id: p.id, nick: p.nick, avatar: p.avatar });
       break;

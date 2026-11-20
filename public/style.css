@@ -251,7 +251,7 @@ input:focus { border-color: #ffc9cf; }
 .cocoa-table::after { content: ''; position: absolute; top: 32px; width: 8px; height: 22px; background: #8c5232; z-index: -2; }
 
 .stage-hint {
-  position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 2000; pointer-events: none;
+  position: absolute; left: 50%; top: 48px; transform: translateX(-50%); z-index: 2000; pointer-events: none;
   background: rgba(255,255,255,.85); border-radius: 999px; padding: 6px 14px; font-size: 13px; white-space: nowrap;
   transition: opacity .6s;
 }
@@ -281,15 +281,28 @@ input:focus { border-color: #ffc9cf; }
 /* 방석 */
 .cushion { left: -42px; top: -22px; width: 84px; height: 34px; border-radius: 50%;
   background: repeating-linear-gradient(45deg, #3f9c6d 0 8px, #4fb07f 8px 16px); box-shadow: inset 0 -6px 0 rgba(0,0,0,.15), 0 4px 0 rgba(0,0,0,.1); }
+/* 푸프(동그란 의자) */
+.pouf { left: -32px; top: -30px; width: 64px; height: 40px; border-radius: 50% / 34%;
+  background: linear-gradient(#ffc1d0 0 30%, #f59ab2 30%); box-shadow: inset 0 -6px 0 rgba(0,0,0,.12), 0 5px 0 rgba(0,0,0,.12); }
+.pouf::before { content: ''; position: absolute; left: 4px; right: 4px; top: 2px; height: 16px; border-radius: 50%; background: #ffd6e0; }
+[data-seat="poufR"] .pouf { background: linear-gradient(#bfe8d3 0 30%, #8fd1b0 30%); }
+[data-seat="poufR"] .pouf::before { background: #d4f2e1; }
+.sitting[data-seat="pouf"] .sprite svg { transform: translateY(-20px) scale(.97, .93); }
+.sitting[data-seat="pouf"] .name { top: 16px; }
 /* 소파(등받이가 우리 쪽을 봐요) */
 .sofa-back { left: -70px; top: -30px; width: 140px; height: 50px; background: #6fa8dc; box-shadow: inset 0 -10px 0 #4f86bb, inset 0 8px 0 #8fbfe8; }
-[data-seat="sofa1"] .sofa-back { border-radius: 30px 6px 6px 18px; }
-[data-seat="sofa2"] .sofa-back { border-radius: 6px 30px 18px 6px; }
-[data-seat="sofa1"] .sofa-back::before, [data-seat="sofa2"] .sofa-back::before {
+[data-seat="sofa1"] .sofa-back { border-radius: 30px 0 0 18px; }
+[data-seat="sofa2"] .sofa-back { border-radius: 0; }
+[data-seat="sofa3"] .sofa-back { border-radius: 0 30px 18px 0; }
+[data-seat="sofa1"] .sofa-back::before, [data-seat="sofa3"] .sofa-back::before {
   content: ''; position: absolute; top: -8px; width: 30px; height: 62px; border-radius: 16px; background: #5c97cf; box-shadow: inset 0 -8px 0 #4f86bb;
 }
 [data-seat="sofa1"] .sofa-back::before { left: -14px; }
-[data-seat="sofa2"] .sofa-back::before { right: -14px; }
+[data-seat="sofa3"] .sofa-back::before { right: -14px; }
+[data-seat="sofa2"] .sofa-back::after { /* 가운데 쿠션 이음새 */
+  content: ''; position: absolute; top: 10px; bottom: 14px; left: 0; right: 0;
+  border-left: 2px solid rgba(79,134,187,.5); border-right: 2px solid rgba(79,134,187,.5);
+}
 
 /* ───────── 캐릭터 ───────── */
 .player { position: absolute; width: 0; height: 0; pointer-events: none; }
@@ -307,7 +320,13 @@ input:focus { border-color: #ffc9cf; }
   background: rgba(255,255,255,.88); padding: 1px 8px; border-radius: 999px; box-shadow: 0 2px 0 rgba(91,64,54,.15);
 }
 .is-me .name { background: var(--red); color: #fff; }
-.sitting[data-seat="sofa"] .name { top: -138px; }
+.sitting[data-seat="sofa"] .name { display: none; }
+.plate {
+  position: absolute; left: 50%; top: 20px; transform: translateX(-50%); white-space: nowrap; font-family: 'Jua', sans-serif;
+  font-size: 13px; background: rgba(255,255,255,.9); padding: 1px 8px; border-radius: 999px; box-shadow: 0 2px 0 rgba(0,0,0,.12);
+}
+.plate:empty { display: none; }
+.plate.mine { background: var(--red); color: #fff; }
 .sitting[data-seat="sofa"] .bubble { bottom: 146px; }
 .sitting[data-seat="sofa"] .emote { bottom: 140px; }
 .sitting[data-seat="arm"] .name { top: 14px; }
@@ -393,7 +412,13 @@ input:focus { border-color: #ffc9cf; }
   display: flex; flex-direction: column; align-items: center; width: 70px;
 }
 .choice.on { border-color: var(--red); background: #fff0f1; }
-.choice small { font-size: 11px; }
+.choice small { font-size: 10.5px; white-space: nowrap; letter-spacing: -.3px; }
+.choice { position: relative; }
+.choice .check { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%; background: var(--red); color: #fff;
+  font-style: normal; font-size: 12px; line-height: 20px; box-shadow: 0 2px 0 rgba(0,0,0,.15); }
+.choice.full { opacity: .45; }
+.acc-count { font-family: 'Jua', sans-serif; font-size: 12px; background: #fff; border-radius: 999px; padding: 1px 8px; margin-left: 4px; color: var(--red-d); }
+.acc-hint { font-family: 'Gowun Dodum', sans-serif; font-size: 11px; opacity: .6; margin-left: 6px; font-weight: 400; }
 .ch-av { width: 42px; height: 50px; display: block; }
 .ch-av svg { width: 100%; height: 100%; }
 .swatch { width: 32px; height: 32px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px #e7d2b4; cursor: pointer; }
