@@ -104,7 +104,7 @@
     const g = ctx.createGain(); g.gain.value = vol;
     src.connect(f); f.connect(g); g.connect(sfxGain); src.start(t0);
   }
-  const CRY_LEN = { cat: 0.5, puppy: 0.45, bear: 0.5, bunny: 0.32, hamster: 0.3, fox: 0.42, sheep: 0.65, penguin: 0.4 };
+  const CRY_LEN = { cat: 0.5, puppy: 0.45, bear: 0.5, bunny: 0.32, hamster: 0.3, fox: 0.42, sheep: 0.65, penguin: 0.4, chick: 0.42, monkey: 0.5, turtle: 0.4 };
   const CRIES = {
     // 고양이: 냐~옹 (올라갔다 내려오는 음 + 모음처럼 바뀌는 필터)
     cat(t, p) {
@@ -150,6 +150,27 @@
       voice({ t0: t, dur: 0.6, freq: [[0, 420 * p], [0.1, 470 * p], [0.6, 400 * p]],
         gain: [[0.04, 0.6], [0.45, 0.5]], filter: { f: [[0, 1000], [0.1, 1300], [0.6, 900]] }, q: 2.5,
         vibrato: { rate: 9, depth: 28 } });
+    },
+    // 병아리: 삐약삐약
+    chick(t, p) {
+      for (const dt of [0, 0.17]) {
+        voice({ type: 'sine', t0: t + dt, dur: 0.13, freq: [[0, 1900 * p], [0.04, 2700 * p], [0.13, 2100 * p]], gain: [[0.01, 0.55], [0.09, 0.4]] });
+        voice({ type: 'triangle', t0: t + dt, dur: 0.13, freq: [[0, 3800 * p], [0.04, 5400 * p], [0.13, 4200 * p]], gain: [[0.01, 0.08]] });
+      }
+    },
+    // 원숭이: 우끼끼!
+    monkey(t, p) {
+      voice({ t0: t, dur: 0.14, freq: [[0, 320 * p], [0.14, 460 * p]], gain: [[0.02, 0.55]], filter: { f: [[0, 700], [0.14, 1100]] }, q: 2.5 });
+      for (const dt of [0.17, 0.29]) {
+        voice({ type: 'square', t0: t + dt, dur: 0.08, freq: [[0, 1300 * p], [0.03, 1850 * p], [0.08, 1500 * p]],
+          gain: [[0.006, 0.35]], filter: { type: 'lowpass', f: [[0, 3500]] } });
+      }
+    },
+    // 거북이: 뽀록뽀록 (물방울 소리)
+    turtle(t, p) {
+      const d = t - ctx.currentTime;
+      bloop(330 * p, d, 0.09, 0.85);
+      bloop(420 * p, d + 0.12, 0.08, 0.7);
     },
     // 펭귄: 꽥! (코맹맹이 소리)
     penguin(t, p) {

@@ -9,8 +9,11 @@
     { id: 'fox', name: '여우' },
     { id: 'sheep', name: '양' },
     { id: 'penguin', name: '펭귄' },
+    { id: 'chick', name: '병아리' },
+    { id: 'monkey', name: '원숭이' },
+    { id: 'turtle', name: '거북이' },
   ];
-  const COLORS = ['#ffffff', '#fff1d6', '#ffd6e0', '#ffd9b8', '#d4f2e1', '#d6ebff', '#e6dcff', '#d9b99b', '#d8d8de'];
+  const COLORS = ['#ffffff', '#fff1d6', '#fff0a0', '#ffd6e0', '#ffd9b8', '#d4f2e1', '#d6ebff', '#e6dcff', '#d9b99b', '#d8d8de'];
   const ACCS = [
     { id: 'santa', name: '산타 모자' },
     { id: 'scarf', name: '목도리' },
@@ -71,7 +74,12 @@
                 <ellipse cx="87" cy="50" rx="12" ry="6.5" fill="${d}" stroke="${LINE}" stroke-width="2.4" transform="rotate(-18 87 50)"/>`;
       }
       case 'penguin':
+      case 'chick':
+      case 'turtle':
         return '';
+      case 'monkey':
+        return `<circle cx="14" cy="52" r="10" ${s}/><circle cx="86" cy="52" r="10" ${s}/>
+                <circle cx="14" cy="52" r="5.5" fill="#ffe2c6"/><circle cx="86" cy="52" r="5.5" fill="#ffe2c6"/>`;
     }
     return '';
   }
@@ -95,6 +103,16 @@
       return blobs.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${wool}" stroke="${LINE}" stroke-width="2.2"/>`).join('')
         + blobs.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r - 1.6}" fill="${wool}"/>`).join('');
     }
+    if (type === 'monkey') {
+      return `<g fill="#ffe2c6"><ellipse cx="39" cy="53" rx="11" ry="12"/><ellipse cx="61" cy="53" rx="11" ry="12"/>
+        <ellipse cx="50" cy="66" rx="18" ry="12"/></g>`;
+    }
+    if (type === 'chick') {
+      return `<path d="M48 26 C44 16, 50 11, 51 23 C53 13, 60 14, 54 25" fill="${c}" stroke="${LINE}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    }
+    if (type === 'turtle') {
+      return `<g fill="${shade(c, -22)}" opacity=".55"><circle cx="32" cy="36" r="3"/><circle cx="68" cy="34" r="2.5"/><circle cx="60" cy="30" r="1.8"/></g>`;
+    }
     if (type === 'penguin') {
       return `<path d="M50 40 C40 30, 20 36, 22 56 C24 74, 38 82, 50 82 C62 82, 76 74, 78 56 C80 36, 60 30, 50 40 Z" fill="#fff"/>`;
     }
@@ -108,6 +126,9 @@
       extra = `<g stroke="${LINE}" stroke-width="1.6" stroke-linecap="round" opacity=".7">
         <line x1="14" y1="58" x2="25" y2="60"/><line x1="14" y1="65" x2="25" y2="64"/>
         <line x1="86" y1="58" x2="75" y2="60"/><line x1="86" y1="65" x2="75" y2="64"/></g>`;
+    }
+    if (type === 'monkey') {
+      extra = `<circle cx="47.5" cy="61" r="1.2" fill="${LINE}"/><circle cx="52.5" cy="61" r="1.2" fill="${LINE}"/>`;
     }
     if (type === 'puppy' || type === 'bear' || type === 'fox' || type === 'sheep') {
       extra = `<ellipse cx="50" cy="61" rx="3.6" ry="2.6" fill="${LINE}"/>`;
@@ -124,7 +145,7 @@
         <circle cx="39.2" cy="52.4" r="1.3" fill="#fff"/><circle cx="63.2" cy="52.4" r="1.3" fill="#fff"/>
       </g>
       ${extra}
-      ${type === 'penguin'
+      ${type === 'penguin' || type === 'chick'
         ? `<path d="M45 61 L55 61 L50 67 Z" fill="#ffb347" stroke="${LINE}" stroke-width="1.6" stroke-linejoin="round"/>`
         : `<path d="M46 64.5 Q48 67 50 64.5 Q52 67 54 64.5" fill="none" stroke="${LINE}" stroke-width="1.8" stroke-linecap="round"/>`}`;
   }
@@ -197,18 +218,25 @@
     const has = (id) => accs.includes(id);
     const c = a.color;
     const penguin = a.type === 'penguin';
-    const belly = penguin ? '#ffffff' : shade(c, 12);
-    const foot = penguin ? '#ffb347' : shade(c, -18);
+    const turtle = a.type === 'turtle';
+    const belly = penguin ? '#ffffff' : turtle ? '#fff3c4' : shade(c, 12);
+    const foot = penguin || a.type === 'chick' ? '#ffb347' : shade(c, -18);
+    const shell = turtle ? `<ellipse cx="50" cy="84" rx="38" ry="21" fill="#a9dfbd" stroke="${LINE}" stroke-width="2.6"/>
+        <ellipse cx="50" cy="82" rx="33" ry="17" fill="#7cc59a"/>
+        <g fill="none" stroke="#4f9c73" stroke-width="2.2" stroke-linejoin="round">
+          <path d="M17 82 L24 74 L30 82 L24 90 Z"/><path d="M83 82 L76 74 L70 82 L76 90 Z"/></g>` : '';
     // 겹쳐 그리는 순서: 사슴뿔(귀 뒤) → 몸 → 장갑 → 얼굴 → 목도리·방울 → 귀마개 → 안경 → 모자 → 리본·별
     return `<svg class="avatar-svg" viewBox="0 -16 100 120" xmlns="http://www.w3.org/2000/svg">
       <ellipse cx="50" cy="101" rx="26" ry="4.5" fill="#000" opacity=".12"/>
       ${has('antlers') ? accessory('antlers', a.type) : ''}
       ${ears(a.type, c)}
       <g class="body">
+        ${shell}
         <ellipse cx="38" cy="96" rx="8" ry="5" fill="${foot}" stroke="${LINE}" stroke-width="2.4"/>
         <ellipse cx="62" cy="96" rx="8" ry="5" fill="${foot}" stroke="${LINE}" stroke-width="2.4"/>
         <ellipse cx="50" cy="83" rx="22" ry="15" fill="${c}" stroke="${LINE}" stroke-width="2.6"/>
-        <ellipse cx="50" cy="86" rx="12" ry="8" fill="${belly}" opacity="${penguin ? 1 : 0.8}"/>
+        <ellipse cx="50" cy="86" rx="12" ry="8" fill="${belly}" opacity="${penguin || turtle ? 1 : 0.8}"/>
+        ${turtle ? `<path d="M42 82 L58 82 M41 88 L59 88" stroke="#e3cf8f" stroke-width="1.6"/>` : ''}
         <ellipse class="arm-l" cx="29" cy="82" rx="5.5" ry="7.5" fill="${c}" stroke="${LINE}" stroke-width="2.4" transform="rotate(25 29 82)"/>
         <ellipse class="arm-r" cx="71" cy="82" rx="5.5" ry="7.5" fill="${c}" stroke="${LINE}" stroke-width="2.4" transform="rotate(-25 71 82)"/>
       </g>

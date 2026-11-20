@@ -78,8 +78,8 @@ function findUserByNick(nick) {
   return Object.values(db.users).find((u) => u.nick.toLowerCase() === n);
 }
 
-const ANIMALS = ['bear', 'bunny', 'cat', 'hamster', 'puppy', 'fox', 'sheep', 'penguin'];
-const COLORS = ['#ffffff', '#fff1d6', '#ffd6e0', '#ffd9b8', '#d4f2e1', '#d6ebff', '#e6dcff', '#d9b99b', '#d8d8de'];
+const ANIMALS = ['bear', 'bunny', 'cat', 'hamster', 'puppy', 'fox', 'sheep', 'penguin', 'chick', 'monkey', 'turtle'];
+const COLORS = ['#ffffff', '#fff1d6', '#fff0a0', '#ffd6e0', '#ffd9b8', '#d4f2e1', '#d6ebff', '#e6dcff', '#d9b99b', '#d8d8de'];
 const ACCS = ['santa', 'scarf', 'antlers', 'ribbon', 'glasses', 'star', 'earmuffs', 'bell', 'mittens', 'rudolph', 'holly'];
 const MAX_ACCS = 3;
 
