@@ -54,11 +54,11 @@
   }
 
   // 옆에서 본 케이크 (만들기·완성)
-  function sideCake(c, { withCream = true, s = 1 } = {}) {
+  function sideCake(c, { withCream = true, s = 1, plate = true } = {}) {
     const cx = 150, top = 92, rx = 108, ry = 38, h = 82;
     const sheet = sheetColor(c), cream = creamColor(c);
     const sheetDark = shade(sheet, -28);
-    let out = `<ellipse cx="${cx}" cy="${top + h + 14}" rx="${rx + 26}" ry="${ry - 6}" fill="#eaf4ff" stroke="${LINE}" stroke-width="2.5"/>`;
+    let out = plate ? `<ellipse cx="${cx}" cy="${top + h + 14}" rx="${rx + 26}" ry="${ry - 6}" fill="#eaf4ff" stroke="${LINE}" stroke-width="2.5"/>` : '';
     out += `<path d="M${cx - rx} ${top} L${cx - rx} ${top + h} A${rx} ${ry} 0 0 0 ${cx + rx} ${top + h} L${cx + rx} ${top} Z" fill="${sheet}" stroke="${LINE}" stroke-width="2.6"/>`;
     if (withCream) {
       // 가운데 크림층 + 위 크림 + 흘러내린 크림
@@ -87,10 +87,10 @@
   }
 
   // 위에서 본 케이크 (먹기)
-  function topCake(c) {
+  function topCake(c, { plate = true } = {}) {
     const cx = 150, cy = 118, r = 96;
     const sheet = sheetColor(c), cream = creamColor(c);
-    let out = `<circle cx="${cx}" cy="${cy}" r="${r + 22}" fill="#eaf4ff" stroke="${LINE}" stroke-width="2.5"/>`;
+    let out = plate ? `<circle cx="${cx}" cy="${cy}" r="${r + 22}" fill="#eaf4ff" stroke="${LINE}" stroke-width="2.5"/>` : '';
     for (let i = 0; i < 8; i++) {
       const a0 = (i / 8) * Math.PI * 2, a1 = ((i + 1) / 8) * Math.PI * 2;
       const p0 = [cx + Math.cos(a0) * r, cy + Math.sin(a0) * r], p1 = [cx + Math.cos(a1) * r, cy + Math.sin(a1) * r];
@@ -139,6 +139,74 @@
       <rect x="140" y="51" width="88" height="10" rx="5" fill="#fff" opacity=".7"/>
       <rect x="140" y="51" width="88" height="10" rx="5" fill="#ffd34d" class="oven-bar" data-k="${progressKey}"/>`;
   }
+  // ───────── 방 안 티테이블 (식탁보 + 케이크 스탠드 + 이름표) ─────────
+  function giftBox(steam) {
+    return `<g>
+      <rect x="93" y="62" width="54" height="38" rx="4" fill="#fffaf2" stroke="${LINE}" stroke-width="2.2"/>
+      <rect x="89" y="54" width="62" height="12" rx="3" fill="#fff" stroke="${LINE}" stroke-width="2.2"/>
+      <rect x="116" y="54" width="8" height="46" fill="#e8474f"/>
+      <path d="M120 54 C110 40, 100 46, 108 52 Z M120 54 C130 40, 140 46, 132 52 Z" fill="#e8474f" stroke="${LINE}" stroke-width="1.8" stroke-linejoin="round"/>
+      <circle cx="120" cy="54" r="3.5" fill="#c23440" stroke="${LINE}" stroke-width="1.5"/>
+      <g fill="#ffc94a" class="twinkle-s"><path d="M152 46 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2 Z"/><path d="M84 60 l1.4 3.5 3.5 1.4 -3.5 1.4 -1.4 3.5 -1.4 -3.5 -3.5 -1.4 3.5 -1.4 Z"/></g>
+      ${steam ? `<g fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" class="steam">
+        <path d="M104 46 q-5 -7 0 -14 q5 -7 0 -14"/><path d="M120 40 q-5 -7 0 -14 q5 -7 0 -14"/><path d="M136 46 q-5 -7 0 -14 q5 -7 0 -14"/></g>` : ''}
+    </g>`;
+  }
+  function tableArt(c) {
+    // 테이블 위 내용물 (스탠드 접시 윗면 y=100, 가운데 x=120)
+    let content = '', sign = '케이크 ♡';
+    const st = c.stage;
+    if (st === 'base' || st === 'batter') { content = giftBox(false); sign = c.base || c.batter.length ? '반죽 중…' : '케이크 ♡'; }
+    else if (st === 'baking') { content = giftBox(true); sign = '굽는 중…'; }
+    else if (st === 'cream') { content = `<g transform="translate(70 34) scale(.335)">${sideCake(c, { withCream: false, plate: false })}</g>`; sign = '크림 중…'; }
+    else if (st === 'decorate' || st === 'done') { content = `<g transform="translate(70 34) scale(.335)">${sideCake(c, { plate: false, s: 1.6 })}</g>`; sign = st === 'done' ? '완성! ✨' : '꾸미는 중'; }
+    else if (st === 'eating') {
+      const sheet = sheetColor(c), cream = creamColor(c);
+      const left = c.slices.map((x, i) => (x ? null : i)).filter((i) => i !== null);
+      // 스탠드 위에 남은 조각들을 동그랗게 (뒤쪽부터 그려요)
+      const pos = left.map((i) => { const a = (i / 8) * Math.PI * 2; return { x: 120 + Math.cos(a) * 26, y: 95 + Math.sin(a) * 5 }; }).sort((p, q) => p.y - q.y);
+      content = pos.map(({ x, y }) => `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)})">
+          <path d="M-8 -2 L8 -2 L8 6 L-8 6 Z" fill="${sheet}" stroke="${LINE}" stroke-width="1.3"/>
+          <path d="M-8 1 L8 1" stroke="${cream}" stroke-width="2"/>
+          <path d="M-8 -2 L0 -9 L8 -2 Z" fill="${cream}" stroke="${LINE}" stroke-width="1.3" stroke-linejoin="round"/>
+          <circle cx="0" cy="-5" r="1.8" fill="#e8474f"/></g>`).join('');
+      sign = `${left.length}/8 조각`;
+    }
+    else if (st === 'finished') { content = [0, 1, 2, 3].map((i) => `<circle cx="${104 + i * 10}" cy="${97 + (i % 2) * 2}" r="1.8" fill="${sheetColor(c)}"/>`).join(''); sign = '냠냠 끝!'; }
+    // 식탁보 레이스
+    let lace = '';
+    for (let i = 0; i <= 16; i++) {
+      const a = (i / 16) * Math.PI;
+      lace += `<circle cx="${(120 + Math.cos(a) * 90).toFixed(1)}" cy="${(126 + Math.sin(a) * 24).toFixed(1)}" r="5.5" fill="${i % 2 ? '#fff' : '#ffe3e6'}" stroke="${LINE}" stroke-width="1.2"/>`;
+    }
+    return `<svg viewBox="0 0 240 180" xmlns="http://www.w3.org/2000/svg" class="table-art">
+      <ellipse cx="120" cy="172" rx="96" ry="9" fill="#000" opacity=".12"/>
+      <rect x="66" y="134" width="11" height="36" rx="3" fill="#8c5232" stroke="${LINE}" stroke-width="2"/>
+      <rect x="163" y="134" width="11" height="36" rx="3" fill="#8c5232" stroke="${LINE}" stroke-width="2"/>
+      <path d="M20 126 A100 26 0 0 0 220 126 L220 134 A100 26 0 0 1 20 134 Z" fill="#a8673f" stroke="${LINE}" stroke-width="2.2"/>
+      <ellipse cx="120" cy="126" rx="100" ry="26" fill="#c98a5e" stroke="${LINE}" stroke-width="2.4"/>
+      ${lace}
+      <ellipse cx="120" cy="123" rx="88" ry="21" fill="#fffaf2" stroke="${LINE}" stroke-width="2"/>
+      <ellipse cx="120" cy="123" rx="80" ry="17" fill="none" stroke="#e8474f" stroke-width="3"/>
+      <ellipse cx="120" cy="123" rx="72" ry="14" fill="none" stroke="#3f9c6d" stroke-width="1.4" stroke-dasharray="3 4"/>
+      <g transform="translate(176 120)">
+        <path d="M0 0 C4 -6 12 -6 16 -2 C12 0 13 2 16 3 C11 6 4 5 0 0 Z" fill="#3f9c6d" stroke="${LINE}" stroke-width="1.3"/>
+        <path d="M0 0 C-4 -6 -12 -6 -16 -2 C-12 0 -13 2 -16 3 C-11 6 -4 5 0 0 Z" fill="#4fb07f" stroke="${LINE}" stroke-width="1.3"/>
+        <circle cx="-2" cy="-1" r="2.6" fill="#ffd34d" stroke="${LINE}" stroke-width="1"/><circle cx="2.5" cy="0" r="2.6" fill="#e8474f" stroke="${LINE}" stroke-width="1"/>
+      </g>
+      <ellipse cx="120" cy="124" rx="22" ry="6" fill="#fff" stroke="${LINE}" stroke-width="2"/>
+      <path d="M114 124 L116 101 L124 101 L126 124 Z" fill="#fff" stroke="${LINE}" stroke-width="2" stroke-linejoin="round"/>
+      <ellipse cx="120" cy="101" rx="48" ry="10" fill="#fff" stroke="${LINE}" stroke-width="2.2"/>
+      <ellipse cx="120" cy="99.5" rx="40" ry="7" fill="#f4f8ff"/>
+      ${content}
+      <g transform="translate(42 118) rotate(-7)">
+        <path d="M0 0 L58 0 L54 22 L4 22 Z" fill="#fffaf2" stroke="${LINE}" stroke-width="1.8" stroke-linejoin="round"/>
+        <rect x="3" y="3" width="52" height="16" rx="3" fill="none" stroke="#e8474f" stroke-width="1.2" stroke-dasharray="3 2"/>
+        <text x="29" y="15.5" text-anchor="middle" font-size="10" font-family="Jua, sans-serif" fill="${LINE}">${sign}</text>
+      </g>
+    </svg>`;
+  }
+
   function svgWrap(inner, cls = '') {
     return `<svg class="cake-svg ${cls}" viewBox="0 0 300 240" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
   }
@@ -233,20 +301,10 @@
       $('#cakeRestart').hidden = cake.stage === 'base' && !cake.base;
     }
 
-    // 방 테이블 위 미니 케이크
+    // 방 안 티테이블
     function renderMini() {
-      const el = document.querySelector('.cake-table .mini');
-      if (!el) return;
-      const c = cake;
-      let inner, label;
-      if (['base', 'batter'].includes(c.stage)) { inner = bowl(c.stage === 'batter' ? sheetColor(c) : (c.base ? BASES[c.base].color : '#f3eee6'), c.batter, ''); label = c.stage === 'base' && !c.base ? '🎂 케이크 만들기' : '🥣 반죽 중'; }
-      else if (c.stage === 'baking') { inner = oven(c.id); label = '🔥 굽는 중'; }
-      else if (c.stage === 'cream') { inner = sideCake(c, { withCream: false }); label = '🍦 크림 만드는 중'; }
-      else if (c.stage === 'eating') { inner = topCake(c); label = `🍰 ${c.slices.filter((x) => !x).length}/8`; }
-      else if (c.stage === 'finished') { inner = `<ellipse cx="150" cy="150" rx="120" ry="40" fill="#eaf4ff" stroke="${LINE}" stroke-width="3"/>`; label = '😋 다 먹었어요'; }
-      else { inner = sideCake(c); label = c.stage === 'decorate' ? '✨ 꾸미는 중' : '🎂 완성!'; }
-      el.innerHTML = svgWrap(inner);
-      document.querySelector('.cake-table .clabel').textContent = label;
+      const el = document.querySelector('.cake-table .art');
+      if (el) el.innerHTML = tableArt(cake);
     }
 
     function act(e) {
