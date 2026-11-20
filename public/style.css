@@ -78,6 +78,8 @@ input {
 input:focus { border-color: #ffc9cf; }
 .err { min-height: 18px; margin: 0; color: var(--red-d); font-size: 13px; text-align: center; }
 .hint { font-size: 12px; opacity: .6; margin: 12px 0 0; }
+.credits-link { margin-top: 4px; }
+.credits-link a { color: inherit; }
 #authSubmit { margin-top: 2px; font-size: 17px; padding: 12px; }
 
 /* ───────── 메인 레이아웃 ───────── */
@@ -102,7 +104,7 @@ input:focus { border-color: #ffc9cf; }
 
 .stage-wrap { position: relative; flex: 1; min-height: 0; overflow: hidden; }
 .stage {
-  position: absolute; left: 50%; top: 50%; width: 1000px; height: 620px; transform-origin: center;
+  position: absolute; left: 0; top: 0; width: 1000px; height: 620px; transform-origin: 0 0;
   border-radius: 26px; overflow: hidden; box-shadow: 0 0 0 6px #fff, 0 0 0 12px #e7d2b4, 0 20px 50px rgba(0,0,0,.4);
   cursor: pointer; user-select: none;
 }
@@ -496,20 +498,45 @@ input:focus { border-color: #ffc9cf; }
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
+/* ───────── 폰: 방을 크게 보고 글씨도 크게 ───────── */
+.cam-mode .stage { border-radius: 0; box-shadow: none; }
+.cam-mode .name { font-size: 16px; padding: 2px 9px; }
+.cam-mode .plate { font-size: 16px; }
+.cam-mode .bubble { font-size: 18px; max-width: 230px; padding: 9px 13px; }
+.cam-mode .stage-hint { display: none; }
+.cam-mode .seat:hover::after { display: none; }
+
 /* ───────── 작은 화면 ───────── */
 @media (max-width: 760px) {
+  body { -webkit-text-size-adjust: 100%; }
+  input { font-size: 16px; }
+  .chat-panel { width: calc(100% - 16px) !important; left: 8px; right: 8px !important; max-height: 42dvh !important; }
+  .chat-head { font-size: 16px; padding: 8px 10px 8px 14px; }
+  .chat-log li { font-size: 15.5px; }
+  .chat-log li b { font-size: 13px; }
+  .log-av { width: 32px; height: 38px; }
+  .dock-item b { font-size: 24px; }
+  .dock-item span { font-size: 12.5px !important; }
+  .toast { font-size: 15px; top: 70px; }
+  #chatForm .btn { font-size: 16px; }
+  .snd-btn { width: 36px; height: 36px; font-size: 17px; }
+  .invite-btn { font-size: 13px !important; padding: 7px 10px !important; }
+  .modal-card h2 { font-size: 20px; }
+  .editor-controls h3 { font-size: 16px; }
+  .choice small { font-size: 12px; }
+  .ch-av { width: 46px; height: 55px; }
   .logo { font-size: 16px; }
   .online { display: none; }
   .invite-btn { padding: 5px 9px; font-size: 12px; }
   .me-chip #meNick { max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .chat-panel { width: 200px; top: 64px; right: 8px; max-height: 34dvh; }
+  .chat-panel { top: 64px; }
   .chat-log { min-height: 60px; }
   .input-bar { flex-wrap: wrap; gap: 6px; padding: 6px 10px; }
   .emotes { justify-content: center; gap: 4px; }
-  .emotes button { width: 30px; height: 30px; font-size: 15px; }
+  .emotes button { width: 36px; height: 36px; font-size: 18px; }
   .actions { width: auto; }
   .act-btn span { display: none; }
-  .act-btn { padding: 0 9px; }
+  .act-btn { padding: 0 11px; height: 38px; font-size: 19px; }
   .input-bar > .actions, .input-bar > .emotes { flex: none; }
   .input-bar { justify-content: center; }
   .logo-text { display: none; }

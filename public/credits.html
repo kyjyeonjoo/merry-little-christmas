@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🎵 배경 음악 출처 · 메리 리틀 크리스마스</title>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; min-height: 100vh; font-family: 'Gowun Dodum', sans-serif; color: #5b4036; background: #1e2a4a; display: grid; place-items: center; padding: 20px; box-sizing: border-box; }
+  .card { background: #fff8ec; border-radius: 24px; padding: 26px 24px; max-width: 560px; width: 100%; border: 4px solid #fff; box-shadow: 0 10px 0 #d9c3a5; }
+  h1 { font-family: 'Jua', sans-serif; font-weight: 400; color: #c23440; margin: 0 0 6px; font-size: 26px; }
+  p { margin: 0 0 14px; font-size: 14px; line-height: 1.6; }
+  ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+  li { background: #fff; border-radius: 16px; padding: 12px 14px; font-size: 14px; line-height: 1.55; }
+  li b { font-family: 'Jua', sans-serif; font-weight: 400; font-size: 17px; display: block; }
+  a { color: #2c7552; }
+  .lic { display: inline-block; font-size: 12px; background: #ffd6e0; border-radius: 999px; padding: 1px 8px; margin-left: 4px; }
+</style></head>
+<body><div class="card">
+  <h1>🎵 배경 음악 출처</h1>
+  <p>놀이방의 캐롤은 모두 <a href="https://opengameart.org" target="_blank">OpenGameArt.org</a>에서 자유 이용 라이선스로 공개된 곡이에요. 만들어 주신 분들께 감사드려요 🎄</p>
+  <ul id="list"><li>불러오는 중…</li></ul>
+</div>
+<script>
+const LIC = { 'CC0': 'https://creativecommons.org/publicdomain/zero/1.0/', 'CC-BY 4.0': 'https://creativecommons.org/licenses/by/4.0/', 'CC-BY-SA 4.0': 'https://creativecommons.org/licenses/by-sa/4.0/' };
+const FALLBACK = [
+  { title: 'Jingle Bells', artist: 'ChristmasSongs', license: 'CC0', page: 'https://opengameart.org/content/jingle-bells' },
+  { title: 'Deck the Halls', artist: 'Dizzy Crow (Daniel Michel)', license: 'CC-BY 4.0', page: 'https://opengameart.org/node/87526' },
+  { title: 'We Three Kings', artist: 'ChristmasSongs', license: 'CC0', page: 'https://opengameart.org/content/we-three-kings' },
+  { title: '12월: 크리스마스 (차이콥스키, 오르골 편곡)', artist: 'Gregor Quendel (악보: Bernd Krueger)', license: 'CC-BY-SA 4.0', page: 'https://opengameart.org/content/tchaikovsky-the-seasons-arranged-for-music-box' },
+];
+function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function render(list) {
+  document.getElementById('list').innerHTML = list.map((t) =>
+    `<li><b>${esc(t.title)}</b>만든 사람: ${esc(t.artist)}<a class="lic" href="${LIC[t.license] || '#'}" target="_blank">${esc(t.license)}</a><br><a href="${esc(t.page)}" target="_blank">원본 페이지</a></li>`).join('');
+}
+render(FALLBACK);
+</script>
+</body></html>

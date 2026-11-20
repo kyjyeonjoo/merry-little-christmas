@@ -417,6 +417,63 @@ class Client {
   }
 }
 
+// ───────────────────────── 캐롤 BGM (무료 음원을 서버가 내려받아 제공) ─────────────────────────
+// 모두 OpenGameArt.org 에서 자유 이용 라이선스로 공개된 곡이에요. 출처는 화면과 README에 표시해요.
+const MUSIC = [
+  { id: 'jingle-bells', title: 'Jingle Bells', artist: 'ChristmasSongs', license: 'CC0',
+    page: 'https://opengameart.org/content/jingle-bells', src: 'https://opengameart.org/sites/default/files/JingleBells_0.mp3', ext: 'mp3' },
+  { id: 'deck-the-halls', title: 'Deck the Halls', artist: 'Dizzy Crow (Daniel Michel)', license: 'CC-BY 4.0',
+    page: 'https://opengameart.org/node/87526', src: 'https://opengameart.org/sites/default/files/Deck%20the%20Halls_0.ogg', ext: 'ogg' },
+  { id: 'we-three-kings', title: 'We Three Kings', artist: 'ChristmasSongs', license: 'CC0',
+    page: 'https://opengameart.org/content/we-three-kings', src: 'https://opengameart.org/sites/default/files/WeThreeKings.mp3', ext: 'mp3' },
+  { id: 'tchaikovsky-december', title: '12월: 크리스마스 (차이콥스키, 오르골 편곡)', artist: 'Gregor Quendel (악보: Bernd Krueger)', license: 'CC-BY-SA 4.0',
+    page: 'https://opengameart.org/content/tchaikovsky-the-seasons-arranged-for-music-box',
+    src: 'https://opengameart.org/sites/default/files/tchaikovsky_-_the_seasons_-_december_-_christmas_-_opus_37a_arr._for_music_box.mp3', ext: 'mp3' },
+];
+const MUSIC_DIR = process.env.MUSIC_DIR || path.join(__dirname, 'music');
+const MUSIC_MIME = { mp3: 'audio/mpeg', ogg: 'audio/ogg' };
+const musicReady = new Set();
+
+async function prepareMusic() {
+  try { fs.mkdirSync(MUSIC_DIR, { recursive: true }); } catch (_) {}
+  for (const m of MUSIC) {
+    const file = path.join(MUSIC_DIR, `${m.id}.${m.ext}`);
+    try {
+      if (fs.existsSync(file) && fs.statSync(file).size > 100000) { musicReady.add(m.id); continue; }
+      const r = await fetch(m.src, { headers: { 'User-Agent': 'christmas-playroom' } });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const buf = Buffer.from(await r.arrayBuffer());
+      await fs.promises.writeFile(file + '.part', buf);
+      await fs.promises.rename(file + '.part', file);
+      musicReady.add(m.id);
+    } catch (e) {
+      console.log(`   🎵 "${m.title}" 음원을 받지 못했어요 (${e.message})`);
+    }
+  }
+  console.log(`   🎵 캐롤 ${musicReady.size}/${MUSIC.length}곡 준비 완료`);
+}
+
+function serveMusic(req, res, id) {
+  const m = MUSIC.find((x) => x.id === id);
+  if (!m || !musicReady.has(id)) { res.writeHead(404); return res.end(); }
+  const file = path.join(MUSIC_DIR, `${m.id}.${m.ext}`);
+  let size;
+  try { size = fs.statSync(file).size; } catch (_) { res.writeHead(404); return res.end(); }
+  const headers = { 'Content-Type': MUSIC_MIME[m.ext], 'Accept-Ranges': 'bytes', 'Cache-Control': 'public, max-age=86400' };
+  const range = /bytes=(\d*)-(\d*)/.exec(req.headers.range || '');
+  if (range) {
+    let start = range[1] ? parseInt(range[1], 10) : size - parseInt(range[2], 10);
+    let end = range[1] && range[2] ? parseInt(range[2], 10) : size - 1;
+    if (isNaN(start) || start < 0 || start >= size || end >= size || start > end) {
+      res.writeHead(416, { 'Content-Range': `bytes */${size}` }); return res.end();
+    }
+    res.writeHead(206, { ...headers, 'Content-Range': `bytes ${start}-${end}/${size}`, 'Content-Length': end - start + 1 });
+    return fs.createReadStream(file, { start, end }).pipe(res);
+  }
+  res.writeHead(200, { ...headers, 'Content-Length': size });
+  fs.createReadStream(file).pipe(res);
+}
+
 // ───────────────────────── HTTP (정적 파일) ─────────────────────────
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
@@ -433,6 +490,14 @@ function lanUrls() {
 
 const server = http.createServer((req, res) => {
   if (req.url === '/healthz') { res.writeHead(200); return res.end('ok'); }
+  if (req.url === '/api/music') {
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+    return res.end(JSON.stringify(MUSIC.filter((m) => musicReady.has(m.id)).map((m) => ({
+      id: m.id, title: m.title, artist: m.artist, license: m.license, page: m.page, ext: m.ext, url: `/music/${m.id}.${m.ext}`,
+    }))));
+  }
+  const mm = /^\/music\/([a-z0-9-]+)\.(mp3|ogg)$/.exec((req.url || '').split('?')[0]);
+  if (mm) return serveMusic(req, res, mm[1]);
   if (req.url === '/api/share') {
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
     return res.end(JSON.stringify({ publicUrl, tunnel: tunnelState, lan: lanUrls() }));
@@ -560,6 +625,7 @@ loadDb().then(() => server.listen(PORT, '0.0.0.0', () => {
   console.log(`   이 컴퓨터에서:   http://localhost:${PORT}`);
   for (const u of lanUrls()) console.log(`   같은 와이파이:   ${u}`);
   console.log(`   계정 저장소:     ${USE_REDIS ? 'Upstash Redis' : 'data/users.json'}  (가입자 ${Object.keys(db.users).length}명)`);
+  prepareMusic();
   if (process.argv.includes('--tunnel')) startTunnel();
   else console.log('   끄려면 Ctrl + C\n');
 })).catch((e) => {

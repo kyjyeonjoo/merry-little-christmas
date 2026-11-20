@@ -4,3 +4,4 @@ cloudflared
 cloudflared.exe
 *.part
 config.yml
+music/

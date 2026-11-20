@@ -218,6 +218,7 @@
     updateCount();
     fitStage();
     if (window.innerWidth < 760 && !$('#chatPanel').classList.contains('collapsed')) $('#chatToggle').click();
+    if (camMode && !justSignedUp) setTimeout(() => toast('👆 바닥을 톡 누르면 걸어가요 · 친구를 누르면 눈덩이!'), 600);
     if (justSignedUp) {
       justSignedUp = false;
       openModal(true);
@@ -232,14 +233,41 @@
     $('#onlineCount').textContent = `🔥 ${players.size}명`;
   }
 
-  // ───────── 무대 크기 맞추기 ─────────
-  let scale = 1;
+  // ───────── 무대 크기 맞추기 (폰에서는 크게 보고 내 캐릭터를 따라가요) ─────────
+  let scale = 1, camMode = false, camX = STAGE_W / 2;
+  const touch = window.matchMedia('(pointer: coarse)').matches;
   function fitStage() {
     const wrap = $('#stageWrap');
-    const w = wrap.clientWidth, h = wrap.clientHeight;
-    scale = Math.min(w / STAGE_W, h / STAGE_H);
-    $('#stage').style.transform = `translate(-50%, -50%) scale(${scale})`;
+    const W = wrap.clientWidth, H = wrap.clientHeight;
+    const fit = Math.min(W / STAGE_W, H / STAGE_H);
+    camMode = W < 760 && H / STAGE_H > fit * 1.15;
+    scale = camMode ? Math.min(H / STAGE_H, 0.95) : fit;
+    document.body.classList.toggle('cam-mode', camMode);
+    const mine = me && players.get(me.id);
+    if (mine) camX = curPos(mine).x;
+    applyCam();
+    $('#stageHint').textContent = touch
+      ? '바닥을 톡 누르면 걸어가요 · 의자를 누르면 앉아요 · 친구를 누르면 눈덩이를 던져요'
+      : '바닥을 누르면 걸어가요 · 의자를 누르면 앉아요 · 방향키/WASD로도 움직여요 · 스페이스바 점프 · 친구를 누르면 눈덩이를 던져요';
   }
+  function applyCam() {
+    const wrap = $('#stageWrap');
+    const W = wrap.clientWidth, H = wrap.clientHeight;
+    let tx = (W - STAGE_W * scale) / 2;
+    const ty = (H - STAGE_H * scale) / 2;
+    if (camMode) tx = Math.min(0, Math.max(W - STAGE_W * scale, W / 2 - camX * scale));
+    $('#stage').style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+  }
+  (function camLoop() {
+    if (camMode && me) {
+      const mine = players.get(me.id);
+      if (mine) {
+        const target = curPos(mine).x;
+        if (Math.abs(target - camX) > 0.5) { camX += (target - camX) * 0.12; applyCam(); }
+      }
+    }
+    requestAnimationFrame(camLoop);
+  })();
   window.addEventListener('resize', fitStage);
 
   // ───────── 좌석 ─────────
@@ -576,9 +604,13 @@
     $('#bgmBtn').title = Sound.bgmOn ? '캐롤 끄기' : '캐롤 켜기';
     $('#sfxBtn').title = Sound.sfxOn ? '효과음 끄기' : '효과음 켜기';
   }
+  Sound.onTrack = (t) => {
+    if (!t) { toast('🎵 캐롤 음원을 아직 준비하는 중이에요. 잠시 뒤 다시 눌러 주세요'); Sound.setBgm(false); renderSoundBtns(); return; }
+    toast(`🎵 ${t.title} · ${t.artist} (${t.license})`);
+  };
   $('#bgmBtn').addEventListener('click', () => {
     Sound.setBgm(!Sound.bgmOn); renderSoundBtns();
-    toast(Sound.bgmOn ? '🎵 캐롤을 틀었어요' : '🎵 캐롤을 껐어요');
+    if (!Sound.bgmOn) toast('🎵 캐롤을 껐어요');
   });
   $('#sfxBtn').addEventListener('click', () => {
     Sound.setSfx(!Sound.sfxOn); renderSoundBtns();

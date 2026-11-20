@@ -68,8 +68,20 @@
 - 캐릭터 머리 위 말풍선 + 오른쪽 채팅 기록
 - 이모티콘 반응 ❤️🎄⛄😆🎁✨
 - 🦘 점프 (스페이스바) · ❄️ 눈 뿌리기 (E) · 친구를 누르면 눈덩이 던지기
-- 🔔 말할 때 동물마다 다른 "삐약삐약" 목소리 · 🎵 캐롤 BGM (징글벨, We Wish You a Merry Christmas 오르골 버전)
-  → 위쪽 🎵 / 🔔 버튼으로 켜고 끌 수 있어요. 소리 파일 없이 브라우저가 직접 연주해요
+- 🔔 말할 때 동물마다 높이가 다른 물방울 "뽀록" 소리
+- 🎵 캐롤 BGM: 서버가 켜질 때 OpenGameArt의 무료 음원 4곡을 내려받아 차례로 틀어요 (위쪽 🎵 / 🔔 버튼으로 켜고 끄기)
+- 📱 폰에서는 방을 크게 보여주고 카메라가 내 캐릭터를 따라가요
+
+## 🎵 배경 음악 출처
+
+| 곡 | 만든 사람 | 라이선스 | 원본 |
+|---|---|---|---|
+| Jingle Bells | ChristmasSongs | CC0 | https://opengameart.org/content/jingle-bells |
+| Deck the Halls | Dizzy Crow (Daniel Michel) | CC-BY 4.0 | https://opengameart.org/node/87526 |
+| We Three Kings | ChristmasSongs | CC0 | https://opengameart.org/content/we-three-kings |
+| 12월: 크리스마스 (차이콥스키, 오르골 편곡) | Gregor Quendel (악보: Bernd Krueger) | CC-BY-SA 4.0 | https://opengameart.org/content/tchaikovsky-the-seasons-arranged-for-music-box |
+
+음원 파일은 저장소에 넣지 않고, 서버가 처음 켜질 때 `music/` 폴더로 내려받아요. 사이트의 "🎵 배경 음악 출처" 페이지에도 표시돼요.
 
 ## 다음에 만들 것
 
@@ -89,7 +101,8 @@
 │  ├─ index.html    화면 구성
 │  ├─ style.css     디자인
 │  ├─ avatar.js     캐릭터 그림(SVG)
-│  ├─ sound.js      효과음 · 캐롤 BGM
+│  ├─ sound.js      효과음 · 캐롤 BGM 재생
+│  ├─ credits.html  배경 음악 출처
 │  └─ app.js        화면 동작
 └─ data/users.json  계정 정보 (실행하면 자동 생성, 비밀번호는 암호화해서 저장)
 ```
