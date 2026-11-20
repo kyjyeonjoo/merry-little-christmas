@@ -107,16 +107,24 @@
     const g = (inner) => `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${s})">${inner}</g>`;
     switch (k) {
       case 'rosette': {
-        // 별깍지로 짠 생크림: 동글동글 부푼 구름 모양 + 세로 홈 (끝이 뾰족하지 않게)
-        const ln = shade(cream, -42), rd = shade(cream, -24);
-        return g(`<ellipse cx="0" cy="0.5" rx="12" ry="4" fill="#000" opacity=".07"/>
-          <path d="M-11 0 C-12.5 -4 -10 -7.5 -7 -7 C-6 -10.5 -2 -12 0 -11.5 C2 -12 6 -10.5 7 -7 C10 -7.5 12.5 -4 11 0 C8 3 -8 3 -11 0 Z"
-            fill="${cream}" stroke="${ln}" stroke-width="1.3" stroke-linejoin="round"/>
-          <g fill="none" stroke="${rd}" stroke-width="1.1" stroke-linecap="round">
-            <path d="M-7.5 1 C-8.5 -2 -8 -5 -6 -6.5"/><path d="M-3 1.8 C-3.6 -2 -3.4 -6 -1.8 -9"/>
-            <path d="M3 1.8 C3.6 -2 3.4 -6 1.8 -9"/><path d="M7.5 1 C8.5 -2 8 -5 6 -6.5"/></g>
-          <ellipse cx="-3.5" cy="-8.2" rx="2.4" ry="1.2" fill="#fff" opacity=".85"/>
-          <ellipse cx="6.5" cy="-4.5" rx="1.3" ry=".8" fill="#fff" opacity=".6"/>`);
+        // 크림 줄기가 비스듬히 감아 올라간 동글동글한 생크림 (끝은 옆으로 살짝 말림)
+        const sh = shade(cream, -22), ln = shade(cream, -32), hi = '#ffffff';
+        const body = 'M-13.2 -0.4 C-14.6 -7 -11 -13.6 -4.6 -16.4 C1.6 -19 9.4 -15.6 12.4 -9.6 C14.6 -5.2 13.4 -0.6 9.6 1.4 C4.6 3.6 -4.4 3.6 -9.4 2.4 C-11.4 1.9 -12.8 1 -13.2 -0.4 Z';
+        const band = (d, w) => `<path d="${d}" fill="none" stroke="${sh}" stroke-width="${w}" stroke-linecap="round"/>
+          <path d="${d}" transform="translate(0.3 -1.4)" fill="none" stroke="${hi}" stroke-width="${w * 0.5}" stroke-linecap="round" opacity=".9"/>`;
+        return g(`<defs><clipPath id="rosClip"><path d="${body}"/></clipPath></defs>
+          <ellipse cx="0" cy="1.6" rx="13.5" ry="3.4" fill="#000" opacity=".08"/>
+          <path d="${body}" fill="${cream}"/>
+          <g clip-path="url(#rosClip)">
+            ${band('M-14 -3.6 Q-2 3.4 14 -5', 2)}
+            ${band('M-13.6 -9.6 Q-1 -3.6 13.6 -11.6', 1.9)}
+            ${band('M-9.6 -14.6 Q0 -10 9 -16.6', 1.7)}
+          </g>
+          <path d="${body}" fill="none" stroke="${ln}" stroke-width=".8" stroke-linejoin="round"/>
+          <path d="M-3.6 -16.6 C-5.6 -19.4 -5 -22.6 -1.4 -24.4 C-2.2 -21.8 -0.8 -19.6 1.8 -18.2 C0 -16.8 -2 -16.4 -3.6 -16.6 Z"
+            fill="${cream}" stroke="${ln}" stroke-width=".8" stroke-linejoin="round"/>
+          <path d="M-3.2 -18.4 C-3.6 -20.2 -2.8 -22 -1.6 -23" fill="none" stroke="${hi}" stroke-width="1" stroke-linecap="round"/>
+          <ellipse cx="-7.5" cy="-11.5" rx="2.4" ry="1.1" fill="${hi}" opacity=".85" transform="rotate(-25 -7.5 -11.5)"/>`);
       }
       case 'strawberry': return g(`<path d="M0 3 C-9 -2 -9 -12 0 -11 C9 -12 9 -2 0 3 Z" fill="#ff5470" stroke="${LINE}" stroke-width="1.5"/>
         <path d="M-5 -11 L0 -14 L5 -11 L2 -10 L0 -12 L-2 -10 Z" fill="#4fb07f" stroke="${LINE}" stroke-width="1.2" stroke-linejoin="round"/>
@@ -377,7 +385,7 @@
           return `${joinBar()}<p class="chint">토핑을 고르고 <b>케이크 위를 톡</b> (${c.toppings.length}/50)</p>
             <div class="cbtns tops">${TOPS.map(([k, name]) =>
               `<button class="cbtn sm ${selTop === k ? 'on' : ''}" data-act="seltop" data-v="${k}" title="${name}">
-                <span class="ic">${iconSvg(topping(k, 0, 6, 1.35, '#fffaf2', true), '-17 -34 34 42')}</span><small>${name}</small></button>`).join('')}</div>
+                <span class="ic">${iconSvg(topping(k, 0, 6, 1.35, creamColor(c), true), '-17 -34 34 42')}</span><small>${name}</small></button>`).join('')}</div>
             <div class="crow">
               <button class="btn ghost small" data-act="rim" ${mem ? '' : 'disabled'}>${c.rim ? '테두리 빼기' : '🧁 테두리 생크림'}</button>
               <button class="btn ghost small" data-act="undo" ${mem ? '' : 'disabled'}>↩ 빼기</button>
