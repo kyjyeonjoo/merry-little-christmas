@@ -16,8 +16,14 @@ const DB_FILE = path.join(DATA_DIR, 'users.json');
 // 내 컴퓨터에서는 data/users.json 파일에,
 // 무료 호스팅(Render 등)에서는 Upstash Redis에 저장해요.
 // (호스팅 서버는 재시작하면 파일이 지워지기 때문이에요)
-const UP_URL = (process.env.UPSTASH_REDIS_REST_URL || '').replace(/\/$/, '');
-const UP_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || '';
+// 붙여넣을 때 따라온 따옴표·공백·'이름=' 부분은 알아서 떼어내요
+function cleanEnv(v, name) {
+  let s = String(v || '').trim();
+  if (s.startsWith(name + '=')) s = s.slice(name.length + 1).trim();
+  return s.replace(/^["']+|["']+$/g, '').trim();
+}
+const UP_URL = cleanEnv(process.env.UPSTASH_REDIS_REST_URL, 'UPSTASH_REDIS_REST_URL').replace(/\/$/, '');
+const UP_TOKEN = cleanEnv(process.env.UPSTASH_REDIS_REST_TOKEN, 'UPSTASH_REDIS_REST_TOKEN');
 const USE_REDIS = !!(UP_URL && UP_TOKEN);
 const REDIS_KEY = 'xmas:db';
 
@@ -26,6 +32,7 @@ let db = { users: {}, tokens: {} };
 async function loadDb() {
   if (USE_REDIS) {
     const r = await fetch(`${UP_URL}/get/${REDIS_KEY}`, { headers: { Authorization: `Bearer ${UP_TOKEN}` } });
+    if (r.status === 401) throw new Error('Upstash 토큰이 맞지 않아요 (HTTP 401). UPSTASH_REDIS_REST_TOKEN 값을 다시 확인해 주세요. 지금 값 길이: ' + UP_TOKEN.length + '자');
     if (!r.ok) throw new Error('Upstash 읽기 실패: HTTP ' + r.status);
     const j = await r.json();
     if (j.result) db = JSON.parse(j.result);
