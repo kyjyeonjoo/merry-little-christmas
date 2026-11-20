@@ -21,6 +21,8 @@
     { id: 'earmuffs', name: '귀마개' },
     { id: 'bell', name: '방울 목걸이' },
     { id: 'mittens', name: '벙어리장갑' },
+    { id: 'rudolph', name: '루돌프 코' },
+    { id: 'holly', name: '호랑가시' },
   ];
   const MAX_ACCS = 3;
 
@@ -164,6 +166,18 @@
             <rect x="22" y="75" width="14" height="4.5" rx="2.2" fill="#fff" stroke="${LINE}" stroke-width="1.6"/></g>
           <g transform="rotate(-25 71 82)"><ellipse cx="71" cy="84" rx="6.5" ry="7" fill="#e8474f" stroke="${LINE}" stroke-width="2.2"/>
             <rect x="64" y="75" width="14" height="4.5" rx="2.2" fill="#fff" stroke="${LINE}" stroke-width="1.6"/></g>`;
+      case 'rudolph':
+        return `<circle cx="50" cy="61.5" r="5.8" fill="#e8474f" stroke="${LINE}" stroke-width="1.8"/>
+          <circle cx="48.2" cy="59.6" r="1.6" fill="#fff" opacity=".85"/>`;
+      case 'holly': {
+        const leaf = 'M0 0 C5 -7, 14 -8, 21 -3 C17 -1, 18 2, 21 3 C14 6, 5 5, 0 0 Z';
+        return `<g transform="translate(29 25)">
+          <path d="${leaf}" transform="rotate(-150)" fill="#3f9c6d" stroke="${LINE}" stroke-width="1.8" stroke-linejoin="round"/>
+          <path d="${leaf}" transform="rotate(-30)" fill="#4fb07f" stroke="${LINE}" stroke-width="1.8" stroke-linejoin="round"/>
+          <circle cx="-3" cy="1" r="3.4" fill="#e8474f" stroke="${LINE}" stroke-width="1.5"/>
+          <circle cx="3" cy="1.5" r="3.4" fill="#e8474f" stroke="${LINE}" stroke-width="1.5"/>
+          <circle cx="0" cy="-3.5" r="3.4" fill="#e8474f" stroke="${LINE}" stroke-width="1.5"/></g>`;
+      }
       case 'ribbon':
         return `<g transform="translate(70 26) rotate(18)">
           <path d="M0 0 L-13 -8 L-13 8 Z M0 0 L13 -8 L13 8 Z" fill="#ff7aa2" stroke="${LINE}" stroke-width="2.2" stroke-linejoin="round"/>
@@ -206,10 +220,12 @@
       ${has('scarf') ? accessory('scarf', a.type) : ''}
       ${has('bell') ? accessory('bell', a.type) : ''}
       ${has('earmuffs') ? accessory('earmuffs', a.type) : ''}
+      ${has('rudolph') ? accessory('rudolph', a.type) : ''}
       ${has('glasses') ? accessory('glasses', a.type) : ''}
       ${has('santa') ? accessory('santa', a.type) : ''}
       ${has('ribbon') ? accessory('ribbon', a.type) : ''}
       ${has('star') ? accessory('star', a.type) : ''}
+      ${has('holly') ? accessory('holly', a.type) : ''}
     </svg>`;
   }
 

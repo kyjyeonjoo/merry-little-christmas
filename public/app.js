@@ -233,41 +233,74 @@
     $('#onlineCount').textContent = `🔥 ${players.size}명`;
   }
 
-  // ───────── 무대 크기 맞추기 (폰에서는 크게 보고 내 캐릭터를 따라가요) ─────────
-  let scale = 1, camMode = false, camX = STAGE_W / 2;
+  // ───────── 무대 크기 맞추기 (폰에서는 크게 보고, 화면보다 크면 내 캐릭터를 따라가요) ─────────
+  let scale = 1, base = 1, camMode = false, camX = STAGE_W / 2, camY = STAGE_H / 2;
+  let zoom = parseFloat(localStorage.getItem('xmas_zoom')) || 1;
+  const ZMIN = 0.6, ZMAX = 2.2;
   const touch = window.matchMedia('(pointer: coarse)').matches;
   function fitStage() {
     const wrap = $('#stageWrap');
     const W = wrap.clientWidth, H = wrap.clientHeight;
     const fit = Math.min(W / STAGE_W, H / STAGE_H);
     camMode = W < 760 && H / STAGE_H > fit * 1.15;
-    scale = camMode ? Math.min(H / STAGE_H, 0.95) : fit;
+    base = camMode ? Math.min(H / STAGE_H, 0.95) : fit;
+    scale = base * zoom;
     document.body.classList.toggle('cam-mode', camMode);
     const mine = me && players.get(me.id);
-    if (mine) camX = curPos(mine).x;
+    if (mine) { const c = curPos(mine); camX = c.x; camY = c.y - 50; }
     applyCam();
     $('#stageHint').textContent = touch
       ? '바닥을 톡 누르면 걸어가요 · 의자를 누르면 앉아요 · 친구를 누르면 눈덩이를 던져요'
       : '바닥을 누르면 걸어가요 · 의자를 누르면 앉아요 · 방향키/WASD로도 움직여요 · 스페이스바 점프 · 친구를 누르면 눈덩이를 던져요';
   }
+  function axis(view, size, cam) {
+    const full = size * scale;
+    if (full <= view) return (view - full) / 2;
+    return Math.min(0, Math.max(view - full, view / 2 - cam * scale));
+  }
   function applyCam() {
     const wrap = $('#stageWrap');
-    const W = wrap.clientWidth, H = wrap.clientHeight;
-    let tx = (W - STAGE_W * scale) / 2;
-    const ty = (H - STAGE_H * scale) / 2;
-    if (camMode) tx = Math.min(0, Math.max(W - STAGE_W * scale, W / 2 - camX * scale));
+    const tx = axis(wrap.clientWidth, STAGE_W, camX), ty = axis(wrap.clientHeight, STAGE_H, camY);
     $('#stage').style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
   }
   (function camLoop() {
-    if (camMode && me) {
-      const mine = players.get(me.id);
-      if (mine) {
-        const target = curPos(mine).x;
-        if (Math.abs(target - camX) > 0.5) { camX += (target - camX) * 0.12; applyCam(); }
+    const mine = me && players.get(me.id);
+    if (mine) {
+      const c = curPos(mine);
+      const tx = c.x, ty = c.y - 50;
+      if (Math.abs(tx - camX) > 0.5 || Math.abs(ty - camY) > 0.5) {
+        camX += (tx - camX) * 0.12; camY += (ty - camY) * 0.12; applyCam();
       }
     }
     requestAnimationFrame(camLoop);
   })();
+  function setZoom(z, announce) {
+    zoom = Math.max(ZMIN, Math.min(ZMAX, z));
+    localStorage.setItem('xmas_zoom', zoom.toFixed(2));
+    scale = base * zoom;
+    applyCam();
+    if (announce) toast(`🔍 화면 크기 ${Math.round(zoom * 100)}%`);
+  }
+  $('#zoomIn').addEventListener('click', (e) => { e.stopPropagation(); setZoom(zoom * 1.2, true); });
+  $('#zoomOut').addEventListener('click', (e) => { e.stopPropagation(); setZoom(zoom / 1.2, true); });
+  // 두 손가락으로 벌리고 오므리기
+  let pinch = null;
+  $('#stageWrap').addEventListener('touchstart', (e) => {
+    if (e.touches.length === 2) {
+      const [a, b] = e.touches;
+      pinch = { d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), z: zoom };
+    }
+  }, { passive: true });
+  $('#stageWrap').addEventListener('touchmove', (e) => {
+    if (pinch && e.touches.length === 2) {
+      e.preventDefault();
+      const [a, b] = e.touches;
+      setZoom(pinch.z * Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) / pinch.d, false);
+    }
+  }, { passive: false });
+  $('#stageWrap').addEventListener('touchend', (e) => {
+    if (pinch && e.touches.length < 2) { pinch = null; toast(`🔍 화면 크기 ${Math.round(zoom * 100)}%`); }
+  });
   window.addEventListener('resize', fitStage);
 
   // ───────── 좌석 ─────────
@@ -597,26 +630,36 @@
   $('#jumpBtn').addEventListener('click', () => send({ t: 'jump' }));
   $('#snowBtn').addEventListener('click', () => send({ t: 'snow' }));
 
-  // ───────── 소리 켜기/끄기 ─────────
-  function renderSoundBtns() {
-    $('#bgmBtn').classList.toggle('off', !Sound.bgmOn);
-    $('#sfxBtn').classList.toggle('off', !Sound.sfxOn);
-    $('#bgmBtn').title = Sound.bgmOn ? '캐롤 끄기' : '캐롤 켜기';
-    $('#sfxBtn').title = Sound.sfxOn ? '효과음 끄기' : '효과음 켜기';
+  // ───────── 소리 설정 창 ─────────
+  function renderSoundUI() {
+    $('#bgmBtn').classList.toggle('off', !Sound.bgmOn && !Sound.sfxOn);
+    $('#bgmBtn').classList.toggle('playing', Sound.bgmOn);
+    $('#bgmToggle').checked = Sound.bgmOn;
+    $('#sfxToggle').checked = Sound.sfxOn;
+    $('#bgmVol').value = Math.round(Sound.bgmVolume * 100);
+    $('#sfxVol').value = Math.round(Sound.sfxVolume * 100);
+    const t = Sound.track;
+    $('#nowPlaying').textContent = Sound.bgmOn ? (t ? `♪ ${t.title} · ${t.artist} (${t.license})` : '♪ 불러오는 중…') : '꺼져 있어요';
   }
   Sound.onTrack = (t) => {
-    if (!t) { toast('🎵 캐롤 음원을 아직 준비하는 중이에요. 잠시 뒤 다시 눌러 주세요'); Sound.setBgm(false); renderSoundBtns(); return; }
-    toast(`🎵 ${t.title} · ${t.artist} (${t.license})`);
+    if (!t) { toast('🎵 캐롤 음원을 아직 준비하는 중이에요. 잠시 뒤 다시 켜 주세요'); Sound.setBgm(false); renderSoundUI(); return; }
+    renderSoundUI();
+    if ($('#soundPanel').hidden) toast(`🎵 ${t.title} · ${t.artist} (${t.license})`);
   };
-  $('#bgmBtn').addEventListener('click', () => {
-    Sound.setBgm(!Sound.bgmOn); renderSoundBtns();
-    if (!Sound.bgmOn) toast('🎵 캐롤을 껐어요');
+  $('#bgmBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    $('#soundPanel').hidden = !$('#soundPanel').hidden;
+    renderSoundUI();
   });
-  $('#sfxBtn').addEventListener('click', () => {
-    Sound.setSfx(!Sound.sfxOn); renderSoundBtns();
-    toast(Sound.sfxOn ? '🔔 효과음을 켰어요' : '🔕 효과음을 껐어요');
-  });
-  renderSoundBtns();
+  $('#soundPanel').addEventListener('click', (e) => e.stopPropagation());
+  document.addEventListener('click', () => { $('#soundPanel').hidden = true; });
+  $('#bgmToggle').addEventListener('change', (e) => { Sound.setBgm(e.target.checked); renderSoundUI(); });
+  $('#sfxToggle').addEventListener('change', (e) => { Sound.setSfx(e.target.checked); renderSoundUI(); });
+  $('#bgmVol').addEventListener('input', (e) => Sound.setBgmVolume(e.target.value / 100));
+  $('#sfxVol').addEventListener('input', (e) => Sound.setSfxVolume(e.target.value / 100));
+  $('#sfxVol').addEventListener('change', () => myUser && Sound.preview(myUser.avatar.type));
+  $('#nextTrack').addEventListener('click', () => { if (Sound.bgmOn) Sound.nextTrack(); });
+  renderSoundUI();
 
   function showEmote(id, e) {
     const p = players.get(id);
@@ -627,10 +670,6 @@
     void el.offsetWidth;
     el.classList.add('pop');
   }
-  $('#emotes').addEventListener('click', (e) => {
-    const b = e.target.closest('button');
-    if (b) send({ t: 'emote', e: b.dataset.e });
-  });
 
   // ───────── 아래 메뉴 ─────────
   const COMING = {
@@ -668,7 +707,7 @@
       const b = document.createElement('button');
       b.className = 'choice' + (draft.type === t.id ? ' on' : '');
       b.innerHTML = `<span class="ch-av">${Avatar.svg({ ...draft, type: t.id, accs: [] })}</span><small>${t.name}</small>`;
-      b.onclick = () => { draft.type = t.id; renderEditor(); };
+      b.onclick = () => { draft.type = t.id; renderEditor(); Sound.preview(t.id); };
       typeRow.appendChild(b);
     });
     const colorRow = $('#colorRow');

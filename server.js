@@ -80,7 +80,7 @@ function findUserByNick(nick) {
 
 const ANIMALS = ['bear', 'bunny', 'cat', 'hamster', 'puppy', 'fox', 'sheep', 'penguin'];
 const COLORS = ['#ffffff', '#fff1d6', '#ffd6e0', '#ffd9b8', '#d4f2e1', '#d6ebff', '#e6dcff', '#d9b99b', '#d8d8de'];
-const ACCS = ['santa', 'scarf', 'antlers', 'ribbon', 'glasses', 'star', 'earmuffs', 'bell', 'mittens'];
+const ACCS = ['santa', 'scarf', 'antlers', 'ribbon', 'glasses', 'star', 'earmuffs', 'bell', 'mittens', 'rudolph', 'holly'];
 const MAX_ACCS = 3;
 
 function shuffle(a) { return [...a].sort(() => Math.random() - 0.5); }

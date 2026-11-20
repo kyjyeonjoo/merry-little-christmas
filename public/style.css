@@ -86,7 +86,7 @@ input:focus { border-color: #ffc9cf; }
 #app { display: flex; flex-direction: column; height: 100dvh; }
 .topbar {
   display: flex; align-items: center; gap: 10px; padding: 8px 14px; background: var(--cream);
-  box-shadow: 0 4px 0 #d9c3a5; position: relative; z-index: 3;
+  box-shadow: 0 4px 0 #d9c3a5; position: relative; z-index: 10;
 }
 .topbar::after {
   content: ''; position: absolute; left: 0; right: 0; bottom: -10px; height: 6px;
@@ -102,7 +102,7 @@ input:focus { border-color: #ffc9cf; }
 .me-avatar { width: 34px; height: 38px; display: block; }
 .caret { opacity: .5; font-size: 13px; }
 
-.stage-wrap { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+.stage-wrap { position: relative; flex: 1; min-height: 0; overflow: hidden; touch-action: manipulation; }
 .stage {
   position: absolute; left: 0; top: 0; width: 1000px; height: 620px; transform-origin: 0 0;
   border-radius: 26px; overflow: hidden; box-shadow: 0 0 0 6px #fff, 0 0 0 12px #e7d2b4, 0 20px 50px rgba(0,0,0,.4);
@@ -373,9 +373,6 @@ input:focus { border-color: #ffc9cf; }
   display: flex; align-items: center; gap: 10px; padding: 8px 14px; background: var(--cream); z-index: 3;
   box-shadow: 0 -4px 0 #e7d2b4;
 }
-.emotes { display: flex; gap: 2px; }
-.emotes button { border: 0; background: #fff; width: 34px; height: 34px; border-radius: 50%; font-size: 17px; cursor: pointer; box-shadow: 0 3px 0 rgba(91,64,54,.15); transition: transform .1s; }
-.emotes button:hover { transform: translateY(-2px) rotate(-8deg); }
 #chatForm { flex: 1; display: flex; gap: 8px; }
 #chatForm input { flex: 1; min-width: 0; }
 .dock { display: flex; justify-content: center; gap: 6px; padding: 6px 10px 10px; background: var(--cream); z-index: 3; }
@@ -462,7 +459,33 @@ input:focus { border-color: #ffc9cf; }
 }
 .act-btn span { font-family: 'Jua', sans-serif; font-size: 13px; }
 .act-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(91,64,54,.15); }
-.sound-box { display: flex; gap: 4px; }
+.sound-box { display: flex; gap: 4px; position: relative; }
+.snd-btn.playing { background: #fff0f1; box-shadow: 0 0 0 2px var(--red), 0 3px 0 rgba(91,64,54,.15); }
+.sound-panel {
+  position: absolute; top: 44px; left: 50%; transform: translateX(-50%); width: 270px; z-index: 20; background: var(--cream);
+  border: 3px solid #fff; border-radius: 18px; padding: 12px 14px; box-shadow: 0 6px 0 rgba(0,0,0,.12), 0 12px 30px rgba(0,0,0,.25);
+  display: flex; flex-direction: column; gap: 8px; animation: popin .18s ease-out;
+}
+.sp-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sp-row b { font-family: 'Jua', sans-serif; font-weight: 400; font-size: 15px; }
+.sp-row.vol { justify-content: flex-start; }
+.sp-row.vol input { flex: 1; accent-color: var(--red); height: 22px; }
+.sp-now { font-size: 12px; opacity: .75; line-height: 1.4; min-height: 17px; }
+.sp-next { border: 0; background: #fff; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; box-shadow: 0 2px 0 rgba(91,64,54,.15); }
+.sp-sep { height: 2px; background: #f1e2cc; border-radius: 2px; margin: 2px 0; }
+.sp-credit { font-size: 11px; color: inherit; opacity: .6; text-align: right; }
+.switch { position: relative; width: 44px; height: 26px; flex: none; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch span { position: absolute; inset: 0; background: #e6d6c2; border-radius: 999px; transition: background .2s; cursor: pointer; }
+.switch span::before { content: ''; position: absolute; left: 3px; top: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform .2s; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.switch input:checked + span { background: var(--green); }
+.switch input:checked + span::before { transform: translateX(18px); }
+.zoom-box { position: absolute; left: 10px; bottom: 10px; z-index: 3; display: flex; flex-direction: column; gap: 6px; }
+.zoom-btn {
+  width: 38px; height: 38px; border-radius: 50%; border: 0; background: rgba(255,255,255,.92); font-size: 20px; font-weight: 700; cursor: pointer;
+  color: var(--brown); box-shadow: 0 3px 0 rgba(91,64,54,.2);
+}
+.zoom-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(91,64,54,.2); }
 .snd-btn {
   border: 0; background: #fff; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 15px;
   box-shadow: 0 3px 0 rgba(91,64,54,.15); position: relative;
@@ -509,6 +532,10 @@ input:focus { border-color: #ffc9cf; }
 /* ───────── 작은 화면 ───────── */
 @media (max-width: 760px) {
   body { -webkit-text-size-adjust: 100%; }
+  .sound-panel { position: fixed; top: 60px; left: 8px; right: 8px; width: auto; transform: none; padding: 14px 16px; }
+  .sp-row b { font-size: 16px; }
+  .sp-now { font-size: 13px; }
+  .zoom-btn { width: 42px; height: 42px; font-size: 22px; }
   input { font-size: 16px; }
   .chat-panel { width: calc(100% - 16px) !important; left: 8px; right: 8px !important; max-height: 42dvh !important; }
   .chat-head { font-size: 16px; padding: 8px 10px 8px 14px; }
@@ -531,16 +558,14 @@ input:focus { border-color: #ffc9cf; }
   .me-chip #meNick { max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .chat-panel { top: 64px; }
   .chat-log { min-height: 60px; }
-  .input-bar { flex-wrap: wrap; gap: 6px; padding: 6px 10px; }
-  .emotes { justify-content: center; gap: 4px; }
-  .emotes button { width: 36px; height: 36px; font-size: 18px; }
-  .actions { width: auto; }
+  .input-bar { flex-wrap: nowrap; gap: 5px; padding: 8px 6px; }
+  .actions { flex: none; gap: 5px; }
   .act-btn span { display: none; }
-  .act-btn { padding: 0 11px; height: 38px; font-size: 19px; }
-  .input-bar > .actions, .input-bar > .emotes { flex: none; }
-  .input-bar { justify-content: center; }
+  .act-btn { padding: 0 9px; height: 40px; font-size: 19px; }
   .logo-text { display: none; }
-  #chatForm .btn { padding: 8px 14px; }
+  .topbar { z-index: 10; }
+  #chatForm .btn { padding: 8px 12px; flex: none; }
+  #chatForm { gap: 6px; min-width: 0; }
   .chat-log li.sys { font-size: 11px; }
   .dock-item { min-width: 0; padding: 5px 8px; flex: 1; }
   .dock-item span { font-size: 11px; white-space: nowrap; }
