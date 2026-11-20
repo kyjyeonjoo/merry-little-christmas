@@ -107,13 +107,30 @@
     const g = (inner) => `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${s})">${inner}</g>`;
     switch (k) {
       case 'rosette': {
-        const ln = shade(cream, -48), rd = shade(cream, -22);
-        return g(`<ellipse cx="0" cy="0" rx="11" ry="4.5" fill="${shade(cream, -10)}"/>
-        <path d="M-11 -1 C-12 -9 12 -9 11 -1 C8 2 -8 2 -11 -1 Z" fill="${cream}" stroke="${ln}" stroke-width="1.3"/>
-        <path d="M-7 -6 C-7 -13 7 -13 7 -6 C5 -4 -5 -4 -7 -6 Z" fill="${cream}" stroke="${ln}" stroke-width="1.3"/>
-        <path d="M-3 -11 C-3 -16 3 -16 3 -11 Z" fill="${cream}" stroke="${ln}" stroke-width="1.3"/>
-        <path d="M-6 -3 L-4 -6 M0 -3 L0 -7 M6 -3 L4 -6 M-2 -9 L-1 -12 M2 -9 L1 -12" stroke="${rd}" stroke-width="1" stroke-linecap="round"/>
-        <ellipse cx="-4" cy="-7" rx="2" ry="1.2" fill="#fff" opacity=".7"/>`);
+        // 위로 쌓지 않고 납작하게 핀 크림 꽃 (물결 테두리 + 꽃잎 홈)
+        const ln = shade(cream, -40), rd = shade(cream, -20);
+        let edge = '';
+        const n = 10;
+        for (let i = 0; i <= n; i++) {
+          const a0 = (i / n) * Math.PI * 2, am = ((i + 0.5) / n) * Math.PI * 2;
+          const x0 = Math.cos(a0) * 10, y0 = Math.sin(a0) * 4.6 - 3;
+          const xm = Math.cos(am) * 12.2, ym = Math.sin(am) * 5.8 - 3;
+          edge += i === 0 ? `M${x0.toFixed(2)} ${y0.toFixed(2)}` : '';
+          if (i < n) {
+            const a1 = ((i + 1) / n) * Math.PI * 2;
+            edge += ` Q${xm.toFixed(2)} ${ym.toFixed(2)} ${(Math.cos(a1) * 10).toFixed(2)} ${(Math.sin(a1) * 4.6 - 3).toFixed(2)}`;
+          }
+        }
+        let petals = '';
+        for (let i = 0; i < 5; i++) {
+          const ang = (i / 5) * Math.PI * 2 + 0.3;
+          petals += `<path d="M${(Math.cos(ang) * 3).toFixed(2)} ${(Math.sin(ang) * 1.3 - 3.4).toFixed(2)} Q${(Math.cos(ang + 0.5) * 8).toFixed(2)} ${(Math.sin(ang + 0.5) * 3.6 - 3.2).toFixed(2)} ${(Math.cos(ang + 0.9) * 9).toFixed(2)} ${(Math.sin(ang + 0.9) * 4 - 3).toFixed(2)}" fill="none" stroke="${rd}" stroke-width="1.1" stroke-linecap="round"/>`;
+        }
+        return g(`<ellipse cx="0" cy="0.5" rx="12" ry="4.5" fill="#000" opacity=".06"/>
+          <path d="${edge} Z" fill="${cream}" stroke="${ln}" stroke-width="1.2" stroke-linejoin="round"/>
+          ${petals}
+          <ellipse cx="0" cy="-3.4" rx="2.6" ry="1.3" fill="${shade(cream, -8)}" stroke="${rd}" stroke-width="1"/>
+          <ellipse cx="-4.5" cy="-5" rx="2.4" ry="1" fill="#fff" opacity=".8"/>`);
       }
       case 'strawberry': return g(`<path d="M0 3 C-9 -2 -9 -12 0 -11 C9 -12 9 -2 0 3 Z" fill="#ff5470" stroke="${LINE}" stroke-width="1.5"/>
         <path d="M-5 -11 L0 -14 L5 -11 L2 -10 L0 -12 L-2 -10 Z" fill="#4fb07f" stroke="${LINE}" stroke-width="1.2" stroke-linejoin="round"/>
