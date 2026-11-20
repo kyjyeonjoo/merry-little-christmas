@@ -510,6 +510,34 @@ input:focus { border-color: #ffc9cf; }
 .cstep.done { opacity: .85; } .cstep.done b { background: var(--green); color: #fff; }
 .cstep.now { opacity: 1; box-shadow: 0 0 0 2px var(--red); } .cstep.now b { background: var(--red); color: #fff; }
 .cake-main { display: grid; grid-template-columns: 1.15fr 1fr; gap: 14px; align-items: start; }
+.cake-view-wrap { position: relative; }
+.cake-tool { position: absolute; left: 0; top: 0; width: 40px; height: 80px; pointer-events: none; display: none; transform: translate(-50%, -12%); z-index: 2; }
+.cake-tool svg { width: 100%; height: 100%; display: none; filter: drop-shadow(0 3px 2px rgba(0,0,0,.2)); }
+.cake-tool.whisk, .cake-tool.spatula { display: block; }
+.cake-tool.whisk .whisk, .cake-tool.spatula .spatula { display: block; }
+.cake-tool.spatula { transform: translate(-50%, -8%) rotate(-25deg); }
+.cake-tool.whisk.moving svg { animation: wobble .25s linear infinite; }
+@keyframes wobble { 50% { transform: rotate(12deg); } }
+.cake-svg.mixable, .cake-svg.spreadable { cursor: none; touch-action: none; }
+.cake-view { touch-action: none; }
+.cake-svg .swirl { transform-box: fill-box; transform-origin: center; animation: swirl 2.4s linear infinite; }
+@keyframes swirl { to { transform: rotate(360deg); } }
+.cmembers { display: flex; flex-wrap: wrap; gap: 5px; }
+.cmembers span { background: #fff; border-radius: 999px; padding: 3px 10px; font-size: 13px; box-shadow: 0 2px 0 rgba(91,64,54,.12); }
+.cmembers span.host { background: #fff4d6; }
+.cjoin { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: #fff4d6; border-radius: 14px; padding: 8px 10px; font-size: 13px; }
+.cprog { position: relative; height: 22px; background: #fff; border-radius: 999px; overflow: hidden; box-shadow: inset 0 2px 0 rgba(0,0,0,.06); }
+.cprog i { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, #ffc94a, #ff86a6); border-radius: 999px; transition: width .2s; }
+.cprog span { position: relative; display: block; text-align: center; font-family: 'Jua', sans-serif; font-size: 13px; line-height: 22px; }
+.chint.small { font-size: 12px; opacity: .75; }
+.cbtns.ingr { grid-template-columns: repeat(3, 1fr); }
+.cbtn .ic { width: 38px; height: 40px; display: block; }
+.cbtn .ic svg { width: 100%; height: 100%; overflow: visible; }
+.cbtn.sm .ic { width: 30px; height: 34px; }
+.cbtn.sm small { font-size: 10px; white-space: nowrap; }
+.cbtn.opt { background: #fbf6ff; }
+.cbtn .dot { width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid #5b4036; display: block; margin: 2px 0 3px; }
+.cbtn:disabled { opacity: .55; cursor: default; }
 .cake-view { background: radial-gradient(circle at 50% 70%, #fff3e0, #fff 70%); border-radius: 20px; padding: 6px; box-shadow: inset 0 -6px 0 rgba(0,0,0,.04); }
 .cake-svg { width: 100%; height: auto; display: block; overflow: visible; }
 .cake-svg.placeable { cursor: crosshair; }
@@ -520,7 +548,7 @@ input:focus { border-color: #ffc9cf; }
 .chint { margin: 0; font-size: 14px; line-height: 1.5; }
 .chint.big { font-family: 'Jua', sans-serif; font-size: 19px; text-align: center; padding: 10px 0; }
 .cbtns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-.cbtns.tops { grid-template-columns: repeat(6, 1fr); }
+.cbtns.tops { grid-template-columns: repeat(6, 1fr); gap: 4px; }
 .cbtn { border: 3px solid transparent; background: #fff; border-radius: 14px; padding: 6px 2px; cursor: pointer; display: flex; flex-direction: column; align-items: center;
   box-shadow: 0 3px 0 rgba(91,64,54,.12); transition: transform .1s; }
 .cbtn span { font-size: 26px; line-height: 1.1; }
@@ -590,7 +618,7 @@ input:focus { border-color: #ffc9cf; }
   body { -webkit-text-size-adjust: 100%; }
   .cake-main { grid-template-columns: 1fr; }
   .cake-view svg { max-height: 34dvh; }
-  .cbtns.tops { grid-template-columns: repeat(6, 1fr); }
+  .cbtns.tops { grid-template-columns: repeat(6, 1fr); gap: 4px; }
   .cbtn span { font-size: 24px; }
   .chint { font-size: 15px; }
   .sound-panel { position: fixed; top: 60px; left: 8px; right: 8px; width: auto; transform: none; padding: 14px 16px; }

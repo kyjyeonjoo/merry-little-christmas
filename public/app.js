@@ -59,6 +59,7 @@
   const cakeUI = CakeUI({
     send: (m) => send(m), toast, Sound, esc,
     playerCount: () => players.size,
+    myUid: () => myUser && myUser.id,
     close: () => closeCake(),
   });
   function openCake() { $('#cakeModal').hidden = false; cakeUI.setOpen(true); }
@@ -85,6 +86,9 @@
       confetti($('#confetti'));
     }
     if (prev && prev.stage !== 'done' && c.stage === 'done') Sound.Sfx.tada();
+    if (prev && prev.stage === 'lobby' && c.stage === 'ingredients' && c.members.some((x) => myUser && x.uid === myUser.id)) {
+      if ($('#cakeModal').hidden) { openCake(); toast('🎂 케이크 만들기가 시작됐어요!'); }
+    }
     cakeUI.update(c);
   }
 
@@ -167,7 +171,7 @@
       case 'jump': doJump(m.id); break;
       case 'cake': onCake(m.cake); break;
       case 'cakeBlow': showEmote(m.id, '🌬️'); Sound.Sfx.blow(); break;
-      case 'cakeEat': showEmote(m.id, '😋'); Sound.Sfx.nyam(); break;
+      case 'cakeEat': showEmote(m.id, m.taste === 'salty' ? '🥵' : m.taste === 'sweet' ? '🤤' : '😋'); Sound.Sfx.nyam(); break;
       case 'snow': doSnow(m.id); break;
       case 'throw': doThrow(m.from, m.to); break;
       case 'pupdate': {

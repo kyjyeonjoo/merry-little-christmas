@@ -197,6 +197,7 @@ function removePlayer(client) {
   leaveSeat(p);
   players.delete(p.id);
   client.player = null;
+  if (![...players.values()].some((q) => q.uid === p.uid)) cakeOnLeave(p.uid);
   broadcast({ t: 'leave', id: p.id });
   const nick = p.nick, uid = p.uid;
   clearTimeout(recentlyLeft.get(uid));
@@ -209,65 +210,119 @@ function removePlayer(client) {
 }
 
 // ───────────────────────── 🎂 다 같이 케이크 만들기 ─────────────────────────
-// 방에 케이크가 하나 있고, 누구나 단계를 진행할 수 있어요. (서버가 잠들면 처음부터)
-const CAKE_BASES = ['vanilla', 'choco', 'milk'];
-const CAKE_FRUITS = ['strawberry', 'blueberry', 'mango', 'kiwi', 'tangerine', 'choco'];
-const CAKE_TOPPINGS = ['strawberry', 'cherry', 'blueberry', 'tangerine', 'kiwi', 'star', 'snow', 'chocolate', 'cookie', 'tree', 'santa', 'candle'];
+// 처음 누른 사람이 방장 → 다른 사람은 참여 → 방장이 시작. (서버가 잠들면 처음부터)
+const INGR = ['flour', 'sugar', 'salt', 'egg', 'milk', 'butter', 'cocoa', 'matcha', 'berry'];
+const INGR_REQUIRED = ['flour', 'sugar', 'salt', 'egg', 'milk', 'butter'];
+const INGR_KO = { flour: '밀가루', sugar: '설탕', salt: '소금', egg: '계란', milk: '우유', butter: '버터', cocoa: '코코아 가루', matcha: '말차 가루', berry: '딸기 가루' };
+const CREAM_FRUITS = ['strawberry', 'blueberry', 'mango', 'kiwi', 'tangerine', 'choco'];
 const FRUIT_KO = { strawberry: '딸기', blueberry: '블루베리', mango: '망고', kiwi: '키위', tangerine: '귤', choco: '초콜릿' };
-const BASE_KO = { vanilla: '바닐라', choco: '초코', milk: '우유' };
-const CAKE_STAGES = ['base', 'batter', 'baking', 'cream', 'decorate', 'done', 'eating', 'finished'];
+const CAKE_TOPPINGS = ['rosette', 'strawberry', 'cherry', 'blueberry', 'macaron', 'mint', 'chocoheart', 'sprinkle', 'holly', 'star', 'candle'];
+const SPREAD_N = 14; // 크림 바르기 격자 (14x14)
+const SPREAD_CELLS = (() => {
+  const cells = [];
+  for (let y = 0; y < SPREAD_N; y++) for (let x = 0; x < SPREAD_N; x++) {
+    const u = ((x + 0.5) / SPREAD_N) * 2 - 1, v = ((y + 0.5) / SPREAD_N) * 2 - 1;
+    if (u * u + v * v <= 0.93) cells.push(y * SPREAD_N + x);
+  }
+  return cells;
+})();
 function newCake() {
-  return { id: Date.now(), stage: 'base', base: null, batter: [], cream: [], toppings: [], blows: [], candlesOut: false,
-    slices: Array(8).fill(null), log: [] };
+  return {
+    id: Date.now(), stage: 'lobby', host: null, members: [],
+    ingr: Object.fromEntries(INGR.map((k) => [k, 0])), mix: 0,
+    cream: [], spread: '0'.repeat(SPREAD_N * SPREAD_N), spreadPct: 0,
+    toppings: [], rim: false, blows: [], candlesOut: false, slices: Array(8).fill(null), log: [],
+  };
 }
 let cake = newCake();
-function cakeLog(text) {
-  cake.log.push(text);
-  if (cake.log.length > 8) cake.log.shift();
-}
-function cakeSys(text) {
-  const sys = { kind: 'sys', text, ts: Date.now() };
-  pushHistory(sys);
-  broadcast({ t: 'sys', ...sys });
-}
+function cakeLog(text) { cake.log.push(text); if (cake.log.length > 8) cake.log.shift(); }
+function cakeSys(text) { const sys = { kind: 'sys', text, ts: Date.now() }; pushHistory(sys); broadcast({ t: 'sys', ...sys }); }
 function cakeBroadcast() { broadcast({ t: 'cake', cake }); }
+const isMember = (uid) => cake.members.some((m) => m.uid === uid);
+function cakeOnLeave(uid) {
+  if (cake.stage !== 'lobby' || !isMember(uid)) return;
+  cake.members = cake.members.filter((m) => m.uid !== uid);
+  if (cake.host === uid) cake.host = cake.members[0] ? cake.members[0].uid : null;
+  cakeBroadcast();
+}
 
 function handleCake(client, p, msg) {
   const now = Date.now();
   client.cakeTimes = (client.cakeTimes || []).filter((t) => now - t < 2000);
-  if (client.cakeTimes.length >= 10) return;
+  if (client.cakeTimes.length >= 16) return;
   client.cakeTimes.push(now);
   const a = msg.a;
+  const member = isMember(p.uid);
+  const open = ['blow', 'eat', 'join', 'host', 'reset'];
+  if (!open.includes(a) && !member) return client.send({ t: 'toast', msg: '먼저 "참여하기"를 눌러 주세요 🎂' });
+
   switch (a) {
-    case 'base':
-      if (cake.stage !== 'base' || !CAKE_BASES.includes(msg.v)) return;
-      cake.base = msg.v;
-      cakeLog(`${p.nick} 님이 ${BASE_KO[msg.v]} 반죽을 골랐어요`);
+    case 'host':
+      if (cake.stage !== 'lobby' || cake.host) return;
+      cake.host = p.uid; cake.members = [{ uid: p.uid, nick: p.nick }];
+      cakeLog(`${p.nick} 님이 케이크 만들기를 열었어요`);
+      cakeSys(`🎂 ${p.nick} 님이 케이크를 만들재요! 테이블에서 "참여하기"를 눌러요`);
       break;
-    case 'fruit': {
-      const target = cake.stage === 'batter' ? cake.batter : cake.stage === 'cream' ? cake.cream : null;
-      if (!target || !CAKE_FRUITS.includes(msg.v) || target.length >= 12) return;
-      target.push(msg.v);
-      cakeLog(`${p.nick} 님이 ${cake.stage === 'batter' ? '반죽' : '크림'}에 ${FRUIT_KO[msg.v]}을(를) 넣었어요`);
+    case 'join':
+      if (member || ['eating', 'finished'].includes(cake.stage) || (cake.stage === 'lobby' && !cake.host)) return;
+      if (cake.members.length >= 12) return client.send({ t: 'toast', msg: '케이크 만들기는 12명까지예요' });
+      cake.members.push({ uid: p.uid, nick: p.nick });
+      cakeLog(`${p.nick} 님이 참여했어요`);
+      break;
+    case 'leave':
+      if (cake.stage !== 'lobby') return;
+      cakeOnLeave(p.uid);
+      return;
+    case 'start':
+      if (cake.stage !== 'lobby' || cake.host !== p.uid) return;
+      cake.stage = 'ingredients';
+      cakeLog('재료를 그릇에 넣어요!');
+      break;
+    case 'ingr':
+      if (cake.stage !== 'ingredients' || !INGR.includes(msg.v) || cake.ingr[msg.v] >= 3) return;
+      cake.ingr[msg.v]++;
+      cakeLog(`${p.nick} 님이 ${INGR_KO[msg.v]}을(를) 넣었어요`);
+      break;
+    case 'uningr':
+      if (cake.stage !== 'ingredients' || !INGR.includes(msg.v) || cake.ingr[msg.v] <= 0) return;
+      cake.ingr[msg.v]--;
+      break;
+    case 'mix': {
+      if (cake.stage !== 'mixing') return;
+      const d = Math.max(0, Math.min(Number(msg.d) || 0, Math.PI * 6)); // 한 번에 최대 세 바퀴
+      cake.mix = Math.min(1, cake.mix + d / (Math.PI * 2 * 10)); // 다 같이 열 바퀴
+      if (cake.mix >= 1) cakeLog('반죽이 매끈해졌어요 ✨');
       break;
     }
-    case 'unfruit': {
-      const target = cake.stage === 'batter' ? cake.batter : cake.stage === 'cream' ? cake.cream : null;
-      if (!target || !target.length) return;
-      const f = target.pop();
-      cakeLog(`${p.nick} 님이 ${FRUIT_KO[f]}을(를) 다시 뺐어요`);
+    case 'cream':
+      if (cake.stage !== 'cream' || !CREAM_FRUITS.includes(msg.v) || cake.cream.length >= 8) return;
+      cake.cream.push(msg.v);
+      cakeLog(`${p.nick} 님이 크림에 ${FRUIT_KO[msg.v]}을(를) 넣었어요`);
+      break;
+    case 'uncream':
+      if (cake.stage !== 'cream' || !cake.cream.length) return;
+      cake.cream.pop();
+      break;
+    case 'spread': {
+      if (cake.stage !== 'spread' || !Array.isArray(msg.c)) return;
+      const arr = cake.spread.split('');
+      for (const i of msg.c.slice(0, 60)) if (Number.isInteger(i) && i >= 0 && i < arr.length) arr[i] = '1';
+      cake.spread = arr.join('');
+      const done = SPREAD_CELLS.filter((i) => arr[i] === '1').length;
+      cake.spreadPct = Math.round((done / SPREAD_CELLS.length) * 100);
       break;
     }
     case 'next': {
       const st = cake.stage;
-      if (st === 'base') {
-        if (!cake.base) return;
-        cake.stage = 'batter';
-        cakeLog('반죽에 과일을 넣어 볼까요?');
-      } else if (st === 'batter') {
+      if (st === 'ingredients') {
+        const missing = INGR_REQUIRED.filter((k) => !cake.ingr[k]);
+        if (missing.length) return client.send({ t: 'toast', msg: `${missing.map((k) => INGR_KO[k]).join(', ')}이(가) 아직 없어요` });
+        cake.stage = 'mixing';
+        cakeLog('거품기로 빙글빙글 섞어요!');
+      } else if (st === 'mixing') {
+        if (cake.mix < 1) return;
         cake.stage = 'baking';
         cakeLog(`${p.nick} 님이 오븐에 넣었어요 🔥`);
-        cakeSys('🎂 케이크를 오븐에 넣었어요! 테이블로 모여요~');
         const id = cake.id;
         setTimeout(() => {
           if (cake.id !== id || cake.stage !== 'baking') return;
@@ -276,15 +331,18 @@ function handleCake(client, p, msg) {
           cakeBroadcast();
         }, 4000);
       } else if (st === 'cream') {
+        cake.stage = 'spread';
+        cakeLog('스패출러로 크림을 발라요!');
+      } else if (st === 'spread') {
+        if (cake.spreadPct < 88) return;
         cake.stage = 'decorate';
-        cakeLog(`${p.nick} 님이 크림을 발랐어요`);
+        cakeLog('크림을 다 발랐어요 ✨');
       } else if (st === 'decorate') {
         cake.stage = 'done';
         cakeLog(`${p.nick} 님이 케이크를 완성했어요 ✨`);
-        cakeSys('🎂 케이크가 완성됐어요! 테이블에서 구경해요');
+        cakeSys('🎂 케이크가 완성됐어요! 테이블로 모여요');
       } else if (st === 'done') {
-        const hasCandle = cake.toppings.some((t) => t.k === 'candle');
-        if (hasCandle && !cake.candlesOut) return;
+        if (cake.toppings.some((t) => t.k === 'candle') && !cake.candlesOut) return;
         cake.stage = 'eating';
         cakeLog(`${p.nick} 님이 케이크를 8조각으로 잘랐어요 🔪`);
       } else return;
@@ -292,24 +350,25 @@ function handleCake(client, p, msg) {
     }
     case 'topping': {
       const u = Number(msg.u), v = Number(msg.v);
-      if (cake.stage !== 'decorate' || !CAKE_TOPPINGS.includes(msg.k) || cake.toppings.length >= 40) return;
+      if (cake.stage !== 'decorate' || !CAKE_TOPPINGS.includes(msg.k) || cake.toppings.length >= 50) return;
       if (!isFinite(u) || !isFinite(v) || u * u + v * v > 1.05) return;
       cake.toppings.push({ k: msg.k, u: Math.round(u * 1000) / 1000, v: Math.round(v * 1000) / 1000, by: p.uid });
       break;
     }
-    case 'undo': {
+    case 'rim':
       if (cake.stage !== 'decorate') return;
-      for (let i = cake.toppings.length - 1; i >= 0; i--) {
-        if (cake.toppings[i].by === p.uid) { cake.toppings.splice(i, 1); break; }
-      }
+      cake.rim = !cake.rim;
+      cakeLog(`${p.nick} 님이 테두리 생크림을 ${cake.rim ? '짰어요' : '걷어냈어요'}`);
       break;
-    }
+    case 'undo':
+      if (cake.stage !== 'decorate') return;
+      for (let i = cake.toppings.length - 1; i >= 0; i--) if (cake.toppings[i].by === p.uid) { cake.toppings.splice(i, 1); break; }
+      break;
     case 'blow': {
       if (cake.stage !== 'done' || cake.candlesOut || !cake.toppings.some((t) => t.k === 'candle')) return;
       if (!cake.blows.includes(p.uid)) cake.blows.push(p.uid);
-      const need = Math.max(1, Math.ceil(players.size / 2));
       broadcast({ t: 'cakeBlow', id: p.id });
-      if (cake.blows.length >= need) {
+      if (cake.blows.length >= Math.max(1, Math.ceil(players.size / 2))) {
         cake.candlesOut = true;
         cakeLog('후~ 촛불이 꺼졌어요 🎉');
         cakeSys('🕯️ 다 같이 촛불을 껐어요! 메리 크리스마스 🎉');
@@ -320,20 +379,16 @@ function handleCake(client, p, msg) {
       const i = Number(msg.i);
       if (cake.stage !== 'eating' || !(i >= 0 && i < 8) || cake.slices[i]) return;
       cake.slices[i] = p.nick;
-      cakeLog(`${p.nick} 님이 한 조각 먹었어요 😋`);
-      broadcast({ t: 'cakeEat', id: p.id });
-      if (cake.slices.every(Boolean)) {
-        cake.stage = 'finished';
-        cakeSys('🍰 케이크를 다 먹었어요! 맛있었다~');
-      }
+      const taste = cake.ingr.salt >= 3 ? 'salty' : cake.ingr.sugar >= 3 ? 'sweet' : 'yum';
+      cakeLog(`${p.nick} 님이 한 조각 먹었어요 ${taste === 'salty' ? '🥵 짜다!' : taste === 'sweet' ? '🤤 엄청 달다!' : '😋'}`);
+      broadcast({ t: 'cakeEat', id: p.id, taste });
+      if (cake.slices.every(Boolean)) { cake.stage = 'finished'; cakeSys('🍰 케이크를 다 먹었어요! 맛있었다~'); }
       break;
     }
-    case 'reset': {
-      if (!['finished', 'done', 'eating'].includes(cake.stage) && !msg.force) return;
+    case 'reset':
+      if (cake.stage !== 'finished' && !(msg.force && (member || cake.stage === 'lobby'))) return;
       cake = newCake();
-      cakeLog(`${p.nick} 님이 새 케이크를 시작했어요`);
       break;
-    }
     default:
       return;
   }
