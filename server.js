@@ -41,6 +41,7 @@ async function loadDb() {
     try { db = JSON.parse(fs.readFileSync(DB_FILE, 'utf8')); } catch (_) {}
   }
   db.users = db.users || {};
+  db.tree = db.tree && Array.isArray(db.tree.items) ? db.tree : { items: [], top: 'star', next: 1 };
   db.tokens = db.tokens || {};
 }
 
@@ -183,7 +184,7 @@ function enterRoom(client, user) {
   players.set(p.id, p);
   client.send({
     t: 'welcome', me: p.id, user: publicUser(user), inv: Array.isArray(user.inv) ? user.inv : [],
-    players: [...players.values()].map(pub), history, cake,
+    players: [...players.values()].map(pub), history, cake, tree: db.tree,
   });
   broadcast({ t: 'join', player: pub(p) }, client);
   if (recentlyLeft.has(user.id)) {
@@ -443,6 +444,68 @@ function itemName(it) {
   return { raw: '말랑 마시멜로', golden: '노릇노릇 마시멜로', perfect: '완벽한 황금 마시멜로', brown: '바삭 마시멜로', burnt: '까맣게 탄 마시멜로' }[it.q] || '마시멜로';
 }
 
+// ───────────────────────── 🎄 다 같이 트리 꾸미기 (계정 저장소에 같이 저장) ─────────────────────────
+const TREE = {
+  orn: { ball: ['red', 'gold', 'blue', 'pink', 'white', 'purple', 'mint'], cane: [''], bell: [''], bow: [''], ginger: [''], snow: [''],
+    star: [''], sock: [''], light: ['red', 'gold', 'blue', 'pink', 'mint'], wish: ['cream', 'pink', 'mint', 'sky'], gift: ['red', 'blue', 'pink', 'mint', 'gold'] },
+  garland: ['tinsel', 'beads', 'lights', 'ribbon'],
+  tops: ['star', 'bow', 'snow', 'moon'],
+  MAX: 220, MINE: 24, MINE_G: 4, MINE_W: 3,
+};
+const treeBroadcast = () => broadcast({ t: 'tree', tree: db.tree });
+const clampN = (v, a, b) => Math.max(a, Math.min(b, Math.round(Number(v) || 0)));
+function handleTree(client, p, msg) {
+  const tr = db.tree;
+  const now = Date.now();
+  if (now - (client.lastTree || 0) < 150) return;
+  client.lastTree = now;
+  const mine = tr.items.filter((o) => o.uid === p.uid);
+  const toast = (m) => client.send({ t: 'toast', msg: m });
+  if (msg.act === 'add') {
+    const o = msg.o || {};
+    if (tr.items.length >= TREE.MAX) return toast('트리가 꽉 찼어요! 다른 장식을 조금 떼어 봐요 🎄');
+    let item;
+    if (o.k === 'garland') {
+      if (!TREE.garland.includes(o.c)) return;
+      if (mine.filter((x) => x.k === 'garland').length >= TREE.MINE_G) return toast(`줄 장식은 한 사람당 ${TREE.MINE_G}개까지예요`);
+      const pts = (Array.isArray(o.pts) ? o.pts : []).slice(0, 24).map((q) => [clampN(q && q[0], 0, 240), clampN(q && q[1], 0, 300)]);
+      if (pts.length < 2) return;
+      item = { k: 'garland', c: o.c, pts };
+    } else {
+      const cs = TREE.orn[o.k];
+      if (!cs) return;
+      const c = cs.includes(o.c) ? o.c : cs[0];
+      if (mine.filter((x) => x.k !== 'garland').length >= TREE.MINE) return toast(`장식은 한 사람당 ${TREE.MINE}개까지 달 수 있어요`);
+      item = { k: o.k, c, x: clampN(o.x, 0, 240), y: clampN(o.y, 0, 300), r: clampN(o.r, -30, 30) };
+      if (o.k === 'wish') {
+        if (mine.filter((x) => x.k === 'wish').length >= TREE.MINE_W) return toast(`소원 카드는 한 사람당 ${TREE.MINE_W}장까지예요`);
+        const txt = String(o.txt || '').replace(/[\u0000-\u001f]/g, '').trim().slice(0, 40);
+        if (!txt) return toast('소원을 적어 주세요 ✍️');
+        item.txt = txt;
+      }
+    }
+    item.id = tr.next++; item.uid = p.uid; item.nick = p.nick;
+    tr.items.push(item);
+    if (item.k === 'wish') {
+      const sys = { kind: 'sys', text: `🎄 ${p.nick} 님이 트리에 소원 카드를 걸었어요`, ts: now };
+      pushHistory(sys); broadcast({ t: 'sys', ...sys });
+    }
+  } else if (msg.act === 'move') {
+    const o = tr.items.find((x) => x.id === Number(msg.id));
+    if (!o || o.uid !== p.uid || o.k === 'garland') return;
+    o.x = clampN(msg.x, 0, 240); o.y = clampN(msg.y, 0, 300);
+  } else if (msg.act === 'del') {
+    const i = tr.items.findIndex((x) => x.id === Number(msg.id));
+    if (i < 0 || tr.items[i].uid !== p.uid) return;
+    tr.items.splice(i, 1);
+  } else if (msg.act === 'top') {
+    if (!TREE.tops.includes(msg.v) || tr.top === msg.v) return;
+    tr.top = msg.v;
+  } else return;
+  saveDb();
+  treeBroadcast();
+}
+
 // ───────────────────────── 메시지 처리 ─────────────────────────
 function handle(client, msg) {
   if (!msg || typeof msg.t !== 'string') return;
@@ -575,6 +638,7 @@ function handle(client, msg) {
       break;
     }
     case 'cake': handleCake(client, p, msg); break;
+    case 'tree': handleTree(client, p, msg); break;
     case 'craft': {
       // 주방에서 만든 음식 → 인벤토리 (4칸)
       const user = db.users[p.uid];

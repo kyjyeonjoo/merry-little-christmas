@@ -96,12 +96,7 @@
         </div>
 
         <!-- 장식 트리 -->
-        <div class="deco-tree">
-          <div class="star">★</div>
-          <div class="layer l1"></div><div class="layer l2"></div><div class="layer l3"></div>
-          <div class="trunk"></div>
-          <div class="gifts"><i></i><i class="g2"></i></div>
-        </div>
+        <div class="deco-tree" id="roomTree" title="다 같이 트리 꾸미기"></div>
         <div class="kitchen" id="kitchenCounter" title="주방: 핫초코 · 마시멜로"><div class="art"></div></div>
 
         <!-- 좌석과 캐릭터는 app.js가 여기에 그려요 -->
@@ -219,6 +214,26 @@
   </div>
 
   <!-- ───────── ☕ 주방 ───────── -->
+  <div class="modal float" id="treeModal" hidden>
+    <div class="modal-card cake-card tree-card">
+      <button class="icon-btn close" data-close-tree>✕</button>
+      <h2>🎄 다 같이 트리 꾸미기</h2>
+      <div class="ktabs tree-tabs" id="treeTabs">
+        <button data-tab="orn" class="on">오너먼트</button>
+        <button data-tab="garland">줄 장식</button>
+        <button data-tab="top">꼭대기</button>
+        <button data-tab="gift">선물</button>
+        <button data-tab="wish">소원 카드</button>
+      </div>
+      <div class="cake-main">
+        <div class="cake-view-wrap"><div class="cake-view tree-view" id="treeView"></div><div class="tree-pop" id="treePop" hidden></div></div>
+        <div class="cake-side">
+          <div class="cake-panel" id="treePanel"></div>
+          <ul class="mini-chat"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
   <div class="modal float" id="kitchenModal" hidden>
     <div class="modal-card cake-card kitchen-card">
       <button class="icon-btn close" data-close-kitchen>✕</button>
@@ -245,6 +260,7 @@
   <script src="avatar.js"></script>
   <script src="cake.js"></script>
   <script src="kitchen.js"></script>
+  <script src="tree.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

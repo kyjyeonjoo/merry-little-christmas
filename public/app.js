@@ -62,7 +62,7 @@
     myUid: () => myUser && myUser.id,
     close: () => closeCake(),
   });
-  function openCake() { if ($('#kitchenModal') && !$('#kitchenModal').hidden) closeKitchen(); $('#cakeModal').hidden = false; cakeUI.setOpen(true); }
+  function openCake() { if ($('#kitchenModal') && !$('#kitchenModal').hidden) closeKitchen(); if (typeof closeTree === 'function') closeTree(); $('#cakeModal').hidden = false; cakeUI.setOpen(true); }
   function closeCake() { $('#cakeModal').hidden = true; cakeUI.setOpen(false); }
 
   function confetti(box) {
@@ -177,6 +177,7 @@
       case 'notice': showNotice(m); break;
       case 'inv': setInv(m.inv); if (m.added) { Sound.Sfx.ding(); pendingCraft && pendingCraft(true); pendingCraft = null; } break;
       case 'eatItem': onEatItem(m); break;
+      case 'tree': onTree(m.tree); break;
       case 'hold': { const p = players.get(m.id); if (p) setHeld(p, m.item); break; }
       case 'heldSlot': heldSlot = m.slot; updateEatBtn(); break;
       case 'throw': doThrow(m.from, m.to); break;
@@ -265,6 +266,7 @@
     m.history.forEach((h) => addLog(h));
     if (m.cake) onCake(m.cake);
     setInv(m.inv || []);
+    onTree(m.tree || { items: [], top: 'star' });
     $('#kitchenCounter .art').innerHTML = Kitchen.counterArt();
     renderMe();
     updateCount();
@@ -488,6 +490,7 @@
     if (!mine) return;
     if (e.target.closest('.cake-table')) { openCake(); return; }
     if (e.target.closest('.kitchen')) { openKitchen(); return; }
+    if (e.target.closest('.deco-tree')) { openTree(); return; }
     const seatEl = e.target.closest('.seat');
     if (seatEl) {
       const id = seatEl.dataset.seat;
@@ -522,7 +525,7 @@
   window.addEventListener('keydown', (e) => {
     if (!me || typing() || !$('#profileModal').hidden || !$('#inviteModal').hidden) return;
     if (e.key === 'Enter') { $('#chatInput').focus(); e.preventDefault(); return; }
-    if (!$('#cakeModal').hidden || !$('#kitchenModal').hidden) return;
+    if (!$('#cakeModal').hidden || !$('#kitchenModal').hidden || !$('#treeModal').hidden) return;
     if ((e.key === 'q' || e.key === 'Q' || e.key === 'ㅂ') && !e.repeat) { eatHeld(); return; }
     if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (!e.repeat) send({ t: 'jump' }); return; }
     if ((e.key === 'e' || e.key === 'E' || e.key === 'ㄷ') && !e.repeat) { send({ t: 'snow' }); return; }
@@ -879,8 +882,19 @@
     craft: (item, cb) => { pendingCraft = cb; send({ t: 'craft', item }); setTimeout(() => { if (pendingCraft === cb) { pendingCraft = null; } }, 4000); },
     close: () => closeKitchen(),
   });
-  function openKitchen(which) { closeCake(); $('#kitchenModal').hidden = false; kitchenUI.setOpen(true, which); }
+  function openKitchen(which) { closeCake(); closeTree(); $('#kitchenModal').hidden = false; kitchenUI.setOpen(true, which); }
   function closeKitchen() { $('#kitchenModal').hidden = true; kitchenUI.setOpen(false); }
+
+  // ───────── 🎄 트리 꾸미기 ─────────
+  let treeData = null;
+  const treeUI = TreeUI({ send, toast, Sound, myUid: () => myUser && myUser.id, close: () => closeTree() });
+  function openTree() { closeCake(); closeKitchen(); $('#treeModal').hidden = false; treeUI.setOpen(true); }
+  function closeTree() { if (!$('#treeModal').hidden) { $('#treeModal').hidden = true; treeUI.setOpen(false); } }
+  function onTree(t) {
+    treeData = t;
+    $('#roomTree').innerHTML = Tree.svg(t, { lights: true });
+    treeUI.setTree(t);
+  }
 
   function showEmote(id, e) {
     const p = players.get(id);
@@ -895,12 +909,12 @@
   // ───────── 아래 메뉴 ─────────
   const COMING = {
     gift: '🎁 그림 선물·쪽지 나눔은 곧 열려요!',
-    tree: '🎄 다 같이 트리 꾸미기는 곧 열려요!',
     mafia: '🎅 산타 마피아는 곧 열려요!',
   };
   document.querySelectorAll('.dock-item').forEach((b) =>
     b.addEventListener('click', () => {
       if (b.dataset.feature === 'cake') openCake();
+      else if (b.dataset.feature === 'tree') openTree();
       else if (b.dataset.feature !== 'room') toast(COMING[b.dataset.feature]);
     })
   );
