@@ -44,6 +44,7 @@ async function loadDb() {
   db.tree = db.tree && Array.isArray(db.tree.items) ? db.tree : { items: [], top: 'star', next: 1 };
   db.gifts = db.gifts && Array.isArray(db.gifts.pool) ? db.gifts : { pool: [], waiting: [], next: 1 };
   db.snow = db.snow && Array.isArray(db.snow.men) ? db.snow : { men: [], next: 1 };
+  db.castle = db.castle && db.castle.cells ? db.castle : { cells: {} };
   db.tokens = db.tokens || {};
 }
 
@@ -151,7 +152,7 @@ const history = []; // 최근 채팅
 let nextPid = 1;
 
 function pub(p) {
-  return { id: p.id, nick: p.nick, avatar: p.avatar, x: p.x, y: p.y, seat: p.seat, facing: p.facing, held: p.held || null, room: p.room || 'in' };
+  return { id: p.id, nick: p.nick, avatar: p.avatar, x: p.x, y: p.y, seat: p.seat, facing: p.facing, held: p.held || null, room: p.room || 'in', uid: p.uid };
 }
 function broadcast(msg, except) {
   const s = JSON.stringify(msg);
@@ -193,7 +194,7 @@ function enterRoom(client, user) {
   client.send({
     t: 'welcome', me: p.id, user: publicUser(user), inv: Array.isArray(user.inv) ? user.inv : [],
     players: [...players.values()].map(pub), history, cake, tree: db.tree, gift: giftState(user), giftPool: db.gifts.pool.length,
-    snowmen: db.snow.men, race: racePub(),
+    snowmen: db.snow.men, race: racePub(), fight: fightPub(), castle: db.castle.cells,
   });
   broadcast({ t: 'join', player: pub(p) }, client);
   if (recentlyLeft.has(user.id)) {
@@ -212,7 +213,7 @@ function removePlayer(client) {
   leaveSeat(p);
   players.delete(p.id);
   client.player = null;
-  if (![...players.values()].some((q) => q.uid === p.uid)) { cakeOnLeave(p.uid); raceLeave(p.uid); }
+  if (![...players.values()].some((q) => q.uid === p.uid)) { cakeOnLeave(p.uid); raceLeave(p.uid); fightLeave(p.uid); }
   broadcast({ t: 'leave', id: p.id });
   const nick = p.nick, uid = p.uid;
   clearTimeout(recentlyLeft.get(uid));
@@ -778,6 +779,120 @@ function handleRace(client, p, msg) {
   raceSend();
 }
 
+// ───────────────────────── ❄️ 눈싸움 팀전 ─────────────────────────
+const FIGHT_TIME = 60000, FIGHT_MAX = 8;
+const newFight = () => ({ stage: 'idle', host: null, red: [], blue: [], score: { red: 0, blue: 0 }, hits: {}, endAt: 0, winner: null, mvp: null });
+let fight = newFight(), fightTimer = null;
+function fightPub() {
+  return { stage: fight.stage, host: fight.host, red: fight.red, blue: fight.blue, score: fight.score, hits: fight.hits,
+    left: fight.stage === 'run' ? Math.max(0, fight.endAt - Date.now()) : 0, winner: fight.winner, mvp: fight.mvp };
+}
+const fightSend = () => broadcast({ t: 'fight', fight: fightPub() });
+const teamOf = (uid) => (fight.red.some((m) => m.uid === uid) ? 'red' : fight.blue.some((m) => m.uid === uid) ? 'blue' : null);
+function fightLeave(uid) {
+  if (fight.stage !== 'lobby') return;
+  fight.red = fight.red.filter((m) => m.uid !== uid);
+  fight.blue = fight.blue.filter((m) => m.uid !== uid);
+  if (!fight.red.length && !fight.blue.length) fight = newFight();
+  else if (fight.host === uid) fight.host = (fight.red[0] || fight.blue[0]).uid;
+  fightSend();
+}
+function fightHit(p, target) {
+  if (fight.stage !== 'run' || p.room !== 'out' || target.room !== 'out') return;
+  const a = teamOf(p.uid), b = teamOf(target.uid);
+  if (!a || !b || a === b) return;
+  fight.score[a]++;
+  fight.hits[p.uid] = (fight.hits[p.uid] || 0) + 1;
+  broadcast({ t: 'fightHit', from: p.id, to: target.id, team: a });
+  fightSend();
+}
+function fightEnd() {
+  if (fight.stage !== 'run') return;
+  clearTimeout(fightTimer);
+  fight.stage = 'done';
+  const { red, blue } = fight.score;
+  fight.winner = red > blue ? 'red' : blue > red ? 'blue' : 'draw';
+  const all = [...fight.red, ...fight.blue];
+  const best = all.reduce((a, m) => ((fight.hits[m.uid] || 0) > (a ? fight.hits[a.uid] || 0 : -1) ? m : a), null);
+  fight.mvp = best && fight.hits[best.uid] ? { uid: best.uid, nick: best.nick, hits: fight.hits[best.uid] } : null;
+  const txt = fight.winner === 'draw' ? `❄️ 눈싸움 끝! ${red} : ${blue} 무승부예요` : `❄️ 눈싸움 끝! ${fight.winner === 'red' ? '🔴 빨강팀' : '🔵 파랑팀'} 승리 (${red} : ${blue})`;
+  const sys = { kind: 'sys', text: txt + (fight.mvp ? ` · MVP ${fight.mvp.nick} 님 (${fight.mvp.hits}번 명중)` : ''), ts: Date.now() };
+  pushHistory(sys); broadcast({ t: 'sys', ...sys });
+  notice('fight', txt);
+  fightSend();
+}
+function handleFight(client, p, msg) {
+  const toast = (m) => client.send({ t: 'toast', msg: m });
+  switch (msg.act) {
+    case 'open':
+      if (fight.stage === 'lobby' || fight.stage === 'run') return toast('이미 눈싸움이 열려 있어요');
+      fight = newFight(); fight.stage = 'lobby'; fight.host = p.uid; fight.red.push({ uid: p.uid, nick: p.nick });
+      notice('fight', `❄️ ${p.nick} 님이 눈싸움 팀전을 열었어요! 눈마당에서 팀을 골라요`);
+      break;
+    case 'join': {
+      if (fight.stage !== 'lobby') return;
+      const team = msg.team === 'blue' ? 'blue' : 'red';
+      if (teamOf(p.uid) === team) return;
+      if (fight[team].length >= FIGHT_MAX) return toast('그 팀은 꽉 찼어요');
+      fight.red = fight.red.filter((m) => m.uid !== p.uid); fight.blue = fight.blue.filter((m) => m.uid !== p.uid);
+      fight[team].push({ uid: p.uid, nick: p.nick });
+      break;
+    }
+    case 'leave': return fightLeave(p.uid);
+    case 'shuffle': {
+      if (fight.stage !== 'lobby' || fight.host !== p.uid) return;
+      const all = [...fight.red, ...fight.blue].sort(() => Math.random() - 0.5);
+      fight.red = all.filter((_, i) => i % 2 === 0); fight.blue = all.filter((_, i) => i % 2 === 1);
+      break;
+    }
+    case 'start':
+      if (fight.stage !== 'lobby' || fight.host !== p.uid) return;
+      if (!fight.red.length || !fight.blue.length) return toast('양쪽 팀에 한 명씩은 있어야 해요');
+      fight.stage = 'run'; fight.endAt = Date.now() + FIGHT_TIME; fight.score = { red: 0, blue: 0 }; fight.hits = {};
+      fightTimer = setTimeout(fightEnd, FIGHT_TIME);
+      notice('fight', '❄️ 눈싸움 시작! 상대 팀 친구를 눌러서 눈덩이를 던져요');
+      break;
+    case 'reset':
+      if (fight.stage !== 'done') return;
+      fight = newFight();
+      break;
+    default: return;
+  }
+  fightSend();
+}
+
+// ───────────────────────── 🏰 다 같이 눈성 쌓기 (16칸 × 8층, 저장돼요) ─────────────────────────
+const CASTLE_W = 16, CASTLE_H = 8, CASTLE_MINE = 24;
+const CASTLE_K = { brick: [''], ice: [''], crenel: [''], arch: [''], window: [''], stair: ['l', 'r'], roof: ['red', 'blue', 'purple'], flag: ['red', 'blue', 'gold', 'pink'], icicle: [''], flake: [''] };
+const SOLID = new Set(['brick', 'ice', 'crenel', 'arch', 'window', 'stair']);
+function handleCastle(client, p, msg) {
+  const cells = db.castle.cells;
+  const now = Date.now();
+  if (now - (client.lastCastle || 0) < 120) return;
+  client.lastCastle = now;
+  const c = Number(msg.c), r = Number(msg.r);
+  if (!(c >= 0 && c < CASTLE_W && r >= 0 && r < CASTLE_H) || !Number.isInteger(c) || !Number.isInteger(r)) return;
+  const key = `${c},${r}`, below = cells[`${c},${r - 1}`], above = cells[`${c},${r + 1}`];
+  const toast = (m) => client.send({ t: 'toast', msg: m });
+  if (msg.act === 'place') {
+    const opts = CASTLE_K[msg.k];
+    if (!opts || cells[key]) return;
+    if (Object.values(cells).filter((x) => x.uid === p.uid).length >= CASTLE_MINE) return toast(`블록은 한 사람당 ${CASTLE_MINE}개까지예요`);
+    if (msg.k === 'icicle') { if (!above || !SOLID.has(above.k)) return toast('고드름은 블록 아래에 매달아요'); }
+    else if (r > 0 && (!below || !SOLID.has(below.k))) return toast('바닥이나 블록 위에 쌓아요 🧱');
+    cells[key] = { k: msg.k, v: opts.includes(msg.v) ? msg.v : opts[0], uid: p.uid, nick: p.nick };
+  } else if (msg.act === 'remove') {
+    const o = cells[key];
+    if (!o || o.uid !== p.uid) return;
+    if ((above && above.k !== 'icicle' && SOLID.has(o.k)) || (above && above.k === 'icicle' && false)) return toast('위에 쌓인 블록부터 치워야 해요');
+    const under = cells[`${c},${r - 1}`];
+    if (under && under.k === 'icicle' && SOLID.has(o.k)) delete cells[`${c},${r - 1}`]; // 매달린 고드름은 같이 떨어져요
+    delete cells[key];
+  } else return;
+  saveDb();
+  broadcast({ t: 'castle', cells });
+}
+
 // ───────────────────────── 메시지 처리 ─────────────────────────
 function handle(client, msg) {
   if (!msg || typeof msg.t !== 'string') return;
@@ -892,6 +1007,7 @@ function handle(client, msg) {
     }
     case 'jump':
     case 'snow':
+    case 'angel':
     case 'fw':
     case 'throw': {
       // 너무 자주 못 하게: 3초에 8번까지
@@ -904,6 +1020,7 @@ function handle(client, msg) {
         if (!target || target.id === p.id || target.room !== p.room) return;
         p.facing = target.x < p.x ? -1 : 1;
         broadcast({ t: 'throw', from: p.id, to: target.id });
+        fightHit(p, target);
       } else {
         broadcast({ t: msg.t, id: p.id });
       }
@@ -922,6 +1039,8 @@ function handle(client, msg) {
     }
     case 'snowman': handleSnowman(client, p, msg); break;
     case 'race': handleRace(client, p, msg); break;
+    case 'fight': handleFight(client, p, msg); break;
+    case 'castle': handleCastle(client, p, msg); break;
     case 'cake': handleCake(client, p, msg); break;
     case 'tree': handleTree(client, p, msg); break;
     case 'gift': handleGift(client, p, msg).catch((e) => console.error(e)); break;

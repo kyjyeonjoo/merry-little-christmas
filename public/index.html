@@ -62,6 +62,7 @@
     </header>
 
     <main class="stage-wrap" id="stageWrap">
+      <div class="fight-board" id="fightBoard" hidden></div>
       <div class="notice" id="notice" hidden><span id="noticeText"></span><button class="btn primary small" id="noticeGo">보러 가기</button><button class="icon-btn" id="noticeX">✕</button></div>
       <div class="inv" id="inv" title="인벤토리"></div>
       <div class="inv-menu" id="invMenu" hidden></div>
@@ -104,6 +105,8 @@
         <div class="cake-table" id="cakeTable" title="다 같이 케이크 만들기"><div class="art"></div></div>
         <div id="outdoor">
           <div class="out-bg" id="outBg"></div>
+          <div id="prints"></div>
+          <div class="yard-castle" id="yardCastle" title="다 같이 눈성 쌓기"></div>
           <div class="ohs" data-k="door" style="left:118px;top:232px;width:84px;height:132px" title="집 안으로 들어가기"></div>
           <div class="ohs" data-k="workshop" style="left:282px;top:284px;width:126px;height:100px" title="눈사람 공방"></div>
           <div class="ohs" data-k="race" style="left:632px;top:280px;width:162px;height:110px" title="썰매 경주"></div>
@@ -129,6 +132,8 @@
         <button class="act-btn" id="jumpBtn" title="점프 (스페이스바)">🦘<span>점프</span></button>
         <button class="act-btn" id="snowBtn" title="눈 뿌리기 (E)">❄️<span>눈 뿌리기</span></button>
         <button class="act-btn" id="fwBtn" title="폭죽 (F)">🎆<span>폭죽</span></button>
+        <button class="act-btn" id="angelBtn" hidden title="눈천사 (G)">😇<span>눈천사</span></button>
+        <button class="act-btn throw-btn" id="throwBtn" hidden title="가까운 상대에게 던지기 (T)">🎯<span>던지기</span></button>
         <button class="act-btn eat-btn" id="eatBtn" hidden title="먹기 (Q)"><i class="ic"></i><span>먹기</span></button>
       </div>
       <form id="chatForm">
@@ -152,6 +157,8 @@
       <div class="dock-acts out" id="dockOut" hidden>
         <button class="dock-item" data-feature="snowman"><b>⛄</b><span>눈사람 공방</span></button>
         <button class="dock-item" data-feature="race"><b>🛷</b><span>썰매 경주</span></button>
+        <button class="dock-item" data-feature="fight"><b>❄️</b><span>눈싸움</span></button>
+        <button class="dock-item" data-feature="castle"><b>🏰</b><span>눈성 쌓기</span></button>
       </div>
     </nav>
   </section>
@@ -292,6 +299,26 @@
         <div class="race-view" id="raceView"></div>
         <div class="cake-side">
           <div class="cake-panel race-panel" id="racePanel"></div>
+          <ul class="mini-chat"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal float" id="fightModal" hidden>
+    <div class="modal-card cake-card fight-card">
+      <button class="icon-btn close" data-close-fight>✕</button>
+      <h2>❄️ 눈싸움 팀전</h2>
+      <div class="cake-panel" id="fightPanel"></div>
+    </div>
+  </div>
+  <div class="modal float" id="castleModal" hidden>
+    <div class="modal-card cake-card castle-card">
+      <button class="icon-btn close" data-close-castle>✕</button>
+      <h2>🏰 다 같이 눈성 쌓기</h2>
+      <div class="cake-main">
+        <div class="cake-view-wrap"><div class="cake-view castle-view" id="castleView"></div></div>
+        <div class="cake-side">
+          <div class="cake-panel" id="castlePanel"></div>
           <ul class="mini-chat"></ul>
         </div>
       </div>

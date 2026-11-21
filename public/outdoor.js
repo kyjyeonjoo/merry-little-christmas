@@ -51,7 +51,7 @@
         <path d="M61 204 L61 266 M26 235 L96 235" stroke="${LINE}" stroke-width="3"/>
         <rect x="20" y="264" width="82" height="10" rx="4" fill="#fff" stroke="${LINE}" stroke-width="2"/>
         <circle cx="40" cy="222" r="8" fill="#e8474f"/><circle cx="82" cy="250" r="6" fill="#3f9c6d"/>
-        <rect x="122" y="236" width="76" height="126" rx="38 38 4 4" fill="#e8474f" stroke="${LINE}" stroke-width="3.4"/>
+        <path d="M122 362 V274 A38 38 0 0 1 198 274 V362 Z" fill="#e8474f" stroke="${LINE}" stroke-width="3.4"/>
         <path d="M122 274 Q160 236 198 274" fill="none"/>
         <rect x="130" y="246" width="60" height="110" rx="30" fill="none" stroke="#c23a42" stroke-width="2.4"/>
         <circle cx="188" cy="304" r="4.5" fill="#ffd34d" stroke="${LINE}" stroke-width="1.6"/>
@@ -122,8 +122,8 @@
   // 거실 벽의 바깥 문
   function doorArt() {
     return `<svg viewBox="0 0 90 196" xmlns="http://www.w3.org/2000/svg">
-      <rect x="2" y="4" width="86" height="190" rx="43 43 4 4" fill="#c98a5e" stroke="${LINE}" stroke-width="3"/>
-      <rect x="10" y="12" width="70" height="182" rx="35 35 2 2" fill="#e8474f" stroke="${LINE}" stroke-width="3"/>
+      <path d="M2 194 V47 A43 43 0 0 1 88 47 V194 Z" fill="#c98a5e" stroke="${LINE}" stroke-width="3"/>
+      <path d="M10 194 V47 A35 35 0 0 1 80 47 V194 Z" fill="#e8474f" stroke="${LINE}" stroke-width="3"/>
       <rect x="18" y="66" width="22" height="46" rx="5" fill="none" stroke="#c23a42" stroke-width="2.4"/>
       <rect x="50" y="66" width="22" height="46" rx="5" fill="none" stroke="#c23a42" stroke-width="2.4"/>
       <rect x="18" y="122" width="22" height="50" rx="5" fill="none" stroke="#c23a42" stroke-width="2.4"/>
@@ -475,4 +475,112 @@
       get race() { return race; },
     };
   };
+})();
+
+// ───────── 🏰 눈성 · 👣 발자국 · 😇 눈천사 · ❄️ 눈싸움 ─────────
+(function () {
+  const LINE = '#5b4036', ICE = '#9fb4d6';
+  const W = 16, H = 8, S = 20;
+  const ROOF = { red: '#e8474f', blue: '#5b8def', purple: '#a487e8' };
+  const FLAG = { red: '#e8474f', blue: '#5b8def', gold: '#f2c14e', pink: '#ff9db5' };
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  function block(k, v) {
+    // 0,0 ~ 20,20 칸 하나
+    switch (k) {
+      case 'brick': return `<rect x=".8" y=".8" width="18.4" height="18.4" rx="3" fill="#fbfdff" stroke="${ICE}" stroke-width="1.6"/>
+        <path d="M1 7 H19 M1 13 H19 M10 1 V7 M5 7 V13 M15 7 V13 M10 13 V19" stroke="#d6e2f3" stroke-width="1.3"/>`;
+      case 'ice': return `<rect x=".8" y=".8" width="18.4" height="18.4" rx="3" fill="#c9ecff" fill-opacity=".85" stroke="#7fb6dc" stroke-width="1.6"/>
+        <path d="M4 5 L8 3 M4 9 L12 4" stroke="#fff" stroke-width="1.8" stroke-linecap="round" opacity=".9"/>`;
+      case 'crenel': return `<path d="M.8 19.2 V6 H5 V1 H9 V6 H11 V1 H15 V6 H19.2 V19.2 Z" fill="#fbfdff" stroke="${ICE}" stroke-width="1.6" stroke-linejoin="round"/>
+        <path d="M1 12 H19" stroke="#d6e2f3" stroke-width="1.3"/>`;
+      case 'arch': return `<rect x=".8" y=".8" width="18.4" height="18.4" rx="3" fill="#fbfdff" stroke="${ICE}" stroke-width="1.6"/>
+        <path d="M5 19.2 V11 Q5 5 10 5 Q15 5 15 11 V19.2 Z" fill="#3a527c" stroke="${ICE}" stroke-width="1.4"/>`;
+      case 'window': return `<rect x=".8" y=".8" width="18.4" height="18.4" rx="3" fill="#fbfdff" stroke="${ICE}" stroke-width="1.6"/>
+        <path d="M6 15 V9 Q6 5 10 5 Q14 5 14 9 V15 Z" fill="#ffd98a" stroke="${LINE}" stroke-width="1.3"/><path d="M10 5 V15 M6 10 H14" stroke="${LINE}" stroke-width="1"/>`;
+      case 'stair': return v === 'r'
+        ? `<path d="M.8 19.2 V13.5 H7 V7.5 H13 V1 H19.2 V19.2 Z" fill="#fbfdff" stroke="${ICE}" stroke-width="1.6" stroke-linejoin="round"/>`
+        : `<path d="M19.2 19.2 V13.5 H13 V7.5 H7 V1 H.8 V19.2 Z" fill="#fbfdff" stroke="${ICE}" stroke-width="1.6" stroke-linejoin="round"/>`;
+      case 'roof': { const c = ROOF[v] || ROOF.red; return `<path d="M10 .5 L19.5 19.5 H.5 Z" fill="${c}" stroke="${LINE}" stroke-width="1.6" stroke-linejoin="round"/>
+        <path d="M10 .5 L13.5 7.5 Q10 9.5 6.5 7.5 Z" fill="#fff"/><path d="M2 19 Q10 15 18 19" stroke="#fff" stroke-width="2" fill="none" opacity=".7"/>`; }
+      case 'flag': { const c = FLAG[v] || FLAG.red; return `<path d="M6 20 V2" stroke="${LINE}" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M6.8 2.5 Q12 1 17 4 Q12 6.5 6.8 6.8 Z" fill="${c}" stroke="${LINE}" stroke-width="1.3" stroke-linejoin="round"/><circle cx="6" cy="1.8" r="1.6" fill="#ffd34d"/>`; }
+      case 'icicle': return `<path d="M1 0 H19 L17 7 L15 2 L13 11 L11 2 L9 8 L7 2 L5 13 L3 2 Z" fill="#dff3ff" stroke="#7fb6dc" stroke-width="1.2" stroke-linejoin="round"/>`;
+      case 'flake': return `<g transform="translate(10 11)" stroke="#7fb6dc" stroke-width="2" stroke-linecap="round">${[0, 60, 120].map((a) => `<path d="M0 -7 V7" transform="rotate(${a})"/>`).join('')}</g><circle cx="10" cy="11" r="2" fill="#fff" stroke="#7fb6dc" stroke-width="1"/>`;
+    }
+    return '';
+  }
+  function castleSVG(cells, opt = {}) {
+    let out = '';
+    for (const [key, o] of Object.entries(cells || {})) {
+      const [c, r] = key.split(',').map(Number);
+      out += `<g transform="translate(${c * S} ${(H - 1 - r) * S})" class="cb ${opt.uid && o.uid === opt.uid ? 'mine' : ''}" data-c="${c}" data-r="${r}">${block(o.k, o.v)}</g>`;
+    }
+    const grid = opt.grid ? Array.from({ length: W * H }, (_, i) => `<rect class="cg" data-c="${i % W}" data-r="${H - 1 - Math.floor(i / W)}" x="${(i % W) * S}" y="${Math.floor(i / W) * S}" width="${S}" height="${S}" fill="transparent" stroke="#dbe6f7" stroke-width=".6"/>`).join('') : '';
+    return `<svg viewBox="-6 -4 ${W * S + 12} ${H * S + 16}" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="${W * S / 2}" cy="${H * S + 4}" rx="${W * S / 2 + 6}" ry="7" fill="#dbe6f7"/>
+      ${grid}${out}
+      ${opt.preview || ''}
+    </svg>`;
+  }
+  window.Castle = { svg: castleSVG, block, W, H };
+
+  // 눈성 쌓기 창
+  const PAL = [['brick', '', '눈벽돌'], ['ice', '', '얼음'], ['crenel', '', '성벽 꼭대기'], ['arch', '', '아치문'], ['window', '', '창문'], ['stair', 'l', '계단'], ['stair', 'r', '계단'],
+    ['roof', 'red', '지붕'], ['roof', 'blue', '지붕'], ['roof', 'purple', '지붕'], ['flag', 'red', '깃발'], ['flag', 'blue', '깃발'], ['flag', 'gold', '깃발'], ['icicle', '', '고드름'], ['flake', '', '눈꽃']];
+  window.CastleUI = function (api) {
+    const $ = (s) => document.querySelector(s);
+    let open = false, cells = {}, sel = { k: 'brick', v: '' }, erase = false;
+    const SOLID = new Set(['brick', 'ice', 'crenel', 'arch', 'window', 'stair']);
+    const mineN = () => Object.values(cells).filter((o) => o.uid === api.myUid()).length;
+    function render() {
+      if (!open) return;
+      $('#castleView').innerHTML = castleSVG(cells, { grid: true, uid: api.myUid() });
+      $('#castlePanel').innerHTML = `<p class="chint">블록을 고르고 칸을 톡! <b>바닥이나 블록 위</b>에만 쌓을 수 있어요 (고드름은 블록 아래)</p>
+        <div class="cbtns tree-pal castle-pal">${PAL.map(([k, v, n]) => `<button class="cbtn sm ${!erase && sel.k === k && sel.v === v ? 'on' : ''}" data-k="${k}" data-v="${v}"><span class="ic"><svg viewBox="-2 -2 24 24">${block(k, v)}</svg></span><small>${n}</small></button>`).join('')}</div>
+        <div class="tree-foot"><span class="tcount">내 블록 ${mineN()}/24</span>
+          <button class="btn ghost small ${erase ? 'on' : ''}" data-act="erase">🧹 내 블록 치우기</button></div>
+        <p class="chint small">치우기 모드에서 내가 쌓은 블록을 누르면 없어져요 (위에 쌓인 게 없을 때)</p>`;
+    }
+    $('#castleView').addEventListener('click', (e) => {
+      const t = e.target.closest('[data-c]'); if (!t) return;
+      const c = Number(t.dataset.c), r = Number(t.dataset.r), key = `${c},${r}`;
+      if (erase || cells[key]) {
+        const o = cells[key];
+        if (!o) return;
+        if (o.uid !== api.myUid()) { api.toast(`🧱 ${o.nick} 님이 쌓은 블록이에요`); return; }
+        if (!erase) { api.toast('치우려면 🧹 치우기 모드를 켜요'); return; }
+        api.send({ t: 'castle', act: 'remove', c, r }); api.Sound.Sfx.pop(); return;
+      }
+      if (sel.k === 'icicle') { const a = cells[`${c},${r + 1}`]; if (!a || !SOLID.has(a.k)) { api.toast('고드름은 블록 바로 아래 칸에 매달아요'); return; } }
+      else if (r > 0) { const b = cells[`${c},${r - 1}`]; if (!b || !SOLID.has(b.k)) { api.toast('바닥이나 블록 위에 쌓아요 🧱'); return; } }
+      api.send({ t: 'castle', act: 'place', c, r, k: sel.k, v: sel.v }); api.Sound.Sfx.plop();
+    });
+    $('#castlePanel').addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.k) { sel = { k: b.dataset.k, v: b.dataset.v }; erase = false; api.Sound.Sfx.pop(); render(); }
+      else if (b.dataset.act === 'erase') { erase = !erase; render(); }
+    });
+    document.querySelectorAll('[data-close-castle]').forEach((b) => b.addEventListener('click', () => api.close()));
+    return { setCells(c) { cells = c || {}; render(); }, setOpen(v) { open = v; render(); } };
+  };
+
+  // 👣 발자국 · 😇 눈천사 자국 (눈마당 바닥에 잠깐 남아요)
+  function addPrint(layer, x, y, ang, side) {
+    const el = document.createElement('i');
+    el.className = 'print';
+    el.style.left = x + 'px'; el.style.top = y + 'px';
+    el.style.transform = `translate(-50%,-50%) rotate(${ang}rad) translateY(${side * 5}px)`;
+    layer.appendChild(el);
+    while (layer.children.length > 220) layer.firstChild.remove();
+    setTimeout(() => el.remove(), 9000);
+  }
+  function addAngel(layer, x, y) {
+    const el = document.createElement('div');
+    el.className = 'angel-mark';
+    el.style.left = x + 'px'; el.style.top = y + 'px';
+    el.innerHTML = `<svg viewBox="-50 -40 100 80"><path d="M0 -30 a10 10 0 1 1 -.1 0 Z M-6 -12 C-30 -30 -46 -10 -36 4 C-28 14 -14 6 -8 0 L-14 30 Q0 36 14 30 L8 0 C14 6 28 14 36 4 C46 -10 30 -30 6 -12 Z" fill="#dce8f8" stroke="#c4d4ec" stroke-width="2"/></svg>`;
+    layer.appendChild(el);
+    setTimeout(() => el.remove(), 40000);
+  }
+  window.SnowMarks = { addPrint, addAngel };
 })();

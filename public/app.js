@@ -188,6 +188,10 @@
       case 'go': onGo(m); break;
       case 'snowmen': renderSnowmen(m.men); break;
       case 'race': raceUI.setRace(m.race); break;
+      case 'fight': onFight(m.fight); break;
+      case 'fightHit': onFightHit(m); break;
+      case 'castle': onCastle(m.cells); break;
+      case 'angel': doAngel(m.id); break;
       case 'giftState': giftUI.setState(m.gift); giftBadge(); break;
       case 'giftPool': setGiftPool(m.n); break;
       case 'giftSent': giftUI.sent(m.got); break;
@@ -288,6 +292,8 @@
     giftUI.setState(m.gift || { waiting: false, box: [] }); giftBadge(); setGiftPool(m.giftPool || 0);
     renderSnowmen(m.snowmen || []);
     if (m.race) raceUI.setRace(m.race);
+    if (m.fight) onFight(m.fight);
+    onCastle(m.castle || {});
     $('#inDoor').innerHTML = Outdoor.doorArt();
     { const mine = players.get(me.id); setScene(roomOf(mine)); }
     $('#kitchenCounter .art').innerHTML = Kitchen.counterArt();
@@ -451,6 +457,7 @@
     }
     applyFacing(p);
     el.classList.toggle('away', roomOf(p) !== myRoom);
+    if (typeof teamOfUid === 'function' && (fight.stage === 'run' || fight.stage === 'lobby')) { const t = teamOfUid(d.uid); el.classList.toggle('team-red', t === 'red'); el.classList.toggle('team-blue', t === 'blue'); }
     $('#entities').appendChild(el);
     refreshSeats();
   }
@@ -462,6 +469,8 @@
     document.querySelectorAll('.place-btn').forEach((b) => b.classList.toggle('active', (b.dataset.feature === 'out') === (room === 'out')));
     $('#dockIn').hidden = room === 'out';
     $('#dockOut').hidden = room !== 'out';
+    $('#angelBtn').hidden = room !== 'out';
+    if (room !== 'out') $('#prints').innerHTML = '';
     if (room === 'out' && !$('#outBg').firstChild) $('#outBg').innerHTML = Outdoor.scene();
     fitStage();
   }
@@ -479,6 +488,125 @@
     else p.el.classList.toggle('away', m.room !== myRoom);
     refreshSeats();
   }
+  // ───────── 👣 발자국 · 😇 눈천사 ─────────
+  function footprints(p, from, x, y, dist, dur, mode) {
+    (p.printTimers || []).forEach(clearTimeout); p.printTimers = [];
+    if (roomOf(p) !== 'out' || myRoom !== 'out' || dist < 2) return;
+    const layer = $('#prints'), ang = Math.atan2(y - from.y, x - from.x) + Math.PI / 2;
+    const STEP = 18;
+    p.printAcc = (p.printAcc || 0) + dist;
+    let i = 0;
+    while (p.printAcc >= STEP) {
+      p.printAcc -= STEP;
+      const t = Math.min(1, (dist - p.printAcc) / dist);
+      const px = from.x + (x - from.x) * t, py = from.y + (y - from.y) * t;
+      p.printSide = -(p.printSide || 1);
+      const side = p.printSide;
+      p.printTimers.push(setTimeout(() => SnowMarks.addPrint(layer, px, py + 2, ang, side), t * dur * 1000));
+      if (++i > 60) break;
+    }
+  }
+  function doAngel(id) {
+    const p = players.get(id);
+    if (!p || !here(id) || myRoom !== 'out') return;
+    const sp = p.el.querySelector('.sprite');
+    p.el.classList.add('angeling');
+    Sound.Sfx.whoosh();
+    setTimeout(() => { const c = curPos(p); SnowMarks.addAngel($('#prints'), c.x, c.y - 18); Sound.Sfx.sparkle(); }, 1700);
+    setTimeout(() => p.el.classList.remove('angeling'), 2300);
+    void sp;
+  }
+  // ───────── ❄️ 눈싸움 팀전 ─────────
+  let fight = { stage: 'idle', red: [], blue: [], score: { red: 0, blue: 0 }, hits: {} }, fightEnd = 0, fightTick = null;
+  const teamOfUid = (uid) => (fight.red.some((m) => m.uid === uid) ? 'red' : fight.blue.some((m) => m.uid === uid) ? 'blue' : null);
+  function onFight(f) {
+    fight = f;
+    fightEnd = Date.now() + (f.left || 0);
+    players.forEach((p) => { const t = f.stage === 'run' || f.stage === 'lobby' ? teamOfUid(p.data.uid) : null; p.el.classList.toggle('team-red', t === 'red'); p.el.classList.toggle('team-blue', t === 'blue'); });
+    const mine = myUser && teamOfUid(myUser.id);
+    $('#throwBtn').hidden = !(f.stage === 'run' && mine);
+    const board = $('#fightBoard');
+    board.hidden = f.stage !== 'run';
+    clearInterval(fightTick);
+    if (f.stage === 'run') {
+      const draw = () => {
+        const left = Math.max(0, Math.ceil((fightEnd - Date.now()) / 1000));
+        board.innerHTML = `<span class="fr">🔴 ${f.score.red}</span><b>${left}초</b><span class="fb">${f.score.blue} 🔵</span>${mine ? `<small>나: ${mine === 'red' ? '빨강팀' : '파랑팀'} · 명중 ${f.hits[myUser.id] || 0}</small>` : ''}`;
+      };
+      draw(); fightTick = setInterval(draw, 250);
+    }
+    renderFightModal();
+  }
+  function renderFightModal() {
+    if ($('#fightModal').hidden) return;
+    const f = fight, uid = myUser && myUser.id, host = f.host === uid, mine = teamOfUid(uid);
+    const col = (team) => `<div class="fteam ${team}"><h4>${team === 'red' ? '🔴 빨강팀' : '🔵 파랑팀'} <small>${f[team].length}명</small></h4>
+      <ul>${f[team].map((m) => `<li>${esc(m.nick)}${m.uid === f.host ? ' 👑' : ''}${f.stage !== 'lobby' && f.hits[m.uid] ? ` <b>${f.hits[m.uid]}</b>` : ''}</li>`).join('') || '<li class="empty">아무도 없어요</li>'}</ul>
+      ${f.stage === 'lobby' && mine !== team ? `<button class="btn ${team === 'red' ? 'primary' : 'blue'} small" data-fact="join" data-team="${team}">이 팀 할래요</button>` : ''}</div>`;
+    let body = '';
+    if (f.stage === 'idle') body = `<p class="chint big">❄️ 빨강팀 vs 파랑팀!</p><p class="chint">60초 동안 상대 팀 친구를 눌러서 눈덩이를 맞히면 1점! 점수가 더 높은 팀이 이겨요</p>
+      <button class="btn primary cnext" data-fact="open">❄️ 눈싸움 열기</button>`;
+    else if (f.stage === 'lobby') body = `<div class="fteams">${col('red')}${col('blue')}</div>
+      ${mine ? '<button class="btn ghost small" data-fact="leave">빠지기</button>' : ''}
+      ${host ? `<div class="crow"><button class="btn ghost" data-fact="shuffle">🎲 팀 섞기</button><button class="btn primary cnext" data-fact="start">시작!</button></div>` : '<p class="chint small">👑 방장이 시작 버튼을 눌러요</p>'}
+      <p class="chint small">눈마당에서만 맞힐 수 있어요. 폰은 🎯 던지기 버튼을 누르면 가까운 상대에게 던져요</p>`;
+    else if (f.stage === 'run') body = `<div class="fscore"><span class="fr">${f.score.red}</span> : <span class="fb">${f.score.blue}</span></div><div class="fteams">${col('red')}${col('blue')}</div>
+      <p class="chint">${mine ? '상대 팀을 눌러서 맞혀요! 창을 닫고 싸워도 돼요' : '응원 중이에요 📣'}</p>`;
+    else body = `<p class="chint big">${f.winner === 'draw' ? '🤝 무승부!' : f.winner === 'red' ? '🔴 빨강팀 승리!' : '🔵 파랑팀 승리!'}</p>
+      <div class="fscore"><span class="fr">${f.score.red}</span> : <span class="fb">${f.score.blue}</span></div>
+      ${f.mvp ? `<p class="chint">🌟 MVP <b>${esc(f.mvp.nick)}</b> 님 (${f.mvp.hits}번 명중)</p>` : ''}
+      <div class="fteams">${col('red')}${col('blue')}</div>
+      <button class="btn primary cnext" data-fact="open">❄️ 한 판 더!</button>`;
+    $('#fightPanel').innerHTML = body;
+  }
+  function openFight() { closeOthers(); $('#fightModal').hidden = false; renderFightModal(); }
+  function closeFight() { $('#fightModal').hidden = true; }
+  $('#fightPanel').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-fact]'); if (!b) return;
+    send({ t: 'fight', act: b.dataset.fact, team: b.dataset.team });
+    Sound.Sfx.pop();
+    if (b.dataset.fact === 'start') setTimeout(closeFight, 300);
+  });
+  document.querySelectorAll('[data-close-fight]').forEach((b) => b.addEventListener('click', closeFight));
+  function throwNearest() {
+    const mine = players.get(me.id); if (!mine) return;
+    const myTeam = teamOfUid(myUser.id); if (!myTeam) return;
+    const c = curPos(mine);
+    let best = null, bd = Infinity;
+    players.forEach((p) => {
+      if (p.data.id === me.id || !here(p.data.id)) return;
+      const t = teamOfUid(p.data.uid); if (!t || t === myTeam) return;
+      const q = curPos(p), d = Math.hypot(q.x - c.x, q.y - c.y);
+      if (d < bd) { bd = d; best = p; }
+    });
+    if (best) send({ t: 'throw', to: best.data.id }); else toast('근처에 상대 팀이 없어요');
+  }
+  $('#throwBtn').addEventListener('click', throwNearest);
+  function onFightHit(m) {
+    const b = players.get(m.to);
+    if (!b || !here(m.to)) return;
+    setTimeout(() => {
+      const c = curPos(b);
+      const el = document.createElement('div');
+      el.className = 'fhit ' + m.team; el.textContent = '+1';
+      el.style.left = c.x + 'px'; el.style.top = (c.y - 100) + 'px';
+      $('#fx').appendChild(el);
+      setTimeout(() => el.remove(), 1000);
+    }, 450);
+  }
+  // ───────── 🏰 눈성 쌓기 ─────────
+  let castleCells = {};
+  const castleUI = CastleUI({ send, toast, Sound, myUid: () => myUser && myUser.id, close: () => closeCastle() });
+  function onCastle(cells) {
+    castleCells = cells || {};
+    $('#yardCastle').innerHTML = Object.keys(castleCells).length ? Castle.svg(castleCells)
+      : `<svg viewBox="-6 -4 332 176"><ellipse cx="160" cy="164" rx="166" ry="7" fill="#dbe6f7"/><rect x="40" y="96" width="240" height="64" rx="14" fill="none" stroke="#b9cbea" stroke-width="3" stroke-dasharray="8 7"/>
+        <g transform="translate(160 118)"><rect x="-62" y="-16" width="124" height="30" rx="8" fill="#fffaf2" stroke="#5b4036" stroke-width="2.4"/><text y="5" text-anchor="middle" font-size="16" font-family="Jua, sans-serif" fill="#5b4036">눈성 쌓는 곳</text></g></svg>`;
+    castleUI.setCells(castleCells);
+  }
+  function openCastle() { closeOthers(); $('#castleModal').hidden = false; castleUI.setOpen(true); }
+  function closeCastle() { if (!$('#castleModal').hidden) { $('#castleModal').hidden = true; castleUI.setOpen(false); } }
+
   // ───────── ⛄ 눈사람 ─────────
   let snowmen = [];
   function renderSnowmen(men) {
@@ -486,7 +614,7 @@
     $('#snowmen').innerHTML = snowmen.map((m) => `<div class="snowman ${myUser && m.uid === myUser.id ? 'mine' : ''}" data-sid="${m.id}" style="left:${m.x}px;top:${m.y}px;z-index:${m.y}" title="${esc(m.name)} · ${esc(m.nick)} 님의 눈사람">${Outdoor.snowmanSVG(m, { name: true })}</div>`).join('');
   }
   const snowUI = SnowmanUI({ send, toast, Sound, close: () => closeSnow() });
-  function closeOthers() { closeCake(); closeKitchen(); closeTree(); closeGift(); closeSnow(); closeRace(); }
+  function closeOthers() { closeCake(); closeKitchen(); closeTree(); closeGift(); closeSnow(); closeRace(); closeFight(); closeCastle(); }
   function openSnow() {
     closeOthers();
     const mine = snowmen.find((m) => myUser && m.uid === myUser.id);
@@ -540,6 +668,7 @@
     p.el.style.top = y + 'px';
     p.el.style.zIndex = Math.round(Math.max(y, from.y));
     p.el.classList.add('walking');
+    footprints(p, from, x, y, dist, dur, mode);
     clearTimeout(p.walkTimer);
     p.walkTimer = setTimeout(() => {
       p.el.classList.remove('walking');
@@ -566,6 +695,7 @@
     if (e.target.closest('.in-door')) { goRoom('out'); return; }
     const hs = e.target.closest('.ohs');
     if (hs) { if (hs.dataset.k === 'door') goRoom('in'); else if (hs.dataset.k === 'workshop') openSnow(); else if (hs.dataset.k === 'race') openRace(); return; }
+    if (e.target.closest('.yard-castle')) { openCastle(); return; }
     const smEl = e.target.closest('.snowman');
     if (smEl) {
       const m = snowmen.find((x) => x.id === Number(smEl.dataset.sid));
@@ -607,11 +737,13 @@
   window.addEventListener('keydown', (e) => {
     if (!me || typing() || !$('#profileModal').hidden || !$('#inviteModal').hidden) return;
     if (e.key === 'Enter') { $('#chatInput').focus(); e.preventDefault(); return; }
-    if (!$('#cakeModal').hidden || !$('#kitchenModal').hidden || !$('#treeModal').hidden || !$('#giftModal').hidden || !$('#snowModal').hidden || !$('#raceModal').hidden) return;
+    if (!$('#cakeModal').hidden || !$('#kitchenModal').hidden || !$('#treeModal').hidden || !$('#giftModal').hidden || !$('#snowModal').hidden || !$('#raceModal').hidden || !$('#castleModal').hidden) return;
     if ((e.key === 'q' || e.key === 'Q' || e.key === 'ㅂ') && !e.repeat) { eatHeld(); return; }
     if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (!e.repeat) send({ t: 'jump' }); return; }
     if ((e.key === 'e' || e.key === 'E' || e.key === 'ㄷ') && !e.repeat) { send({ t: 'snow' }); return; }
     if ((e.key === 'f' || e.key === 'F' || e.key === 'ㄹ') && !e.repeat) { send({ t: 'fw' }); return; }
+    if ((e.key === 'g' || e.key === 'G' || e.key === 'ㅎ') && !e.repeat && myRoom === 'out') { send({ t: 'angel' }); return; }
+    if ((e.key === 't' || e.key === 'T' || e.key === 'ㅅ') && !e.repeat && !$('#throwBtn').hidden) { throwNearest(); return; }
     if (!KEYS[e.key]) return;
     e.preventDefault();
     if (held.size === 0) { lastFrame = performance.now(); requestAnimationFrame(kbLoop); }
@@ -854,13 +986,14 @@
     Sound.Sfx.whoosh();
   }
   $('#fwBtn').addEventListener('click', () => send({ t: 'fw' }));
+  $('#angelBtn').addEventListener('click', () => send({ t: 'angel' }));
 
   // ───────── 📢 방 공지 ─────────
   let noticeTimer = null, noticeKind = null;
   function showNotice(m) {
     noticeKind = m.kind;
     $('#noticeText').textContent = m.text;
-    $('#noticeGo').hidden = !['cake', 'gift', 'race'].includes(m.kind);
+    $('#noticeGo').hidden = !['cake', 'gift', 'race', 'fight'].includes(m.kind);
     const n = $('#notice');
     n.hidden = false;
     n.classList.remove('show'); void n.offsetWidth; n.classList.add('show');
@@ -868,7 +1001,7 @@
     clearTimeout(noticeTimer);
     noticeTimer = setTimeout(() => { n.hidden = true; }, 10000);
   }
-  $('#noticeGo').addEventListener('click', () => { $('#notice').hidden = true; if (noticeKind === 'cake') openCake(); else if (noticeKind === 'gift') openGift(true); else if (noticeKind === 'race') { goRoom('out'); openRace(); } });
+  $('#noticeGo').addEventListener('click', () => { $('#notice').hidden = true; if (noticeKind === 'cake') openCake(); else if (noticeKind === 'gift') openGift(true); else if (noticeKind === 'race') { goRoom('out'); openRace(); } else if (noticeKind === 'fight') { goRoom('out'); openFight(); } });
   $('#noticeX').addEventListener('click', () => { $('#notice').hidden = true; });
 
   // ───────── 🎒 인벤토리 ─────────
@@ -1010,6 +1143,8 @@
       else if (b.dataset.feature === 'kitchen') openKitchen();
       else if (b.dataset.feature === 'snowman') openSnow();
       else if (b.dataset.feature === 'race') openRace();
+      else if (b.dataset.feature === 'fight') openFight();
+      else if (b.dataset.feature === 'castle') openCastle();
       else if (b.dataset.feature === 'tree') openTree();
       else if (b.dataset.feature === 'gift') openGift();
       else if (COMING[b.dataset.feature]) toast(COMING[b.dataset.feature]);

@@ -956,3 +956,57 @@ input:focus { border-color: #ffc9cf; }
   .dock-acts .dock-item b { font-size: 21px; }
   .dock-acts .dock-item span { font-size: 10px !important; letter-spacing: -.5px; }
 }
+
+/* ───── 👣 발자국 · 😇 눈천사 ───── */
+#prints { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.print { position: absolute; width: 7px; height: 10px; border-radius: 50%; background: #c9d8ee; box-shadow: inset 0 1px 0 #b3c6e3; animation: printFade 9s ease-in forwards; }
+@keyframes printFade { 0%, 60% { opacity: .9; } 100% { opacity: 0; } }
+.angel-mark { position: absolute; width: 92px; height: 74px; transform: translate(-50%, -50%); animation: angelFade 40s ease-in forwards; }
+.angel-mark svg { width: 100%; height: 100%; }
+@keyframes angelFade { 0% { opacity: 0; } 3%, 75% { opacity: 1; } 100% { opacity: 0; } }
+.player.angeling .sprite { animation: none; }
+.player.angeling .sprite svg { animation: angelFlap .35s ease-in-out infinite alternate !important; transform-origin: 50% 70%; }
+@keyframes angelFlap { from { transform: rotate(-88deg) translateX(14px) scaleY(.95); } to { transform: rotate(-92deg) translateX(14px) scaleY(1.12); } }
+.player.angeling .held, .player.angeling .bubble { opacity: 0; }
+/* ───── ❄️ 눈싸움 팀전 ───── */
+.player.team-red .sprite::after, .player.team-blue .sprite::after { content: ''; position: absolute; left: 50%; bottom: 0; width: 56px; height: 14px; margin-left: -28px; border-radius: 50%; z-index: -1; opacity: .75; }
+.player.team-red .sprite::after { background: radial-gradient(#ff6b73, transparent 70%); box-shadow: 0 0 0 3px rgba(232,71,79,.5); }
+.player.team-blue .sprite::after { background: radial-gradient(#6fa0ff, transparent 70%); box-shadow: 0 0 0 3px rgba(91,141,239,.5); }
+.player.team-red .name { background: #e8474f; color: #fff; }
+.player.team-blue .name { background: #5b8def; color: #fff; }
+.fight-board { position: absolute; left: 50%; top: 58px; transform: translateX(-50%); z-index: 60; background: #fff; border-radius: 999px; padding: 6px 16px; display: flex; align-items: center; gap: 12px;
+  box-shadow: 0 4px 0 rgba(0,0,0,.15); font-family: 'Jua', sans-serif; font-size: 18px; flex-wrap: wrap; justify-content: center; }
+.fight-board[hidden] { display: none; }
+.fight-board b { font-weight: 400; color: #6b5146; font-size: 15px; }
+.fight-board small { width: 100%; text-align: center; font-size: 11px; color: #8a6d5c; margin-top: -4px; }
+.fr { color: #e8474f; } .fb { color: #5b8def; }
+.throw-btn { background: #fff0f1; }
+.fhit { position: absolute; transform: translate(-50%, 0); font: 400 22px 'Jua', sans-serif; animation: fhit 1s ease-out forwards; text-shadow: 0 2px 0 #fff; pointer-events: none; z-index: 2000; }
+.fhit.red { color: #e8474f; } .fhit.blue { color: #5b8def; }
+@keyframes fhit { from { opacity: 1; transform: translate(-50%, 0) scale(.8); } to { opacity: 0; transform: translate(-50%, -40px) scale(1.2); } }
+.fight-card { width: min(520px, 100%); }
+.fteams { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 8px 0; }
+.fteam { background: #fff; border-radius: 16px; padding: 10px; box-shadow: inset 0 0 0 3px #ffd6da; display: flex; flex-direction: column; gap: 6px; }
+.fteam.blue { box-shadow: inset 0 0 0 3px #d4e2ff; }
+.fteam h4 { margin: 0; font: 400 16px 'Jua', sans-serif; } .fteam h4 small { color: #8a6d5c; font-size: 12px; }
+.fteam ul { list-style: none; margin: 0; padding: 0; font-size: 14px; line-height: 1.7; min-height: 40px; }
+.fteam li b { color: var(--red); font-weight: 400; font-family: 'Jua', sans-serif; }
+.fteam li.empty { color: #b8a596; font-size: 12px; }
+.btn.blue { background: #5b8def; color: #fff; box-shadow: 0 4px 0 #3f6cc4; }
+.fscore { text-align: center; font: 400 40px 'Jua', sans-serif; }
+/* ───── 🏰 눈성 ───── */
+.yard-castle { position: absolute; left: 364px; top: 378px; width: 272px; height: 144px; z-index: 520; cursor: pointer; }
+.yard-castle svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.yard-castle:hover svg { filter: drop-shadow(0 0 6px rgba(255,255,255,.9)); }
+.castle-card { width: min(860px, 100%); }
+.castle-card .cake-main { grid-template-columns: 1.35fr 1fr; }
+.castle-view { background: linear-gradient(#eaf2ff, #fff 80%); padding: 8px; }
+.castle-view svg { width: 100%; display: block; }
+.castle-view .cg { cursor: pointer; }
+.castle-view .cg:hover { fill: rgba(91,141,239,.12); }
+.castle-view .cb.mine { cursor: pointer; }
+.castle-pal { grid-template-columns: repeat(5, 1fr) !important; }
+@media (max-width: 760px) {
+  .castle-card .cake-main { grid-template-columns: 1fr; }
+  .fight-board { font-size: 15px; padding: 4px 12px; top: 6px; }
+}
