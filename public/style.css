@@ -932,3 +932,27 @@ input:focus { border-color: #ffc9cf; }
   .snow-view svg { max-height: 200px; }
   .rtap { padding: 18px 10px !important; }
 }
+
+/* ───── 아래 메뉴: 장소 고르기 + 그 장소에서 할 수 있는 것 ───── */
+.dock { align-items: stretch; }
+.dock-place { display: flex; flex-direction: column; gap: 4px; padding: 4px; background: #f3e4cf; border-radius: 18px; margin-right: 6px; }
+.place-btn { border: 0; background: transparent; border-radius: 13px; padding: 5px 12px; font: 400 14px 'Jua', sans-serif; color: #8a6d5c; cursor: pointer; white-space: nowrap; flex: 1; }
+.place-btn.active { background: #fff; color: var(--red); box-shadow: 0 3px 0 rgba(91,64,54,.15); }
+.dock-acts { display: flex; gap: 6px; }
+.dock-acts[hidden] { display: none; }
+.dock-acts .dock-item { animation: popIn .2s ease-out; }
+.dock-acts.out .dock-item { background: #eef5ff; }
+@media (max-width: 760px) {
+  .dock { gap: 4px; padding: 5px 6px 8px; }
+  .dock-place { margin-right: 2px; padding: 3px; gap: 3px; border-radius: 14px; }
+  .place-btn { font-size: 11.5px; padding: 3px 6px; border-radius: 10px; }
+  .dock-acts { flex: 1; gap: 4px; }
+}
+.place-btn i { font-style: normal; }
+@media (max-width: 760px) {
+  .place-btn i { display: none; }
+  .place-btn { font-size: 11px; padding: 3px 5px; }
+  .dock-acts .dock-item { padding: 5px 2px; }
+  .dock-acts .dock-item b { font-size: 21px; }
+  .dock-acts .dock-item span { font-size: 10px !important; letter-spacing: -.5px; }
+}

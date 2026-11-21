@@ -459,8 +459,9 @@
     myRoom = room;
     $('#stage').classList.toggle('scene-out', room === 'out');
     players.forEach((p) => p.el.classList.toggle('away', roomOf(p) !== myRoom));
-    document.querySelectorAll('.dock-item[data-feature=room]').forEach((b) => b.classList.toggle('active', room === 'in'));
-    document.querySelectorAll('.dock-item[data-feature=out]').forEach((b) => b.classList.toggle('active', room === 'out'));
+    document.querySelectorAll('.place-btn').forEach((b) => b.classList.toggle('active', (b.dataset.feature === 'out') === (room === 'out')));
+    $('#dockIn').hidden = room === 'out';
+    $('#dockOut').hidden = room !== 'out';
     if (room === 'out' && !$('#outBg').firstChild) $('#outBg').innerHTML = Outdoor.scene();
     fitStage();
   }
@@ -1002,11 +1003,13 @@
   const COMING = {
     mafia: '🎅 산타 마피아는 곧 열려요!',
   };
+  document.querySelectorAll('.place-btn').forEach((b) => b.addEventListener('click', () => goRoom(b.dataset.feature === 'out' ? 'out' : 'in')));
   document.querySelectorAll('.dock-item').forEach((b) =>
     b.addEventListener('click', () => {
-      if (b.dataset.feature === 'room') goRoom('in');
-      else if (b.dataset.feature === 'out') goRoom('out');
-      else if (b.dataset.feature === 'cake') openCake();
+      if (b.dataset.feature === 'cake') openCake();
+      else if (b.dataset.feature === 'kitchen') openKitchen();
+      else if (b.dataset.feature === 'snowman') openSnow();
+      else if (b.dataset.feature === 'race') openRace();
       else if (b.dataset.feature === 'tree') openTree();
       else if (b.dataset.feature === 'gift') openGift();
       else if (COMING[b.dataset.feature]) toast(COMING[b.dataset.feature]);

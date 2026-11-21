@@ -138,12 +138,21 @@
     </div>
 
     <nav class="dock">
-      <button class="dock-item active" data-feature="room"><b>🔥</b><span>벽난로</span></button>
-      <button class="dock-item" data-feature="out"><b>⛄</b><span>눈마당</span></button>
-      <button class="dock-item" data-feature="cake"><b>🎂</b><span>케이크</span></button>
-      <button class="dock-item" data-feature="gift"><b>🎁</b><span>선물 나눔</span></button>
-      <button class="dock-item" data-feature="tree"><b>🎄</b><span>트리 꾸미기</span></button>
-      <button class="dock-item" data-feature="mafia"><b>🎅</b><span>산타 마피아</span></button>
+      <div class="dock-place" role="tablist" aria-label="장소">
+        <button class="place-btn active" data-feature="room"><i>🔥 </i>거실</button>
+        <button class="place-btn" data-feature="out"><i>⛄ </i>눈마당</button>
+      </div>
+      <div class="dock-acts" id="dockIn">
+        <button class="dock-item" data-feature="cake"><b>🎂</b><span>케이크</span></button>
+        <button class="dock-item" data-feature="kitchen"><b>☕</b><span>주방</span></button>
+        <button class="dock-item" data-feature="tree"><b>🎄</b><span>트리 꾸미기</span></button>
+        <button class="dock-item" data-feature="gift"><b>🎁</b><span>선물 나눔</span></button>
+        <button class="dock-item" data-feature="mafia"><b>🎅</b><span>산타 마피아</span></button>
+      </div>
+      <div class="dock-acts out" id="dockOut" hidden>
+        <button class="dock-item" data-feature="snowman"><b>⛄</b><span>눈사람 공방</span></button>
+        <button class="dock-item" data-feature="race"><b>🛷</b><span>썰매 경주</span></button>
+      </div>
     </nav>
   </section>
 
