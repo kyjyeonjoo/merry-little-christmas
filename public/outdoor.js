@@ -271,7 +271,15 @@
         const ci = arr.findIndex(([kk]) => kk === step);
         return `<span class="cstep ${i < ci ? 'done' : i === ci ? 'now' : ''}"><b>${i < ci ? '✓' : i + 1}</b>${n}</span>`;
       }).join('')}</div>`;
-      $('#snowSteps').innerHTML = stepsHtml;
+      $('#snowSteps').innerHTML = step === 'menu' ? '' : stepsHtml;
+      if (step === 'menu') {
+        panel.innerHTML = `<p class="chint big">⛄ 내 눈사람 "${esc(sm.name || '눈사람')}"</p>
+          <p class="chint">눈마당에 서 있어요. 무엇을 할까요?</p>
+          <button class="btn primary cnext" data-act="redeco">🎀 다시 꾸미기</button>
+          <button class="btn ghost" data-act="renew">❄️ 처음부터 새로 만들기</button>
+          <button class="btn ghost sm-meltbtn" data-act="melt">💧 내 눈사람 없애기</button>`;
+        return;
+      }
       if (step === 'roll') {
         const names = { 0: '아래 몸통', 1: '가운데 몸통', 2: '머리' };
         const v = sm.sz[cur], ok = v >= MIN[cur];
@@ -280,7 +288,7 @@
           <div class="cprog"><i style="width:${Math.round((v - START[cur]) / (MAX[cur] - START[cur]) * 100)}%"></i><span>${v >= MAX[cur] ? '최대!' : ok ? '좋아요! 더 키워도 돼요' : '조금 더!'}</span></div>
           <button class="btn primary cnext sm-rollbtn" data-act="roll">❄️ 톡톡 굴리기</button>
           <button class="btn ghost" data-act="nextball" ${ok ? '' : 'disabled'}>${cur === 2 ? '다 굴렸어요! 꾸미러 가기 ▶' : '다음 공 굴리기 ▶'}</button>
-          ${editing ? '<button class="btn ghost small" data-act="skip">공 크기는 그대로 두기 ▶</button>' : ''}`;
+`;
         return;
       }
       if (step === 'deco') {
@@ -301,7 +309,7 @@
         <input id="smName" class="wish-input sm-name" maxlength="10" placeholder="예) 눈송이" value="${esc(sm.name)}">
         <p class="chint small">한 사람당 눈사람 하나를 눈마당에 세울 수 있어요. 다시 만들면 내 눈사람이 바뀌어요</p>
         <div class="crow"><button class="btn ghost" data-act="todeco">◀ 꾸미기</button><button class="btn primary cnext" data-act="build">⛄ ${editing ? '고쳐 세우기' : '눈마당에 세우기'}</button></div>
-        ${editing ? '<button class="btn ghost small sm-melt" data-act="melt">내 눈사람 녹이기</button>' : ''}`;
+`;
       $('#smName').addEventListener('input', (e) => { sm.name = e.target.value; });
     }
     let meltArmed = 0;
@@ -325,8 +333,9 @@
           if (i < idx.length - 1) cur = idx[i + 1]; else step = 'deco';
           render(); break;
         }
-        case 'skip': step = 'deco'; render(); break;
-        case 'toroll': step = 'roll'; cur = balls()[0]; render(); break;
+        case 'toroll': sm.sz = START.slice(); step = 'roll'; cur = balls()[0]; render(); break; // 다시 굴리면 처음 크기부터
+        case 'redeco': step = 'deco'; render(); break;
+        case 'renew': { const name = sm.name; sm = fresh(); sm.name = name; step = 'roll'; cur = 0; render(); break; }
         case 'toname': step = 'name'; render(); break;
         case 'todeco': step = 'deco'; render(); break;
         case 'build': {
@@ -338,8 +347,8 @@
         }
         case 'melt': {
           const now = Date.now();
-          if (now - meltArmed > 1500) { meltArmed = now; api.toast('한 번 더 누르면 내 눈사람이 녹아요 💧'); return; }
-          api.send({ t: 'snowman', act: 'del' }); api.close(); break;
+          if (now - meltArmed > 2000) { meltArmed = now; b.textContent = '💧 한 번 더 누르면 녹아요!'; return; }
+          api.send({ t: 'snowman', act: 'del' }); api.toast('💧 내 눈사람이 스르륵 녹았어요'); api.close(); break;
         }
       }
     });
@@ -350,7 +359,7 @@
         if (v) {
           editing = !!existing;
           sm = existing ? { ...fresh(), ...existing, sz: existing.sz.slice() } : fresh();
-          step = existing ? 'deco' : 'roll'; cur = 0; dtab = 'hat';
+          step = existing ? 'menu' : 'roll'; cur = 0; dtab = 'hat';
         }
         render();
       },
