@@ -62,7 +62,7 @@
     myUid: () => myUser && myUser.id,
     close: () => closeCake(),
   });
-  function openCake() { if ($('#kitchenModal') && !$('#kitchenModal').hidden) closeKitchen(); if (typeof closeTree === 'function') closeTree(); $('#cakeModal').hidden = false; cakeUI.setOpen(true); }
+  function openCake() { if ($('#kitchenModal') && !$('#kitchenModal').hidden) closeKitchen(); if (typeof closeTree === 'function') { closeTree(); closeGift(); } $('#cakeModal').hidden = false; cakeUI.setOpen(true); }
   function closeCake() { $('#cakeModal').hidden = true; cakeUI.setOpen(false); }
 
   function confetti(box) {
@@ -178,6 +178,14 @@
       case 'inv': setInv(m.inv); if (m.added) { Sound.Sfx.ding(); pendingCraft && pendingCraft(true); pendingCraft = null; } break;
       case 'eatItem': onEatItem(m); break;
       case 'tree': onTree(m.tree); break;
+      case 'giftState': giftUI.setState(m.gift); giftBadge(); break;
+      case 'giftPool': setGiftPool(m.n); break;
+      case 'giftSent': giftUI.sent(m.got); break;
+      case 'giftOpen': giftUI.opened(m); break;
+      case 'giftArrived':
+        showNotice({ kind: 'gift', text: '🎁 나에게 선물이 도착했어요! 받은 선물함에서 열어 봐요' });
+        giftUI.arrived();
+        break;
       case 'hold': { const p = players.get(m.id); if (p) setHeld(p, m.item); break; }
       case 'heldSlot': heldSlot = m.slot; updateEatBtn(); break;
       case 'throw': doThrow(m.from, m.to); break;
@@ -267,6 +275,7 @@
     if (m.cake) onCake(m.cake);
     setInv(m.inv || []);
     onTree(m.tree || { items: [], top: 'star' });
+    giftUI.setState(m.gift || { waiting: false, box: [] }); giftBadge(); setGiftPool(m.giftPool || 0);
     $('#kitchenCounter .art').innerHTML = Kitchen.counterArt();
     renderMe();
     updateCount();
@@ -491,6 +500,7 @@
     if (e.target.closest('.cake-table')) { openCake(); return; }
     if (e.target.closest('.kitchen')) { openKitchen(); return; }
     if (e.target.closest('.deco-tree')) { openTree(); return; }
+    if (e.target.closest('.gift-xbox')) { openGift(); return; }
     const seatEl = e.target.closest('.seat');
     if (seatEl) {
       const id = seatEl.dataset.seat;
@@ -525,7 +535,7 @@
   window.addEventListener('keydown', (e) => {
     if (!me || typing() || !$('#profileModal').hidden || !$('#inviteModal').hidden) return;
     if (e.key === 'Enter') { $('#chatInput').focus(); e.preventDefault(); return; }
-    if (!$('#cakeModal').hidden || !$('#kitchenModal').hidden || !$('#treeModal').hidden) return;
+    if (!$('#cakeModal').hidden || !$('#kitchenModal').hidden || !$('#treeModal').hidden || !$('#giftModal').hidden) return;
     if ((e.key === 'q' || e.key === 'Q' || e.key === 'ㅂ') && !e.repeat) { eatHeld(); return; }
     if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (!e.repeat) send({ t: 'jump' }); return; }
     if ((e.key === 'e' || e.key === 'E' || e.key === 'ㄷ') && !e.repeat) { send({ t: 'snow' }); return; }
@@ -778,7 +788,7 @@
   function showNotice(m) {
     noticeKind = m.kind;
     $('#noticeText').textContent = m.text;
-    $('#noticeGo').hidden = !['cake'].includes(m.kind);
+    $('#noticeGo').hidden = !['cake', 'gift'].includes(m.kind);
     const n = $('#notice');
     n.hidden = false;
     n.classList.remove('show'); void n.offsetWidth; n.classList.add('show');
@@ -786,7 +796,7 @@
     clearTimeout(noticeTimer);
     noticeTimer = setTimeout(() => { n.hidden = true; }, 10000);
   }
-  $('#noticeGo').addEventListener('click', () => { $('#notice').hidden = true; if (noticeKind === 'cake') openCake(); });
+  $('#noticeGo').addEventListener('click', () => { $('#notice').hidden = true; if (noticeKind === 'cake') openCake(); else if (noticeKind === 'gift') openGift(true); });
   $('#noticeX').addEventListener('click', () => { $('#notice').hidden = true; });
 
   // ───────── 🎒 인벤토리 ─────────
@@ -882,13 +892,24 @@
     craft: (item, cb) => { pendingCraft = cb; send({ t: 'craft', item }); setTimeout(() => { if (pendingCraft === cb) { pendingCraft = null; } }, 4000); },
     close: () => closeKitchen(),
   });
-  function openKitchen(which) { closeCake(); closeTree(); $('#kitchenModal').hidden = false; kitchenUI.setOpen(true, which); }
+  function openKitchen(which) { closeCake(); closeTree(); closeGift(); $('#kitchenModal').hidden = false; kitchenUI.setOpen(true, which); }
   function closeKitchen() { $('#kitchenModal').hidden = true; kitchenUI.setOpen(false); }
 
   // ───────── 🎄 트리 꾸미기 ─────────
   let treeData = null;
   const treeUI = TreeUI({ send, toast, Sound, myUid: () => myUser && myUser.id, close: () => closeTree() });
-  function openTree() { closeCake(); closeKitchen(); $('#treeModal').hidden = false; treeUI.setOpen(true); }
+  function openTree() { closeCake(); closeKitchen(); closeGift(); $('#treeModal').hidden = false; treeUI.setOpen(true); }
+
+  // ───────── 🎁 선물 랜덤 교환 ─────────
+  const giftUI = GiftUI({ send, toast, Sound, confetti: (el) => confetti(el), close: () => closeGift() });
+  function openGift(box) { closeCake(); closeKitchen(); closeTree(); $('#giftModal').hidden = false; giftUI.setOpen(true); if (box) giftUI.showBox(); }
+  function closeGift() { if (!$('#giftModal').hidden) { $('#giftModal').hidden = true; giftUI.setOpen(false); } }
+  function giftBadge() {
+    const n = giftUI.unopened();
+    const d = document.querySelector('.dock-item[data-feature=gift]');
+    if (d) { let b = d.querySelector('.dbadge'); if (!b) { b = document.createElement('i'); b.className = 'dbadge'; d.appendChild(b); } b.textContent = n; b.hidden = !n; }
+  }
+  function setGiftPool(n) { $('#giftXbox').innerHTML = Gift.roomArt(n); }
   function closeTree() { if (!$('#treeModal').hidden) { $('#treeModal').hidden = true; treeUI.setOpen(false); } }
   function onTree(t) {
     treeData = t;
@@ -908,13 +929,13 @@
 
   // ───────── 아래 메뉴 ─────────
   const COMING = {
-    gift: '🎁 그림 선물·쪽지 나눔은 곧 열려요!',
     mafia: '🎅 산타 마피아는 곧 열려요!',
   };
   document.querySelectorAll('.dock-item').forEach((b) =>
     b.addEventListener('click', () => {
       if (b.dataset.feature === 'cake') openCake();
       else if (b.dataset.feature === 'tree') openTree();
+      else if (b.dataset.feature === 'gift') openGift();
       else if (b.dataset.feature !== 'room') toast(COMING[b.dataset.feature]);
     })
   );

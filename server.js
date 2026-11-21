@@ -42,6 +42,7 @@ async function loadDb() {
   }
   db.users = db.users || {};
   db.tree = db.tree && Array.isArray(db.tree.items) ? db.tree : { items: [], top: 'star', next: 1 };
+  db.gifts = db.gifts && Array.isArray(db.gifts.pool) ? db.gifts : { pool: [], waiting: [], next: 1 };
   db.tokens = db.tokens || {};
 }
 
@@ -184,7 +185,7 @@ function enterRoom(client, user) {
   players.set(p.id, p);
   client.send({
     t: 'welcome', me: p.id, user: publicUser(user), inv: Array.isArray(user.inv) ? user.inv : [],
-    players: [...players.values()].map(pub), history, cake, tree: db.tree,
+    players: [...players.values()].map(pub), history, cake, tree: db.tree, gift: giftState(user), giftPool: db.gifts.pool.length,
   });
   broadcast({ t: 'join', player: pub(p) }, client);
   if (recentlyLeft.has(user.id)) {
@@ -506,6 +507,96 @@ function handleTree(client, p, msg) {
   treeBroadcast();
 }
 
+// ───────────────────────── 🎁 선물 랜덤 교환 (그림 선물) ─────────────────────────
+// 그림은 용량이 커서 계정 저장소와 따로 저장해요 (Upstash: gimg:<id> 키 / 로컬: data/gifts/<id>)
+const GIFT_DIR = path.join(path.dirname(DB_FILE), 'gifts');
+const WRAPS = ['red', 'green', 'blue', 'pink', 'gold'];
+const RIBS = ['gold', 'red', 'white', 'green'];
+async function putImg(id, data) {
+  if (USE_REDIS) {
+    const r = await fetch(`${UP_URL}/set/gimg:${id}`, { method: 'POST', headers: { Authorization: `Bearer ${UP_TOKEN}` }, body: data });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+  } else {
+    await fs.promises.mkdir(GIFT_DIR, { recursive: true });
+    await fs.promises.writeFile(path.join(GIFT_DIR, id + '.txt'), data);
+  }
+}
+async function getImg(id) {
+  try {
+    if (USE_REDIS) {
+      const r = await fetch(`${UP_URL}/get/gimg:${id}`, { headers: { Authorization: `Bearer ${UP_TOKEN}` } });
+      return (await r.json()).result || null;
+    }
+    return await fs.promises.readFile(path.join(GIFT_DIR, id + '.txt'), 'utf8');
+  } catch (_) { return null; }
+}
+function giftState(user) {
+  const box = (Array.isArray(user.gifts) ? user.gifts : []).map((g) => ({ id: g.id, from: g.opened ? g.from : null, wrap: g.wrap, rib: g.rib, ts: g.ts, opened: !!g.opened }));
+  return { waiting: db.gifts.waiting.includes(user.id), box };
+}
+function clientsOf(uid) { return [...players.values()].filter((q) => q.uid === uid).map((q) => q.client); }
+function sendGiftState(uid) {
+  const u = db.users[uid]; if (!u) return;
+  const st = giftState(u);
+  clientsOf(uid).forEach((c) => c.send({ t: 'giftState', gift: st }));
+}
+function giftMatch() {
+  // 기다리는 사람(먼저 온 순서)에게, 자기 것이 아닌 선물을 랜덤으로 하나씩 전해줘요
+  const gd = db.gifts;
+  for (let i = 0; i < gd.waiting.length; i++) {
+    const uid = gd.waiting[i];
+    const cands = gd.pool.filter((g) => g.from !== uid);
+    if (!cands.length) continue;
+    const g = cands[Math.floor(Math.random() * cands.length)];
+    gd.pool.splice(gd.pool.indexOf(g), 1);
+    gd.waiting.splice(i, 1); i--;
+    const u = db.users[uid]; if (!u) continue;
+    u.gifts = Array.isArray(u.gifts) ? u.gifts : [];
+    u.gifts.unshift({ id: g.id, from: g.anon ? null : g.nick, wrap: g.wrap, rib: g.rib, ts: Date.now(), opened: false });
+    if (u.gifts.length > 30) u.gifts.length = 30;
+    sendGiftState(uid);
+    clientsOf(uid).forEach((c) => c.send({ t: 'giftArrived' }));
+    clientsOf(g.from).forEach((c) => c.send({ t: 'toast', msg: '🎁 내가 넣은 선물이 누군가에게 도착했어요!' }));
+    const sys = { kind: 'sys', text: `🎁 ${u.nick} 님에게 선물이 도착했어요!`, ts: Date.now() };
+    pushHistory(sys); broadcast({ t: 'sys', ...sys });
+  }
+}
+async function handleGift(client, p, msg) {
+  const user = db.users[p.uid];
+  if (!user) return;
+  const gd = db.gifts;
+  const toast = (m) => client.send({ t: 'toast', msg: m });
+  if (msg.act === 'send') {
+    if (gd.waiting.includes(p.uid)) return toast('먼저 넣은 선물의 교환을 기다리는 중이에요 🎁');
+    const now = Date.now();
+    if (now - (client.lastGift || 0) < 5000) return;
+    const img = String(msg.img || '');
+    if (!/^data:image\/(png|webp|jpeg);base64,[A-Za-z0-9+/=]+$/.test(img) || img.length > 450000) return toast('그림을 보내지 못했어요. 다시 해 봐요');
+    client.lastGift = now;
+    const id = 'g' + Date.now().toString(36) + (gd.next++);
+    try { await putImg(id, img); } catch (e) { console.error('선물 저장 실패', e.message); return toast('선물을 저장하지 못했어요. 잠시 뒤에 다시 해 봐요'); }
+    gd.pool.push({ id, from: p.uid, nick: p.nick, anon: !!msg.anon, wrap: WRAPS.includes(msg.wrap) ? msg.wrap : 'red', rib: RIBS.includes(msg.rib) ? msg.rib : 'gold', ts: now });
+    gd.waiting.push(p.uid);
+    const sys = { kind: 'sys', text: `🎁 ${p.nick} 님이 선물 교환 상자에 선물을 넣었어요`, ts: now };
+    pushHistory(sys); broadcast({ t: 'sys', ...sys });
+    giftMatch();
+    saveDb();
+    sendGiftState(p.uid);
+    client.send({ t: 'giftSent', got: !gd.waiting.includes(p.uid) });
+    broadcast({ t: 'giftPool', n: gd.pool.length });
+  } else if (msg.act === 'open' || msg.act === 'view') {
+    const g = (user.gifts || []).find((x) => x.id === msg.id);
+    if (!g) return;
+    if (!g.opened) { g.opened = true; saveDb(); sendGiftState(p.uid); }
+    const img = await getImg(g.id);
+    client.send({ t: 'giftOpen', id: g.id, img, from: g.from, wrap: g.wrap, rib: g.rib, first: msg.act === 'open' });
+  } else if (msg.act === 'toss') {
+    const i = (user.gifts || []).findIndex((x) => x.id === msg.id);
+    if (i < 0) return;
+    user.gifts.splice(i, 1); saveDb(); sendGiftState(p.uid);
+  }
+}
+
 // ───────────────────────── 메시지 처리 ─────────────────────────
 function handle(client, msg) {
   if (!msg || typeof msg.t !== 'string') return;
@@ -639,6 +730,7 @@ function handle(client, msg) {
     }
     case 'cake': handleCake(client, p, msg); break;
     case 'tree': handleTree(client, p, msg); break;
+    case 'gift': handleGift(client, p, msg).catch((e) => console.error(e)); break;
     case 'craft': {
       // 주방에서 만든 음식 → 인벤토리 (4칸)
       const user = db.users[p.uid];
@@ -716,7 +808,7 @@ class Client {
       let len = b1 & 0x7f, off = 2;
       if (len === 126) { if (this.buf.length < 4) return; len = this.buf.readUInt16BE(2); off = 4; }
       else if (len === 127) { if (this.buf.length < 10) return; len = Number(this.buf.readBigUInt64BE(2)); off = 10; }
-      if (len > 65536) return this.close();
+      if (len > 600000) return this.close(); // 선물 그림 때문에 조금 넉넉하게
       const need = off + (masked ? 4 : 0) + len;
       if (this.buf.length < need) return;
       let payload = this.buf.subarray(off + (masked ? 4 : 0), need);

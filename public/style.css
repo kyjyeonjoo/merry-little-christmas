@@ -794,3 +794,59 @@ input:focus { border-color: #ffc9cf; }
   .tree-tabs button { font-size: 12px; padding: 6px 2px; }
   .tree-pal .cbtn .ic { width: 26px; height: 28px; }
 }
+
+/* ───── 🎁 선물 랜덤 교환 ───── */
+.gift-xbox { position: absolute; left: 650px; top: 292px; width: 92px; height: 92px; z-index: 384; cursor: pointer; }
+.gift-xbox svg { width: 100%; height: 100%; display: block; overflow: visible; transition: transform .2s; }
+.gift-xbox:hover svg { transform: scale(1.05) rotate(-2deg); }
+.dock-item { position: relative; }
+.dbadge { position: absolute; top: -4px; right: -2px; min-width: 20px; height: 20px; padding: 0 5px; box-sizing: border-box; border-radius: 999px; background: var(--red); color: #fff;
+  font: 400 12px/20px 'Jua', sans-serif; font-style: normal; border: 2px solid #fff; animation: bob 1.4s ease-in-out infinite; }
+.dbadge[hidden] { display: none; }
+.gift-card { width: min(820px, 100%); }
+.gbadge { display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 999px; background: #fff; color: var(--red); font-size: 12px; line-height: 18px; margin-left: 2px; }
+.ktabs button:not(.on) .gbadge { background: var(--red); color: #fff; }
+.gift-view { min-height: 260px; display: flex; align-items: center; justify-content: center; }
+.gcanvas { width: 100%; aspect-ratio: 1; max-height: 420px; background: #fff; border-radius: 14px; box-shadow: inset 0 0 0 2px #f0dcc4; touch-action: none; cursor: crosshair; display: block; }
+.gcolors { display: grid; grid-template-columns: repeat(9, 1fr); gap: 5px; margin-bottom: 8px; }
+.gcol { aspect-ratio: 1; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px #e6d3b8; cursor: pointer; padding: 0; }
+.gcol.on { box-shadow: 0 0 0 3px var(--red); transform: scale(1.1); }
+.gtools { margin-bottom: 10px; flex-wrap: wrap; gap: 6px; }
+.gsize { width: 34px; height: 34px; border-radius: 10px; border: 2px solid #f0dcc4; background: #fff; display: grid; place-items: center; cursor: pointer; padding: 0; }
+.gsize i { display: block; border-radius: 50%; background: #5b4036; }
+.gsize.on { border-color: var(--red); background: #fff0f1; }
+.gtools .on { background: #fff0f1; box-shadow: inset 0 0 0 2px var(--red); }
+.gwrapview { position: relative; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.gwrapview .gthumb { width: 46%; border-radius: 10px; box-shadow: 0 3px 0 rgba(0,0,0,.08); background: #fff; }
+.gwrapview svg { width: 52%; max-height: 180px; }
+.gopts { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 8px; }
+.gopts.rib { grid-template-columns: repeat(4, 1fr); }
+.gopt { background: #fff; border: 3px solid transparent; border-radius: 12px; padding: 3px; cursor: pointer; box-shadow: 0 3px 0 rgba(91,64,54,.12); display: grid; place-items: center; }
+.gopt svg { width: 100%; height: 48px; }
+.gopt i { display: block; width: 26px; height: 26px; border-radius: 50%; border: 2px solid #5b4036; margin: 4px; }
+.gopt.on { border-color: var(--red); background: #fff0f1; }
+.ganon { display: flex; align-items: center; gap: 6px; font-size: 14px; margin: 4px 0 10px; cursor: pointer; }
+.gempty { text-align: center; padding: 10px; }
+.gempty svg { width: 150px; height: 150px; }
+.gempty p { font-family: 'Jua', sans-serif; font-size: 16px; line-height: 1.5; margin: 6px 0 0; color: #6b5146; }
+.gshelf { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; width: 100%; align-self: start; max-height: 420px; overflow-y: auto; padding: 4px; }
+.gitem { background: #fff; border: 0; border-radius: 14px; padding: 6px 4px; cursor: pointer; box-shadow: 0 3px 0 rgba(91,64,54,.12); display: flex; flex-direction: column; align-items: center; }
+.gitem svg { width: 64px; height: 64px; }
+.gitem small { font-size: 11px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gitem:not(.opened) small { color: var(--red); font-family: 'Jua', sans-serif; font-size: 13px; }
+.gitem.opened { opacity: .85; }
+.gshake { animation: gshake 1.4s ease-in-out infinite; transform-origin: 50% 90%; }
+@keyframes gshake { 0%, 60%, 100% { transform: rotate(0); } 68% { transform: rotate(-6deg); } 76% { transform: rotate(5deg); } 84% { transform: rotate(-3deg); } 92% { transform: rotate(2deg); } }
+.gift-open { position: fixed; inset: 0; z-index: 9000; background: rgba(40,24,20,.55); display: grid; place-items: center; padding: 16px; }
+.gift-open[hidden] { display: none; }
+.gopen-card { position: relative; background: #fff8ec; border: 4px solid #fff; border-radius: 26px; padding: 18px; width: min(380px, 100%); text-align: center; box-shadow: 0 10px 0 #d9c3a5, 0 18px 50px rgba(0,0,0,.35); overflow: hidden; animation: popIn .25s ease-out; }
+.gopen-box svg { width: 200px; height: 200px; }
+.gopen-pic img { width: 100%; border-radius: 16px; box-shadow: 0 4px 0 rgba(0,0,0,.08); background: #fff; animation: popIn .4s ease-out; }
+.gopen-from { font-family: 'Jua', sans-serif; font-size: 17px; margin: 10px 0; }
+.gopen-btns { justify-content: center; flex-wrap: wrap; }
+.gopen-btns a { text-decoration: none; }
+@media (max-width: 760px) {
+  .gcanvas { max-height: 230px; width: auto; height: 230px; margin: 0 auto; }
+  .gift-view { min-height: 200px; }
+  .gcolors { gap: 4px; }
+}

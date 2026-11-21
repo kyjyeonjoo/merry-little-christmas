@@ -97,6 +97,7 @@
 
         <!-- 장식 트리 -->
         <div class="deco-tree" id="roomTree" title="다 같이 트리 꾸미기"></div>
+        <div class="gift-xbox" id="giftXbox" title="선물 교환 상자"></div>
         <div class="kitchen" id="kitchenCounter" title="주방: 핫초코 · 마시멜로"><div class="art"></div></div>
 
         <!-- 좌석과 캐릭터는 app.js가 여기에 그려요 -->
@@ -234,6 +235,24 @@
       </div>
     </div>
   </div>
+  <div class="modal float" id="giftModal" hidden>
+    <div class="modal-card cake-card gift-card">
+      <button class="icon-btn close" data-close-gift>✕</button>
+      <h2>🎁 선물 랜덤 교환</h2>
+      <div class="ktabs" id="giftTabs">
+        <button data-tab="make" class="on">🎨 선물 만들기</button>
+        <button data-tab="box">📦 받은 선물함</button>
+      </div>
+      <div class="cake-main">
+        <div class="cake-view-wrap"><div class="cake-view gift-view" id="giftView"></div></div>
+        <div class="cake-side">
+          <div class="cake-panel" id="giftPanel"></div>
+          <ul class="mini-chat"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="gift-open" id="giftOpen" hidden></div>
   <div class="modal float" id="kitchenModal" hidden>
     <div class="modal-card cake-card kitchen-card">
       <button class="icon-btn close" data-close-kitchen>✕</button>
@@ -261,6 +280,7 @@
   <script src="cake.js"></script>
   <script src="kitchen.js"></script>
   <script src="tree.js"></script>
+  <script src="gift.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
