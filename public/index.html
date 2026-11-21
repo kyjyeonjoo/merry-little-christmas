@@ -62,6 +62,9 @@
     </header>
 
     <main class="stage-wrap" id="stageWrap">
+      <div class="notice" id="notice" hidden><span id="noticeText"></span><button class="btn primary small" id="noticeGo">보러 가기</button><button class="icon-btn" id="noticeX">✕</button></div>
+      <div class="inv" id="inv" title="인벤토리"></div>
+      <div class="inv-menu" id="invMenu" hidden></div>
       <div class="zoom-box">
         <button class="zoom-btn" id="zoomIn" title="크게">＋</button>
         <button class="zoom-btn" id="zoomOut" title="작게">－</button>
@@ -99,7 +102,7 @@
           <div class="trunk"></div>
           <div class="gifts"><i></i><i class="g2"></i></div>
         </div>
-        <div class="cocoa-table">☕</div>
+        <div class="kitchen" id="kitchenCounter" title="주방: 핫초코 · 마시멜로"><div class="art"></div></div>
 
         <!-- 좌석과 캐릭터는 app.js가 여기에 그려요 -->
         <div class="cake-table" id="cakeTable" title="다 같이 케이크 만들기"><div class="art"></div></div>
@@ -122,6 +125,7 @@
       <div class="actions">
         <button class="act-btn" id="jumpBtn" title="점프 (스페이스바)">🦘<span>점프</span></button>
         <button class="act-btn" id="snowBtn" title="눈 뿌리기 (E)">❄️<span>눈 뿌리기</span></button>
+        <button class="act-btn" id="fwBtn" title="폭죽 (F)">🎆<span>폭죽</span></button>
       </div>
       <form id="chatForm">
         <input id="chatInput" maxlength="120" placeholder="벽난로 앞에서 한마디… (Enter)" autocomplete="off" />
@@ -186,7 +190,7 @@
   </div>
 
   <!-- ───────── 🎂 다 같이 케이크 만들기 ───────── -->
-  <div class="modal" id="cakeModal" hidden>
+  <div class="modal float" id="cakeModal" hidden>
     <div class="modal-card cake-card">
       <button class="icon-btn close" data-close-cake>✕</button>
       <h2>🎂 다 같이 케이크 만들기</h2>
@@ -205,10 +209,31 @@
         <div class="cake-side">
           <div class="cake-panel" id="cakePanel"></div>
           <ul class="cake-log" id="cakeLog"></ul>
+          <ul class="mini-chat"></ul>
           <button class="cake-restart" id="cakeRestart">처음부터</button>
         </div>
       </div>
       <div class="confetti" id="confetti"></div>
+    </div>
+  </div>
+
+  <!-- ───────── ☕ 주방 ───────── -->
+  <div class="modal float" id="kitchenModal" hidden>
+    <div class="modal-card cake-card kitchen-card">
+      <button class="icon-btn close" data-close-kitchen>✕</button>
+      <h2>☕ 주방</h2>
+      <div class="ktabs" id="kitchenTabs">
+        <button data-tab="cocoa" class="on">☕ 핫초코 만들기</button>
+        <button data-tab="mallow">🔥 마시멜로 굽기</button>
+      </div>
+      <div id="kitchenSteps"></div>
+      <div class="cake-main">
+        <div class="cake-view-wrap"><div class="cake-view" id="kitchenView"></div></div>
+        <div class="cake-side">
+          <div class="cake-panel" id="kitchenPanel"></div>
+          <ul class="mini-chat"></ul>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -218,6 +243,7 @@
   <script src="sound.js"></script>
   <script src="avatar.js"></script>
   <script src="cake.js"></script>
+  <script src="kitchen.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -6,7 +6,7 @@
   const WALK_SPEED = 170; // px/s
   // 서버(server.js)의 SEATS와 같은 id/좌표
   const SEATS = {
-    armL: { x: 200, y: 395, kind: 'arm', face: 1 },
+    armL: { x: 236, y: 400, kind: 'arm', face: 1 },
     armR: { x: 800, y: 395, kind: 'arm', face: -1 },
     sofa1: { x: 360, y: 578, kind: 'sofa' },
     sofa2: { x: 500, y: 578, kind: 'sofa' },
@@ -62,9 +62,9 @@
     myUid: () => myUser && myUser.id,
     close: () => closeCake(),
   });
-  function openCake() { $('#cakeModal').hidden = false; cakeUI.setOpen(true); }
+  function openCake() { if ($('#kitchenModal') && !$('#kitchenModal').hidden) closeKitchen(); $('#cakeModal').hidden = false; cakeUI.setOpen(true); }
   function closeCake() { $('#cakeModal').hidden = true; cakeUI.setOpen(false); }
-  $('#cakeModal').addEventListener('click', (e) => { if (e.target.id === 'cakeModal') closeCake(); });
+
   function confetti(box) {
     const colors = ['#e8474f', '#ffc94a', '#3f9c6d', '#8b7cf2', '#ff86a6', '#6fb6ff'];
     for (let i = 0; i < 40; i++) {
@@ -173,6 +173,10 @@
       case 'cakeBlow': showEmote(m.id, '🌬️'); Sound.Sfx.blow(); break;
       case 'cakeEat': showEmote(m.id, m.taste === 'salty' ? '🥵' : m.taste === 'sweet' ? '🤤' : '😋'); Sound.Sfx.nyam(); break;
       case 'snow': doSnow(m.id); break;
+      case 'fw': doFirework(m.id); break;
+      case 'notice': showNotice(m); break;
+      case 'inv': setInv(m.inv); if (m.added) { Sound.Sfx.ding(); pendingCraft && pendingCraft(true); pendingCraft = null; } break;
+      case 'eatItem': onEatItem(m); break;
       case 'throw': doThrow(m.from, m.to); break;
       case 'pupdate': {
         const p = players.get(m.id);
@@ -188,7 +192,7 @@
       case 'profileErr':
         $('#profileErr').textContent = m.msg;
         break;
-      case 'toast': toast(m.msg); break;
+      case 'toast': toast(m.msg); if (pendingCraft && /인벤토리/.test(m.msg)) { pendingCraft(false); pendingCraft = null; } break;
       case 'kicked':
         // 다른 기기에서 같은 계정으로 들어온 경우: 여기서는 로그아웃 상태로 돌아가요
         token = null;
@@ -258,6 +262,8 @@
     $('#chatLog').innerHTML = '';
     m.history.forEach((h) => addLog(h));
     if (m.cake) onCake(m.cake);
+    setInv(m.inv || []);
+    $('#kitchenCounter .art').innerHTML = Kitchen.counterArt();
     renderMe();
     updateCount();
     fitStage();
@@ -467,6 +473,7 @@
     const mine = players.get(me.id);
     if (!mine) return;
     if (e.target.closest('.cake-table')) { openCake(); return; }
+    if (e.target.closest('.kitchen')) { openKitchen(); return; }
     const seatEl = e.target.closest('.seat');
     if (seatEl) {
       const id = seatEl.dataset.seat;
@@ -499,10 +506,12 @@
     return a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA');
   }
   window.addEventListener('keydown', (e) => {
-    if (!me || typing() || !$('#profileModal').hidden || !$('#inviteModal').hidden || !$('#cakeModal').hidden) return;
+    if (!me || typing() || !$('#profileModal').hidden || !$('#inviteModal').hidden) return;
     if (e.key === 'Enter') { $('#chatInput').focus(); e.preventDefault(); return; }
+    if (!$('#cakeModal').hidden || !$('#kitchenModal').hidden) return; // 창이 열려 있으면 이동·동작 키는 쉬어요
     if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (!e.repeat) send({ t: 'jump' }); return; }
     if ((e.key === 'e' || e.key === 'E' || e.key === 'ㄷ') && !e.repeat) { send({ t: 'snow' }); return; }
+    if ((e.key === 'f' || e.key === 'F' || e.key === 'ㄹ') && !e.repeat) { send({ t: 'fw' }); return; }
     if (!KEYS[e.key]) return;
     e.preventDefault();
     if (held.size === 0) { lastFrame = performance.now(); requestAnimationFrame(kbLoop); }
@@ -567,6 +576,13 @@
       li.querySelector('p').textContent = m.text;
       if (me && m.id === me.id) li.classList.add('mine');
     }
+    document.querySelectorAll('.mini-chat').forEach((ul) => {
+      const mini = document.createElement('li');
+      if (m.kind === 'sys') { mini.className = 'sys'; mini.textContent = m.text; }
+      else { mini.innerHTML = '<b></b> <span></span>'; mini.querySelector('b').textContent = m.nick; mini.querySelector('span').textContent = m.text; }
+      ul.appendChild(mini);
+      while (ul.children.length > 4) ul.firstChild.remove();
+    });
     const log = $('#chatLog');
     const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
     log.appendChild(li);
@@ -705,6 +721,110 @@
   $('#sfxVol').addEventListener('change', () => myUser && Sound.preview(myUser.avatar.type));
   $('#nextTrack').addEventListener('click', () => { if (Sound.bgmOn) Sound.nextTrack(); });
   renderSoundUI();
+
+  // ───────── 🎆 폭죽 ─────────
+  function doFirework(id) {
+    const p = players.get(id);
+    if (!p) return;
+    doJump(id);
+    const { x, y } = posOf(p);
+    const top = y - 190 - Math.random() * 40;
+    const rocket = document.createElement('div');
+    rocket.className = 'rocket';
+    fxLayer().appendChild(rocket);
+    const colors = [['#ff5470', '#ffd34d'], ['#6fb6ff', '#ffffff'], ['#7dd6a2', '#ffc94a'], ['#c59bff', '#ff9db5']][Math.floor(Math.random() * 4)];
+    rocket.animate([{ transform: `translate(${x}px, ${y - 60}px)`, opacity: 1 }, { transform: `translate(${x + (Math.random() - 0.5) * 30}px, ${top}px)`, opacity: 1 }],
+      { duration: 520, easing: 'cubic-bezier(.2,.7,.4,1)' }).onfinish = () => {
+      rocket.remove();
+      Sound.Sfx.boom();
+      for (let i = 0; i < 26; i++) {
+        const s = document.createElement('span');
+        s.className = 'spark';
+        s.style.background = colors[i % 2];
+        s.style.left = x + 'px'; s.style.top = top + 'px';
+        fxLayer().appendChild(s);
+        const a = (i / 26) * Math.PI * 2, r = 50 + Math.random() * 30;
+        s.animate([
+          { transform: 'translate(-50%,-50%) scale(1)', opacity: 1 },
+          { transform: `translate(calc(-50% + ${Math.cos(a) * r}px), calc(-50% + ${Math.sin(a) * r}px)) scale(.9)`, opacity: 1, offset: 0.55 },
+          { transform: `translate(calc(-50% + ${Math.cos(a) * r * 1.15}px), calc(-50% + ${Math.sin(a) * r * 1.15 + 30}px)) scale(.3)`, opacity: 0 },
+        ], { duration: 1100 + Math.random() * 300, easing: 'ease-out' }).onfinish = () => s.remove();
+      }
+    };
+    Sound.Sfx.whoosh();
+  }
+  $('#fwBtn').addEventListener('click', () => send({ t: 'fw' }));
+
+  // ───────── 📢 방 공지 ─────────
+  let noticeTimer = null, noticeKind = null;
+  function showNotice(m) {
+    noticeKind = m.kind;
+    $('#noticeText').textContent = m.text;
+    $('#noticeGo').hidden = !['cake'].includes(m.kind);
+    const n = $('#notice');
+    n.hidden = false;
+    n.classList.remove('show'); void n.offsetWidth; n.classList.add('show');
+    Sound.Sfx.ding();
+    clearTimeout(noticeTimer);
+    noticeTimer = setTimeout(() => { n.hidden = true; }, 10000);
+  }
+  $('#noticeGo').addEventListener('click', () => { $('#notice').hidden = true; if (noticeKind === 'cake') openCake(); });
+  $('#noticeX').addEventListener('click', () => { $('#notice').hidden = true; });
+
+  // ───────── 🎒 인벤토리 ─────────
+  let inv = [], pendingCraft = null;
+  const INV_SIZE = 4;
+  function setInv(list) {
+    inv = list || [];
+    const box = $('#inv');
+    box.innerHTML = '';
+    for (let i = 0; i < INV_SIZE; i++) {
+      const it = inv[i];
+      const b = document.createElement('button');
+      b.className = 'slot' + (it ? ' full' : '');
+      b.dataset.i = i;
+      b.innerHTML = it ? Kitchen.itemIcon(it) : '';
+      b.title = it ? Kitchen.itemName(it) : '빈 칸';
+      box.appendChild(b);
+    }
+    $('#invMenu').hidden = true;
+  }
+  $('#inv').addEventListener('click', (e) => {
+    const b = e.target.closest('.slot');
+    if (!b) return;
+    const i = Number(b.dataset.i), it = inv[i], menu = $('#invMenu');
+    if (!it) { toast('🎒 비어 있어요. 주방에서 핫초코나 마시멜로를 만들어 봐요!'); return; }
+    menu.innerHTML = `<b>${esc(Kitchen.itemName(it))}</b>
+      <button class="btn primary small" data-how="eat">${it.k === 'cocoa' ? '☕ 마시기' : '😋 먹기'}</button>
+      <button class="btn ghost small" data-how="drop">버리기</button>`;
+    menu.dataset.i = i;
+    menu.hidden = false;
+  });
+  $('#invMenu').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-how]');
+    if (!b) return;
+    send({ t: 'useItem', slot: Number($('#invMenu').dataset.i), how: b.dataset.how });
+    $('#invMenu').hidden = true;
+  });
+  document.addEventListener('click', (e) => { if (!e.target.closest('#inv') && !e.target.closest('#invMenu')) $('#invMenu').hidden = true; });
+  function onEatItem(m) {
+    const p = players.get(m.id);
+    if (!p) return;
+    const el = p.el.querySelector('.emote');
+    el.innerHTML = `<span class="eat-ic">${Kitchen.itemIcon(m.item)}</span>`;
+    el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+    setTimeout(() => showEmote(m.id, m.item.k === 'mallow' && m.item.q === 'burnt' ? '😖' : m.item.k === 'cocoa' ? '☺️' : '😋'), 1300);
+    Sound.Sfx.nyam();
+  }
+
+  // ───────── ☕ 주방 ─────────
+  const kitchenUI = KitchenUI({
+    Sound,
+    craft: (item, cb) => { pendingCraft = cb; send({ t: 'craft', item }); setTimeout(() => { if (pendingCraft === cb) { pendingCraft = null; } }, 4000); },
+    close: () => closeKitchen(),
+  });
+  function openKitchen(which) { closeCake(); $('#kitchenModal').hidden = false; kitchenUI.setOpen(true, which); }
+  function closeKitchen() { $('#kitchenModal').hidden = true; kitchenUI.setOpen(false); }
 
   function showEmote(id, e) {
     const p = players.get(id);

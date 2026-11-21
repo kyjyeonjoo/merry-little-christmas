@@ -145,6 +145,10 @@
     ding() { [1319, 1760, 2093].forEach((f, i) => tone({ freq: f, type: 'sine', dur: 0.6, vol: 0.3, delay: i * 0.12 })); },
     blow() { noise(0.45, 0.35); },
     nyam() { tone({ freq: 700, freqEnd: 900, type: 'sine', dur: 0.08, vol: 0.4 }); tone({ freq: 900, freqEnd: 1200, type: 'sine', dur: 0.1, vol: 0.4, delay: 0.12 }); },
+    boom() {
+      noise(0.35, 0.55);
+      for (let i = 0; i < 7; i++) tone({ freq: 2400 + Math.random() * 1800, type: 'sine', dur: 0.05, vol: 0.18, delay: 0.12 + Math.random() * 0.5 });
+    },
     tada() { [784, 988, 1175, 1568].forEach((f, i) => tone({ freq: f, type: 'triangle', dur: 0.35, vol: 0.28, delay: i * 0.09 })); },
   };
 

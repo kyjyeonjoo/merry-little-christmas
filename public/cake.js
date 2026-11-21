@@ -10,8 +10,15 @@
     butter: { name: '버터', need: true },
     cocoa: { name: '코코아', color: '#7a4b31' },
     matcha: { name: '말차', color: '#8fbf5a' },
-    berry: { name: '딸기가루', color: '#ff9db5' },
+    berry: { name: '딸기', color: '#ff9db5' },
+    redvelvet: { name: '레드벨벳', color: '#c8323f' },
+    pumpkin: { name: '단호박', color: '#ffb03b' },
+    blueberry: { name: '블루베리', color: '#8c7ae6' },
+    banana: { name: '바나나', color: '#ffe066' },
+    sesame: { name: '흑임자', color: '#5f5a58' },
+    butterfly: { name: '버터플라이', color: '#5b8def' },
   };
+  const FLAVORS = ['cocoa', 'matcha', 'berry', 'redvelvet', 'pumpkin', 'blueberry', 'banana', 'sesame', 'butterfly'];
   const FRUITS = {
     strawberry: { name: '딸기', color: '#ff86a6' },
     blueberry: { name: '블루베리', color: '#8b7cf2' },
@@ -43,7 +50,7 @@
   const shade = (hex, amt) => rgb2hex(hex2rgb(hex).map((x) => x + amt));
   function sheetColor(c) {
     const cols = [];
-    for (const k of ['cocoa', 'matcha', 'berry']) for (let i = 0; i < (c.ingr[k] || 0); i++) cols.push(INGR[k].color);
+    for (const k of FLAVORS) for (let i = 0; i < (c.ingr[k] || 0); i++) cols.push(INGR[k].color);
     return mix(SHEET_BASE, cols, 1.6);
   }
   const creamColor = (c) => mix(CREAM_BASE, c.cream.map((f) => FRUITS[f].color), 2.4);
@@ -77,7 +84,9 @@
     }
   }
   // 그릇 안 재료 덩어리 (섞기 전)
-  const SLOTS = { flour: [118, 108], sugar: [168, 104], salt: [196, 116], egg: [148, 120], milk: [96, 120], butter: [186, 124], cocoa: [130, 100], matcha: [172, 118], berry: [110, 124] };
+  const SLOTS = { flour: [118, 108], sugar: [168, 104], salt: [196, 116], egg: [148, 120], milk: [96, 120], butter: [186, 124],
+    cocoa: [130, 100], matcha: [172, 118], berry: [110, 124], redvelvet: [140, 106], pumpkin: [200, 108], blueberry: [124, 116],
+    banana: [160, 126], sesame: [90, 110], butterfly: [182, 100] };
   function blob(k, n) {
     if (!n) return '';
     const [x, y] = SLOTS[k];
@@ -165,10 +174,22 @@
     const cx = 150, top = 92, rx = 108, ry = 38, h = 82;
     const sheet = sheetColor(c), cream = creamColor(c);
     let out = plate ? `<ellipse cx="${cx}" cy="${top + h + 14}" rx="${rx + 26}" ry="${ry - 6}" fill="#eaf4ff" stroke="${LINE}" stroke-width="2.5"/>` : '';
-    out += `<path d="M${cx - rx} ${top} L${cx - rx} ${top + h} A${rx} ${ry} 0 0 0 ${cx + rx} ${top + h} L${cx + rx} ${top} Z" fill="${withCream ? cream : sheet}" stroke="${LINE}" stroke-width="2.6"/>`;
+    out += `<path d="M${cx - rx} ${top} L${cx - rx} ${top + h} A${rx} ${ry} 0 0 0 ${cx + rx} ${top + h} L${cx + rx} ${top} Z" fill="${sheet}" stroke="${LINE}" stroke-width="2.6"/>`;
     if (withCream) {
-      out += `<path d="M${cx - rx} ${top + h - 6} A${rx} ${ry} 0 0 0 ${cx + rx} ${top + h - 6}" fill="none" stroke="${shade(cream, -14)}" stroke-width="7" stroke-dasharray="1 10" stroke-linecap="round"/>`;
-      out += `<path d="M${cx - rx + 6} ${top + 22} Q${cx - rx + 12} ${top + 40} ${cx - rx + 6} ${top + 60}" fill="none" stroke="#fff" stroke-width="5" opacity=".45" stroke-linecap="round"/>`;
+      // 옆면은 시트가 보이고, 가운데 크림층 + 위 크림이 흘러내린 모양
+      const mid = top + h * 0.5;
+      out += `<path d="M${cx - rx} ${mid} A${rx} ${ry} 0 0 0 ${cx + rx} ${mid} L${cx + rx} ${mid + 9} A${rx} ${ry} 0 0 1 ${cx - rx} ${mid + 9} Z" fill="${cream}"/>`;
+      out += `<path d="M${cx - rx} ${top + h - 4} A${rx} ${ry} 0 0 0 ${cx + rx} ${top + h - 4}" fill="none" stroke="${cream}" stroke-width="6" stroke-dasharray="1 9" stroke-linecap="round"/>`;
+      let drip = `M${cx - rx} ${top}`;
+      const n = 11;
+      for (let i = 0; i <= n; i++) {
+        const ang = Math.PI - (i / n) * Math.PI;
+        const x = cx + Math.cos(ang) * rx, y = top + Math.sin(ang) * ry;
+        const d = [10, 18, 8, 15, 11, 20, 9, 16, 12, 18, 9, 13][i];
+        drip += ` Q${(x - 4).toFixed(1)} ${(y + d + 4).toFixed(1)} ${x.toFixed(1)} ${(y + d * 0.4).toFixed(1)}`;
+      }
+      drip += ` L${cx + rx} ${top} Z`;
+      out += `<path d="${drip}" fill="${cream}" stroke="${LINE}" stroke-width="2" stroke-linejoin="round"/>`;
       out += `<ellipse cx="${cx}" cy="${top}" rx="${rx}" ry="${ry}" fill="${cream}" stroke="${LINE}" stroke-width="2.6"/>`;
       out += `<path d="M${cx - 60} ${top - 4} Q${cx - 20} ${top - 18} ${cx + 30} ${top - 10}" fill="none" stroke="#fff" stroke-width="4" opacity=".5" stroke-linecap="round"/>`;
     } else {
@@ -345,7 +366,10 @@
 
     function panel() {
       const c = cake, mem = isMember();
-      const next = (label, ok = true) => `<button class="btn primary cnext" data-act="next" ${ok && mem ? '' : 'disabled'}>${label}</button>`;
+      const host = isHost() || (mem && !c.host);
+      const next = (label, ok = true) => host
+        ? `<button class="btn primary cnext" data-act="next" ${ok ? '' : 'disabled'}>${label}</button>`
+        : `<button class="btn primary cnext" disabled>👑 방장이 다음 단계로 넘겨요</button>`;
       switch (c.stage) {
         case 'lobby':
           if (!c.host) return `<p class="chint big">다 같이 크리스마스 케이크를<br>만들어 볼까요? 🎄</p>
@@ -358,11 +382,13 @@
                 : `<button class="btn primary cnext" data-act="join">🙋 참여하기</button>`}`;
         case 'ingredients': {
           const missing = Object.entries(INGR).filter(([k, v]) => v.need && !c.ingr[k]).map(([, v]) => v.name);
-          return `${joinBar()}<p class="chint">그릇에 재료를 넣어요. <b>코코아·말차·딸기가루</b>를 넣으면 시트 색이 바뀌어요</p>
-            <div class="cbtns ingr">${Object.entries(INGR).map(([k, v]) =>
-              `<button class="cbtn ${c.ingr[k] ? 'on' : ''} ${v.need ? '' : 'opt'}" data-act="ingr" data-v="${k}" ${mem ? '' : 'disabled'}>
-                <span class="ic">${iconSvg(ingrIcon(k))}</span><small>${v.name}${c.ingr[k] ? ` ×${c.ingr[k]}` : ''}</small></button>`).join('')}</div>
-            <p class="chint small">${missing.length ? `아직 필요해요: ${missing.join(', ')}` : '재료 준비 완료! 🎉'}${c.ingr.salt >= 3 ? ' · 소금이 너무 많아요… 🥵' : ''}${c.ingr.sugar >= 3 ? ' · 엄청 달겠다 🤤' : ''}</p>
+          const btn = (k, v, cls) => `<button class="cbtn ${cls} ${c.ingr[k] ? 'on' : ''}" data-act="ingr" data-v="${k}" ${mem ? '' : 'disabled'}>
+                <span class="ic">${iconSvg(ingrIcon(k))}</span><small>${v.name}${c.ingr[k] ? ` ×${c.ingr[k]}` : ''}</small></button>`;
+          return `${joinBar()}<p class="chint"><b>기본 재료</b>를 다 넣고, <b>색 재료</b>로 시트 색을 섞어요</p>
+            <div class="cbtns ingr">${Object.entries(INGR).filter(([, v]) => v.need).map(([k, v]) => btn(k, v, '')).join('')}</div>
+            <p class="clabel-sm">🎨 색 재료 · 섞을수록 색이 섞여요</p>
+            <div class="cbtns flav">${FLAVORS.map((k) => btn(k, INGR[k], 'sm opt')).join('')}</div>
+            <p class="chint small">${missing.length ? `아직 필요해요: ${missing.join(', ')}` : '기본 재료 준비 완료! 🎉'}${c.ingr.salt >= 3 ? ' · 소금이 너무 많아요… 🥵' : ''}${c.ingr.sugar >= 3 ? ' · 엄청 달겠다 🤤' : ''}</p>
             ${next('🥄 거품기로 섞기 ▶', !missing.length)}`;
         }
         case 'mixing':

@@ -125,7 +125,7 @@ function publicUser(u) {
 const ROOM = { w: 1000, h: 620, minX: 40, maxX: 960, minY: 340, maxY: 600 };
 // 좌석: 클라이언트(public/app.js)의 SEATS와 같은 id/좌표를 써요
 const SEATS = {
-  armL: { x: 200, y: 395 },
+  armL: { x: 236, y: 400 },
   armR: { x: 800, y: 395 },
   sofa1: { x: 360, y: 578 },
   sofa2: { x: 500, y: 578 },
@@ -158,6 +158,11 @@ function pushHistory(entry) {
   if (history.length > 60) history.shift();
 }
 
+// 방 공지 (케이크 같은 활동이 열리면 방 위쪽에 떠요)
+function notice(kind, text) {
+  broadcast({ t: 'notice', kind, text, ts: Date.now() });
+}
+
 const recentlyLeft = new Map(); // uid -> timer (잠깐 끊겼다 다시 들어오면 인사 메시지를 생략)
 
 function enterRoom(client, user) {
@@ -177,7 +182,7 @@ function enterRoom(client, user) {
   client.player = p;
   players.set(p.id, p);
   client.send({
-    t: 'welcome', me: p.id, user: publicUser(user),
+    t: 'welcome', me: p.id, user: publicUser(user), inv: Array.isArray(user.inv) ? user.inv : [],
     players: [...players.values()].map(pub), history, cake,
   });
   broadcast({ t: 'join', player: pub(p) }, client);
@@ -211,9 +216,10 @@ function removePlayer(client) {
 
 // ───────────────────────── 🎂 다 같이 케이크 만들기 ─────────────────────────
 // 처음 누른 사람이 방장 → 다른 사람은 참여 → 방장이 시작. (서버가 잠들면 처음부터)
-const INGR = ['flour', 'sugar', 'salt', 'egg', 'milk', 'butter', 'cocoa', 'matcha', 'berry'];
+const INGR = ['flour', 'sugar', 'salt', 'egg', 'milk', 'butter', 'cocoa', 'matcha', 'berry', 'redvelvet', 'pumpkin', 'blueberry', 'banana', 'sesame', 'butterfly'];
 const INGR_REQUIRED = ['flour', 'sugar', 'salt', 'egg', 'milk', 'butter'];
-const INGR_KO = { flour: '밀가루', sugar: '설탕', salt: '소금', egg: '계란', milk: '우유', butter: '버터', cocoa: '코코아 가루', matcha: '말차 가루', berry: '딸기 가루' };
+const INGR_KO = { flour: '밀가루', sugar: '설탕', salt: '소금', egg: '계란', milk: '우유', butter: '버터', cocoa: '코코아 가루', matcha: '말차 가루', berry: '딸기 가루',
+  redvelvet: '레드벨벳 가루', pumpkin: '단호박 가루', blueberry: '블루베리 가루', banana: '바나나 가루', sesame: '흑임자 가루', butterfly: '버터플라이피 가루' };
 const CREAM_FRUITS = ['strawberry', 'blueberry', 'mango', 'kiwi', 'tangerine', 'choco'];
 const FRUIT_KO = { strawberry: '딸기', blueberry: '블루베리', mango: '망고', kiwi: '키위', tangerine: '귤', choco: '초콜릿' };
 const CAKE_TOPPINGS = ['rosette', 'strawberry', 'cherry', 'blueberry', 'macaron', 'mint', 'chocoheart', 'sprinkle', 'holly', 'star', 'candle'];
@@ -239,10 +245,16 @@ function cakeLog(text) { cake.log.push(text); if (cake.log.length > 8) cake.log.
 function cakeSys(text) { const sys = { kind: 'sys', text, ts: Date.now() }; pushHistory(sys); broadcast({ t: 'sys', ...sys }); }
 function cakeBroadcast() { broadcast({ t: 'cake', cake }); }
 const isMember = (uid) => cake.members.some((m) => m.uid === uid);
+const online = (uid) => [...players.values()].some((q) => q.uid === uid);
 function cakeOnLeave(uid) {
-  if (cake.stage !== 'lobby' || !isMember(uid)) return;
-  cake.members = cake.members.filter((m) => m.uid !== uid);
-  if (cake.host === uid) cake.host = cake.members[0] ? cake.members[0].uid : null;
+  if (!isMember(uid)) return;
+  if (cake.stage === 'lobby') cake.members = cake.members.filter((m) => m.uid !== uid);
+  if (cake.host === uid) {
+    // 방장이 나가면 남아 있는 참여자에게 방장을 넘겨요
+    const next = cake.members.find((m) => m.uid !== uid && online(m.uid));
+    cake.host = next ? next.uid : null;
+    if (next) cakeLog(`👑 ${next.nick} 님이 새 방장이 됐어요`);
+  }
   cakeBroadcast();
 }
 
@@ -262,6 +274,7 @@ function handleCake(client, p, msg) {
       cake.host = p.uid; cake.members = [{ uid: p.uid, nick: p.nick }];
       cakeLog(`${p.nick} 님이 케이크 만들기를 열었어요`);
       cakeSys(`🎂 ${p.nick} 님이 케이크를 만들재요! 테이블에서 "참여하기"를 눌러요`);
+      notice('cake', `🎂 ${p.nick} 님이 케이크 만들기를 열었어요!`);
       break;
     case 'join':
       if (member || ['eating', 'finished'].includes(cake.stage) || (cake.stage === 'lobby' && !cake.host)) return;
@@ -277,6 +290,7 @@ function handleCake(client, p, msg) {
       if (cake.stage !== 'lobby' || cake.host !== p.uid) return;
       cake.stage = 'ingredients';
       cakeLog('재료를 그릇에 넣어요!');
+      notice('cake', `🎂 케이크 만들기가 시작됐어요! (${cake.members.length}명) 중간에 참여할 수 있어요`);
       break;
     case 'ingr':
       if (cake.stage !== 'ingredients' || !INGR.includes(msg.v) || cake.ingr[msg.v] >= 3) return;
@@ -313,6 +327,10 @@ function handleCake(client, p, msg) {
       break;
     }
     case 'next': {
+      if (cake.host !== p.uid) {
+        if (cake.host && online(cake.host)) return client.send({ t: 'toast', msg: '다음 단계는 👑 방장이 넘길 수 있어요' });
+        cake.host = p.uid; // 방장이 없으면 누른 사람이 방장
+      }
       const st = cake.stage;
       if (st === 'ingredients') {
         const missing = INGR_REQUIRED.filter((k) => !cake.ingr[k]);
@@ -341,10 +359,12 @@ function handleCake(client, p, msg) {
         cake.stage = 'done';
         cakeLog(`${p.nick} 님이 케이크를 완성했어요 ✨`);
         cakeSys('🎂 케이크가 완성됐어요! 테이블로 모여요');
+        notice('cake', '🎂 케이크가 완성됐어요! 다 같이 촛불 불러 와요');
       } else if (st === 'done') {
         if (cake.toppings.some((t) => t.k === 'candle') && !cake.candlesOut) return;
         cake.stage = 'eating';
         cakeLog(`${p.nick} 님이 케이크를 8조각으로 잘랐어요 🔪`);
+        notice('cake', '🍰 케이크를 잘랐어요! 한 조각씩 먹으러 와요');
       } else return;
       break;
     }
@@ -393,6 +413,29 @@ function handleCake(client, p, msg) {
       return;
   }
   cakeBroadcast();
+}
+
+// ───────────────────────── 🎒 인벤토리 · 주방 음식 ─────────────────────────
+const INV_SIZE = 4;
+const now0 = () => Date.now();
+// cocoa: 핫초코 { t: 'plain'|'mallow'|'cream', d: 1~3 (진하기) }
+// mallow: 구운 마시멜로 { q: 'raw'|'golden'|'brown'|'burnt' }
+function cleanItem(it) {
+  if (!it || typeof it !== 'object') return null;
+  if (it.k === 'cocoa') {
+    const t = ['plain', 'mallow', 'cream'].includes(it.t) ? it.t : 'plain';
+    const d = Math.max(1, Math.min(3, Math.round(Number(it.d) || 1)));
+    return { k: 'cocoa', t, d };
+  }
+  if (it.k === 'mallow') {
+    const q = ['raw', 'golden', 'brown', 'burnt'].includes(it.q) ? it.q : 'raw';
+    return { k: 'mallow', q };
+  }
+  return null;
+}
+function itemName(it) {
+  if (it.k === 'cocoa') return it.t === 'mallow' ? '마시멜로 핫초코' : it.t === 'cream' ? '휘핑크림 핫초코' : '핫초코';
+  return { raw: '말랑 마시멜로', golden: '노릇노릇 마시멜로', brown: '바삭 마시멜로', burnt: '까맣게 탄 마시멜로' }[it.q] || '마시멜로';
 }
 
 // ───────────────────────── 메시지 처리 ─────────────────────────
@@ -509,6 +552,7 @@ function handle(client, msg) {
     }
     case 'jump':
     case 'snow':
+    case 'fw':
     case 'throw': {
       // 너무 자주 못 하게: 3초에 8번까지
       const now = Date.now();
@@ -526,6 +570,37 @@ function handle(client, msg) {
       break;
     }
     case 'cake': handleCake(client, p, msg); break;
+    case 'craft': {
+      // 주방에서 만든 음식 → 인벤토리 (4칸)
+      const user = db.users[p.uid];
+      if (!user) return;
+      const now = Date.now();
+      if (now - (client.lastCraft || 0) < 2500) return;
+      const item = cleanItem(msg.item);
+      if (!item) return;
+      user.inv = Array.isArray(user.inv) ? user.inv : [];
+      if (user.inv.length >= INV_SIZE) return client.send({ t: 'toast', msg: '인벤토리가 꽉 찼어요! 먼저 하나 먹거나 버려요 🎒' });
+      client.lastCraft = now;
+      user.inv.push(item);
+      saveDb();
+      client.send({ t: 'inv', inv: user.inv, added: item });
+      break;
+    }
+    case 'useItem': {
+      const user = db.users[p.uid];
+      const i = Number(msg.slot);
+      if (!user || !Array.isArray(user.inv) || !(i >= 0 && i < user.inv.length)) return;
+      const [item] = user.inv.splice(i, 1);
+      saveDb();
+      client.send({ t: 'inv', inv: user.inv });
+      if (msg.how === 'eat') {
+        broadcast({ t: 'eatItem', id: p.id, item });
+        const sys = { kind: 'sys', text: `${p.nick} 님이 ${itemName(item)}을(를) ${item.k === 'cocoa' ? '마셨어요 ☕' : '먹었어요 😋'}`, ts: now0() };
+        pushHistory(sys);
+        broadcast({ t: 'sys', ...sys });
+      }
+      break;
+    }
     case 'hb': break; // 연결 유지용
     case 'logout': {
       if (client.token) { delete db.tokens[client.token]; saveDb(); }

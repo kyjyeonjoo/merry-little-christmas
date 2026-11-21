@@ -245,12 +245,6 @@ input:focus { border-color: #ffc9cf; }
 .deco-tree .gifts i { position: absolute; top: 188px; left: 6px; width: 30px; height: 26px; background: #ffb3c1; border-radius: 4px; display: block;
   background-image: linear-gradient(90deg, transparent 12px, #fff 12px 18px, transparent 18px); }
 .deco-tree .gifts i.g2 { left: 80px; top: 192px; width: 26px; height: 22px; background-color: #6fb6ff; }
-.cocoa-table {
-  position: absolute; left: 82px; top: 352px; width: 64px; height: 50px; z-index: 380; pointer-events: none;
-  display: flex; justify-content: center; font-size: 20px; padding-top: 0;
-}
-.cocoa-table::before { content: ''; position: absolute; top: 22px; width: 64px; height: 12px; border-radius: 50%; background: #b97a4f; box-shadow: 0 4px 0 #8c5232; z-index: -1; }
-.cocoa-table::after { content: ''; position: absolute; top: 32px; width: 8px; height: 22px; background: #8c5232; z-index: -2; }
 
 .stage-hint {
   position: absolute; left: 50%; top: 48px; transform: translateX(-50%); z-index: 2000; pointer-events: none;
@@ -577,6 +571,61 @@ input:focus { border-color: #ffc9cf; }
 @keyframes rise { from { transform: scaleY(.4); } to { transform: scaleY(1.1); } }
 .cake-svg .bob-in { animation: bob 1.6s ease-in-out infinite; }
 
+/* ───────── 떠 있는 창 (케이크·주방): 채팅을 가리지 않아요 ───────── */
+.modal.float { background: none; backdrop-filter: none; pointer-events: none; inset: 64px 300px 124px 0; padding: 12px; place-items: start center; }
+.modal.float .modal-card { pointer-events: auto; max-height: 100%; overflow-y: auto; box-shadow: 0 10px 0 #d9c3a5, 0 18px 50px rgba(0,0,0,.35); }
+.mini-chat { display: none; list-style: none; margin: 0; padding: 6px 10px; background: #fff; border-radius: 12px; font-size: 13px; line-height: 1.5; }
+.mini-chat:empty { display: none !important; }
+.mini-chat li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini-chat li b { font-family: 'Jua', sans-serif; font-weight: 400; color: var(--red-d); }
+.mini-chat li.sys { opacity: .65; font-size: 12px; }
+.clabel-sm { margin: 2px 0 -4px; font-family: 'Jua', sans-serif; font-size: 13px; }
+.cbtns.flav { grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.cbtns.flav .cbtn .ic { width: 28px; height: 30px; }
+.cbtns.flav .cbtn small { font-size: 10px; white-space: nowrap; letter-spacing: -.4px; }
+
+/* ───────── 📢 방 공지 ───────── */
+.notice {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 6; display: flex; align-items: center; gap: 8px;
+  background: #fff8ec; border: 3px solid #fff; border-radius: 999px; padding: 6px 6px 6px 16px; box-shadow: 0 5px 0 rgba(91,64,54,.2), 0 10px 24px rgba(0,0,0,.25);
+  font-family: 'Jua', sans-serif; font-size: 15px; max-width: calc(100% - 20px); white-space: nowrap;
+}
+.notice span { overflow: hidden; text-overflow: ellipsis; }
+.notice.show { animation: noticein .45s cubic-bezier(.3,1.5,.6,1); }
+@keyframes noticein { from { transform: translate(-50%, -30px); opacity: 0; } }
+
+/* ───────── 🎆 폭죽 ───────── */
+.rocket { position: absolute; left: -2px; top: -8px; width: 4px; height: 16px; border-radius: 2px; background: linear-gradient(#fff, #ffd34d); box-shadow: 0 6px 10px #ffb33c; }
+.spark { position: absolute; width: 6px; height: 6px; border-radius: 50%; box-shadow: 0 0 6px currentColor; }
+
+/* ───────── 🎒 인벤토리 ───────── */
+.inv { position: absolute; right: 10px; bottom: 10px; z-index: 3; display: flex; gap: 5px; background: rgba(255,248,236,.92); padding: 5px; border-radius: 16px; border: 3px solid #fff; box-shadow: 0 4px 0 rgba(0,0,0,.15); }
+.inv .slot { width: 44px; height: 44px; border-radius: 12px; border: 2px dashed #e6d3b8; background: #fff; padding: 3px; cursor: pointer; }
+.inv .slot.full { border: 2px solid #ffd6e0; }
+.inv .slot svg { width: 100%; height: 100%; display: block; }
+.inv-menu { position: absolute; right: 10px; bottom: 74px; z-index: 7; background: #fff8ec; border: 3px solid #fff; border-radius: 16px; padding: 10px; display: flex; flex-direction: column; gap: 6px; min-width: 150px; box-shadow: 0 6px 0 rgba(0,0,0,.15), 0 10px 30px rgba(0,0,0,.2); }
+.inv-menu b { font-family: 'Jua', sans-serif; font-weight: 400; text-align: center; }
+.emote .eat-ic { display: block; width: 44px; height: 48px; }
+.emote .eat-ic svg { width: 100%; height: 100%; }
+
+/* ───────── ☕ 주방 ───────── */
+.kitchen { position: absolute; left: 16px; top: 400px; width: 0; height: 0; z-index: 400; cursor: pointer; }
+.kitchen .art { position: absolute; left: 0; top: -140px; width: 180px; height: 140px; transition: transform .2s; transform-origin: 50% 100%; }
+.kitchen .art svg { width: 100%; height: 100%; overflow: visible; display: block; }
+.kitchen:hover .art { transform: scale(1.04); }
+.kitchen .steam, .kitchen-card .steam { animation: steam 1.6s ease-in-out infinite; }
+.ktabs { display: flex; gap: 6px; margin: -4px 0 10px; }
+.ktabs button { flex: 1; border: 0; background: #fff; border-radius: 999px; padding: 8px; font-family: 'Jua', sans-serif; font-size: 15px; cursor: pointer; box-shadow: 0 3px 0 rgba(91,64,54,.12); }
+.ktabs button.on { background: var(--red); color: #fff; }
+.kitchen-card .cake-view svg { max-height: 300px; }
+.heatbar { position: relative; height: 26px; border-radius: 999px; overflow: hidden; display: flex;
+  background: linear-gradient(90deg, #fffaf2 0 29%, #f6d99b 29% 52%, #c98a4b 52% 73%, #3a2a26 73%); box-shadow: inset 0 0 0 2px #e6d3b8; }
+.heatbar .z { flex: 1; font-family: 'Jua', sans-serif; font-size: 11px; line-height: 26px; text-align: center; color: #5b4036; }
+.heatbar .z.raw { flex: 29; } .heatbar .z.golden { flex: 23; } .heatbar .z.brown { flex: 21; color: #fff; } .heatbar .z.burnt { flex: 27; color: #fff; }
+.heatbar i { position: absolute; top: -2px; bottom: -2px; width: 4px; margin-left: -2px; background: var(--red); border-radius: 2px; box-shadow: 0 0 0 2px #fff; }
+.kitchen-card .roast { animation: wobble .3s ease-in-out infinite; transform-origin: 80px 90px; }
+.cnext.hold { user-select: none; -webkit-user-select: none; touch-action: none; }
+
 /* ───────── 친구 초대 ───────── */
 .invite-btn {
   border: 0; background: var(--green); color: #fff; border-radius: 999px; padding: 6px 12px; cursor: pointer;
@@ -616,6 +665,13 @@ input:focus { border-color: #ffc9cf; }
 /* ───────── 작은 화면 ───────── */
 @media (max-width: 760px) {
   body { -webkit-text-size-adjust: 100%; }
+  .modal.float { inset: 54px 0 122px 0; padding: 6px; }
+  .modal.float .modal-card { padding: 14px 12px 12px; border-radius: 20px; }
+  .mini-chat { display: block; position: sticky; bottom: -12px; z-index: 5; margin: 8px -4px -4px; border: 2px solid #f0dcc4; box-shadow: 0 -6px 14px rgba(255,248,238,.95); }
+  .notice { font-size: 13px; padding: 4px 4px 4px 12px; top: 6px; }
+  .inv { right: 6px; bottom: 6px; padding: 4px; gap: 4px; }
+  .inv .slot { width: 40px; height: 40px; }
+  .cbtns.flav { grid-template-columns: repeat(5, 1fr); }
   .cake-main { grid-template-columns: 1fr; }
   .cake-view svg { max-height: 34dvh; }
   .cbtns.tops { grid-template-columns: repeat(6, 1fr); gap: 4px; }
