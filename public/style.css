@@ -718,3 +718,55 @@ input:focus { border-color: #ffc9cf; }
   .preview-stage { width: 140px; height: 150px; }
   #previewAvatar { width: 100px; height: 120px; }
 }
+
+/* ───── 손에 든 음식 · 먹기 모션 ───── */
+.act-btn[hidden] { display: none !important; }
+.eat-btn { background: #fff0f3; }
+.eat-btn .ic { display: inline-block; width: 22px; height: 24px; vertical-align: middle; }
+.eat-btn .ic svg { width: 100%; height: 100%; display: block; }
+.held { position: absolute; left: -18px; bottom: 0; width: 36px; height: 42px; pointer-events: none; z-index: 2; opacity: 0;
+  transform: translateX(calc(var(--face, 1) * 26px)) rotate(calc(var(--face, 1) * 8deg)); transition: transform .35s ease, opacity .2s; }
+.held.on { opacity: 1; }
+.held svg { width: 100%; height: 100%; display: block; overflow: visible; filter: drop-shadow(0 2px 0 rgba(0,0,0,.12)); }
+.held.eating { transform: translate(calc(var(--face, 1) * 14px), -16px) rotate(calc(var(--face, 1) * -14deg)); }
+.held.eating.drink { transform: translate(calc(var(--face, 1) * 13px), -18px) rotate(calc(var(--face, 1) * -34deg)); }
+.held.chomp svg { animation: chomp .32s ease; }
+@keyframes chomp { 0% { transform: scale(1); } 35% { transform: scale(.86, .92) translateX(-2px); } 100% { transform: scale(1); } }
+.sitting .held { bottom: 10px; }
+.sitting[data-seat="sofa"] .held { bottom: 22px; }
+.sitting[data-seat="cush"] .held { bottom: 4px; }
+.sitting[data-seat="pouf"] .held { bottom: 16px; }
+.inv .slot.held { border: 2px solid var(--red); background: #fff0f3; position: relative; }
+.inv .slot.held::after { content: '✋'; position: absolute; right: -6px; top: -8px; font-size: 13px; }
+
+/* ───── 핫초코: 우유 · 코코아 자유 조절 ───── */
+.kmix { display: flex; flex-direction: column; gap: 8px; background: #fff; border-radius: 16px; padding: 10px 12px; margin: 4px 0 10px; box-shadow: inset 0 0 0 2px #f3e4cf; }
+.krow { display: flex; align-items: center; gap: 8px; }
+.krow .cprog { flex: 1; }
+.klab { font-family: 'Jua', sans-serif; font-size: 14px; width: 62px; flex: none; }
+.kpour { width: 100%; }
+.kpm { width: 36px; padding: 4px 0 !important; font-size: 18px !important; }
+.kspoons { flex: 1; display: flex; gap: 5px; justify-content: center; }
+.kspoons i { width: 16px; height: 16px; border-radius: 50%; background: #f1e6d6; box-shadow: inset 0 0 0 2px #e2cfb5; }
+.kspoons i.on { background: #7a4b31; box-shadow: inset 0 -3px 0 #5b3524; }
+.ktaste { display: flex; align-items: center; gap: 8px; font-family: 'Jua', sans-serif; font-size: 12px; color: #8a6d5c; }
+.tbar { flex: 1; position: relative; height: 12px; border-radius: 999px; background: linear-gradient(90deg, #f7f2ea, #e9d6bd 15%, #b98a63 35%, #8a5a3b 55%, #3e2418); box-shadow: inset 0 0 0 2px #fff; }
+.tbar::before { content: ''; position: absolute; left: 25%; width: 28%; top: -3px; bottom: -3px; border-radius: 6px; border: 2px dashed #3f9c6d; opacity: .6; }
+.tbar i { position: absolute; top: -5px; width: 8px; height: 22px; margin-left: -4px; border-radius: 4px; background: #fff; border: 2px solid var(--red); transition: left .15s; }
+.kmix .kt { margin: 0; text-align: center; }
+
+/* ───── 마시멜로 타이밍 게임 ───── */
+.heatbar .sweet { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(45deg, #ffe066 0 5px, #fff4b8 5px 10px); box-shadow: 0 0 0 2px #ffb300, 0 0 12px #ffd34d; animation: sweetGlow .8s ease-in-out infinite alternate; }
+@keyframes sweetGlow { from { opacity: .7; } to { opacity: 1; } }
+.heatbar i { z-index: 2; }
+.chint b.gold { color: #d99a00; }
+.cnext.know { font-size: 20px !important; animation: nowPulse .6s ease-in-out infinite alternate; }
+@keyframes nowPulse { from { transform: scale(1); } to { transform: scale(1.04); } }
+.kres.perfect { color: #d99a00; animation: pop 1s ease-out; }
+.kres.burnt { color: #6b4430; }
+.kitchen-card .smoke { animation: steam 1.2s ease-in-out infinite; }
+@media (max-width: 760px) {
+  .kitchen-card .cake-view svg { max-height: 165px; }
+  .kitchen-card .cake-view { padding: 4px; }
+  .kmix { gap: 6px; padding: 8px 10px; }
+}

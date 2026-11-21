@@ -4,7 +4,12 @@
   const hex2rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
   const rgb2hex = (c) => '#' + c.map((x) => Math.round(Math.max(0, Math.min(255, x))).toString(16).padStart(2, '0')).join('');
   const lerp = (a, b, t) => rgb2hex(hex2rgb(a).map((x, i) => x + (hex2rgb(b)[i] - x) * t));
-  const cocoaColor = (d) => ['#f4ead8', '#b98a63', '#8a5a3b', '#5e3a26'][Math.max(0, Math.min(3, d))];
+  const MILK = '#f7f2ea';
+  // 진하기 = 코코아 스푼 ÷ 우유 양 (우유 70% 기준)
+  const ratioOf = (d, m) => (d || 0) / (Math.max(30, m || 70) / 70);
+  const cocoaColor = (r) => (r <= 0 ? MILK : r < 3 ? lerp('#e9d6bd', '#8a5a3b', Math.max(0, (r - 0.3) / 2.7)) : lerp('#8a5a3b', '#3e2418', Math.min(1, (r - 3) / 3)));
+  const itemColor = (it) => cocoaColor(ratioOf(it.d, it.m));
+  const tasteOf = (r) => (r < 0.5 ? ['밍밍해요', '밍밍한 '] : r < 1.5 ? ['연해요', '연한 '] : r <= 3.2 ? ['딱 좋아요 ✨', ''] : r <= 4.6 ? ['진해요', '진한 '] : ['아주 진해요!', '아주 진한 ']);
   // 마시멜로 굽기 정도 (0 → 1.2): 하양 → 노릇 → 갈색 → 까맣게
   function mallowColor(h) {
     if (h < 0.4) return lerp('#fffaf2', '#f6d99b', h / 0.4);
@@ -12,13 +17,13 @@
     if (h < 0.95) return lerp('#c98a4b', '#6b4430', (h - 0.7) / 0.25);
     return lerp('#6b4430', '#2e2320', Math.min(1, (h - 0.95) / 0.25));
   }
-  const QUALITY_HEAT = { raw: 0.1, golden: 0.5, brown: 0.8, burnt: 1.15 };
+  const QUALITY_HEAT = { raw: 0.1, golden: 0.5, perfect: 0.52, brown: 0.8, burnt: 1.15 };
   const qualityOf = (h) => (h < 0.35 ? 'raw' : h < 0.62 ? 'golden' : h < 0.88 ? 'brown' : 'burnt');
 
   function itemName(it) {
     if (!it) return '';
-    if (it.k === 'cocoa') return it.t === 'mallow' ? '마시멜로 핫초코' : it.t === 'cream' ? '휘핑크림 핫초코' : '핫초코';
-    return { raw: '말랑 마시멜로', golden: '노릇노릇 마시멜로', brown: '바삭 마시멜로', burnt: '까맣게 탄 마시멜로' }[it.q] || '마시멜로';
+    if (it.k === 'cocoa') return tasteOf(ratioOf(it.d, it.m))[1] + (it.t === 'mallow' ? '마시멜로 핫초코' : it.t === 'cream' ? '휘핑크림 핫초코' : '핫초코');
+    return { raw: '말랑 마시멜로', golden: '노릇노릇 마시멜로', perfect: '완벽한 황금 마시멜로', brown: '바삭 마시멜로', burnt: '까맣게 탄 마시멜로' }[it.q] || '마시멜로';
   }
 
   // ───────── 그림 ─────────
@@ -48,19 +53,31 @@
       ${t}
     </g>`;
   }
-  function stick(color, x = 50, y = 30, s = 1) {
+  let maskN = 0;
+  function stick(color, x = 50, y = 30, s = 1, bite = 0, shine = false) {
+    // bite: 0~3 (한 입씩 베어 먹은 자국)
+    const id = 'bite' + (++maskN);
+    const holes = [[9, -15, 8], [-5, -17, 9], [3, -4, 16]].slice(0, bite);
+    const mallow = bite >= 3 ? '' : `<g transform="rotate(28)" ${bite ? `mask="url(#${id})"` : ''}>
+        ${bite ? `<mask id="${id}"><rect x="-20" y="-30" width="40" height="50" fill="#fff"/>${holes.map(([a, b, r]) => `<circle cx="${a}" cy="${b}" r="${r}" fill="#000"/>`).join('')}</mask>` : ''}
+        <rect x="-11" y="-14" width="22" height="24" rx="8" fill="${color}" stroke="${LINE}" stroke-width="2.4"/>
+        <ellipse cx="0" cy="-12" rx="10" ry="3.5" fill="${lerp(color, '#ffffff', 0.25)}"/>
+        <ellipse cx="-5" cy="-3" rx="2.5" ry="5" fill="#fff" opacity=".35"/></g>`;
+    const sp = shine && !bite ? `<g fill="#ffd34d" stroke="#fff" stroke-width=".8">
+        <path d="M-17 -16 l2 -5 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 z"/><path d="M15 -22 l1.4 -3.6 l1.4 3.6 l3.6 1.4 l-3.6 1.4 l-1.4 3.6 l-1.4 -3.6 l-3.6 -1.4 z"/></g>` : '';
     return `<g transform="translate(${x} ${y}) scale(${s})">
       <path d="M0 6 L34 70" stroke="#b97a4f" stroke-width="4" stroke-linecap="round"/>
       <path d="M0 6 L34 70" stroke="${LINE}" stroke-width="1.2" stroke-linecap="round" opacity=".4"/>
-      <g transform="rotate(28)"><rect x="-11" y="-14" width="22" height="24" rx="8" fill="${color}" stroke="${LINE}" stroke-width="2.4"/>
-        <ellipse cx="0" cy="-12" rx="10" ry="3.5" fill="${lerp(color, '#ffffff', 0.25)}"/>
-        <ellipse cx="-5" cy="-3" rx="2.5" ry="5" fill="#fff" opacity=".35"/></g>
+      ${mallow}${sp}
     </g>`;
   }
-  function itemIcon(it) {
+  function itemIcon(it, bite = 0) {
     if (!it) return '';
-    if (it.k === 'cocoa') return `<svg viewBox="10 4 84 94" xmlns="http://www.w3.org/2000/svg">${mug(cocoaColor(it.d), 0.85, it.t, true)}</svg>`;
-    return `<svg viewBox="20 0 70 100" xmlns="http://www.w3.org/2000/svg">${stick(mallowColor(QUALITY_HEAT[it.q] || 0.1), 44, 22, 1.05)}</svg>`;
+    if (it.k === 'cocoa') {
+      const fill = bite >= 3 ? 0.06 : 0.85 - bite * 0.25;
+      return `<svg viewBox="10 4 84 94" xmlns="http://www.w3.org/2000/svg">${mug(itemColor(it), fill, bite ? null : it.t, !bite)}</svg>`;
+    }
+    return `<svg viewBox="20 0 70 100" xmlns="http://www.w3.org/2000/svg">${stick(mallowColor(QUALITY_HEAT[it.q] || 0.1), 44, 22, 1.05, bite, it.q === 'perfect')}</svg>`;
   }
 
   // ───────── 주방 창 ─────────
@@ -70,11 +87,11 @@
     let tab = 'cocoa', open = false;
     // 핫초코 상태
     let cs = null;
-    const newCocoa = () => ({ step: 'pour', fill: 0, d: 0, stir: 0, top: null, done: false, spilled: false });
+    const newCocoa = () => ({ step: 'make', fill: 0, d: 0, stir: 0, top: null, done: false, spilled: false });
     // 마시멜로 상태
     let ms = null;
-    const newMallow = () => ({ heat: 0, holding: false, done: false });
-    let raf = null, last = 0, pouring = false, roasting = false;
+    const newMallow = () => ({ heat: 0, on: false, done: false, speed: 0.85 + Math.random() * 0.4, sweet: 0.44 + Math.random() * 0.1, t: 0, result: null });
+    let raf = null, last = 0, pouring = false;
 
     function steps(list, cur) {
       return `<div class="cake-steps">${list.map(([k, n], i) => {
@@ -84,16 +101,25 @@
     }
 
     function cocoaView() {
-      const liquid = cs.step === 'pour' ? '#f7f2ea' : lerp(cocoaColor(cs.d), cocoaColor(0), cs.step === 'stir' ? 0.45 * (1 - cs.stir) : 0);
-      const zone = `<g opacity=".7"><rect x="82" y="${30 + (1 - 0.9) * 50}" width="6" height="${0.25 * 50}" rx="3" fill="#3f9c6d"/>
-        <text x="92" y="${30 + (1 - 0.78) * 50 + 3}" font-size="7" font-family="Jua" fill="#3f9c6d">여기까지</text></g>`;
+      const final = cocoaColor(ratioOf(cs.d, cs.fill * 100));
+      const mix = cs.step === 'make' ? 0 : cs.step === 'stir' ? cs.stir : 1;
+      const liquid = lerp(MILK, final, mix);
+      const surf = 30 + (1 - cs.fill) * 50;
+      // 아직 안 저은 코코아 가루 (표면에 동동)
+      const powder = cs.step === 'make' && cs.fill > 0.05 ? Array.from({ length: cs.d * 3 }, (_, i) =>
+        `<ellipse cx="${34 + ((i * 37) % 32)}" cy="${surf + 1 + (i % 3) * 1.5}" rx="${2.6 + (i % 2)}" ry="1.6" fill="#6b4430" opacity=".85"/>`).join('') : '';
+      const powderPile = cs.step === 'make' && cs.fill <= 0.05 && cs.d ? `<ellipse cx="50" cy="82" rx="${6 + cs.d * 2}" ry="3" fill="#6b4430"/>` : '';
+      const marks = `<g font-size="5.5" font-family="Jua" fill="#b48a6a">${[0.4, 0.7, 1].map((v) => `<path d="M15 ${30 + (1 - v) * 50} h5" stroke="#d9c3a5" stroke-width="1.5"/><text x="13" y="${32 + (1 - v) * 50}" text-anchor="end">${Math.round(v * 100)}</text>`).join('')}</g>`;
+      const spoon = cs.spoonAnim ? `<g transform="translate(34 4) rotate(30)"><path d="M0 0 L0 22" stroke="#c9ced8" stroke-width="3" stroke-linecap="round"/><ellipse cx="0" cy="25" rx="6" ry="4.5" fill="#c9ced8" stroke="${LINE}" stroke-width="1.4"/><ellipse cx="0" cy="24" rx="4.5" ry="2.8" fill="#6b4430"/></g>` : '';
+      const zone = marks + spoon;
       return `<svg class="cake-svg ${cs.step === 'stir' ? 'mixable' : ''}" viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg">
         <ellipse cx="50" cy="90" rx="34" ry="5" fill="#000" opacity=".08"/>
-        ${cs.step === 'pour' ? `<g transform="translate(58 -2) rotate(${pouring ? 28 : 8})"><path d="M0 0 L10 -9 L20 0 L20 26 L0 26 Z" fill="#fff" stroke="${LINE}" stroke-width="2"/>
+        ${cs.step === 'make' && pouring ? `<g transform="translate(64 4) rotate(30) scale(.8)"><path d="M0 0 L10 -9 L20 0 L20 26 L0 26 Z" fill="#fff" stroke="${LINE}" stroke-width="2"/>
           <rect x="0" y="9" width="20" height="7" fill="#7cc0ff"/></g>
           ${pouring ? `<path d="M60 22 Q56 ${40} 52 ${30 + (1 - cs.fill) * 50}" stroke="#f7f2ea" stroke-width="4" fill="none" stroke-linecap="round"/>` : ''}` : ''}
         ${mug(liquid, cs.fill, cs.top, cs.step === 'top' || cs.done)}
-        ${cs.step === 'pour' ? zone : ''}
+        <g clip-path="url(#mugIn)">${powder}${powderPile}</g>
+        ${cs.step === 'make' ? zone : ''}
         ${cs.step === 'stir' ? `<g class="swirl" opacity="${0.3 + cs.stir * 0.4}"><path d="M40 ${32 + (1 - cs.fill) * 50} q10 -5 20 0" stroke="#fff" stroke-width="2" fill="none"/></g>` : ''}
       </svg>`;
     }
@@ -101,26 +127,38 @@
       if (cs.done) return `<p class="chint big">${itemName(cs.item)} 완성! ☕<br>🎒 인벤토리에 넣었어요</p>
         <button class="btn primary cnext" data-k="again">하나 더 만들기</button>`;
       switch (cs.step) {
-        case 'pour': return `<p class="chint">버튼을 <b>꾹 누르고 있으면</b> 우유가 부어져요. 초록 선까지만!</p>
-          <div class="cprog"><i style="width:${Math.min(100, cs.fill * 100)}%"></i><span>${Math.round(cs.fill * 100)}%</span></div>
-          <button class="btn primary cnext hold" data-k="pour">🥛 꾹 눌러서 붓기</button>
-          ${cs.spilled ? '<p class="chint small">앗, 넘쳤어요! 다시 부어요 💦</p>' : ''}`;
-        case 'cocoa': return `<p class="chint">코코아 가루를 넣어요. 많이 넣을수록 진해져요 (${cs.d}/3)</p>
-          <div class="crow"><button class="btn ghost" data-k="spoon" ${cs.d >= 3 ? 'disabled' : ''}>🥄 코코아 한 스푼</button></div>
-          <button class="btn primary cnext" data-k="tostir" ${cs.d ? '' : 'disabled'}>저어 섞기 ▶</button>`;
+        case 'make': {
+          const r = ratioOf(cs.d, cs.fill * 100);
+          return `<p class="chint">우유랑 코코아 가루를 <b>마음대로</b> 넣어요. 비율에 따라 맛이 달라져요!</p>
+          <div class="kmix">
+            <div class="krow"><span class="klab">🥛 우유</span>
+              <div class="cprog"><i style="width:${Math.min(100, cs.fill * 100)}%"></i><span>${Math.round(cs.fill * 100)}%</span></div>
+              <button class="btn ghost small" data-k="less" ${cs.fill > 0.01 ? '' : 'disabled'}>덜기</button></div>
+            <button class="btn primary hold kpour" data-k="pour">🥛 꾹 눌러서 붓기</button>
+            <div class="krow"><span class="klab">🍫 코코아</span>
+              <button class="btn ghost small kpm" data-k="unspoon" ${cs.d ? '' : 'disabled'}>－</button>
+              <span class="kspoons">${Array.from({ length: 6 }, (_, i) => `<i class="${i < cs.d ? 'on' : ''}"></i>`).join('')}</span>
+              <button class="btn ghost small kpm" data-k="spoon" ${cs.d >= 6 ? 'disabled' : ''}>＋</button></div>
+            <div class="ktaste"><span>연하게</span><div class="tbar"><i style="left:${Math.min(100, (r / 6) * 100)}%"></i></div><span>진하게</span></div>
+            <p class="chint small kt">${cs.fill < 0.3 ? '우유를 더 부어 주세요' : !cs.d ? '코코아를 넣어 주세요' : '맛: ' + tasteOf(r)[0]}</p>
+          </div>
+          ${cs.spilled ? '<p class="chint small">앗, 넘쳐서 조금 흘렀어요 💦</p>' : ''}
+          <button class="btn primary cnext" data-k="tostir" ${cs.fill >= 0.3 && cs.d ? '' : 'disabled'}>저어 섞기 ▶</button>`;
+        }
         case 'stir': return `<p class="chint">컵 위에서 <b>빙글빙글</b> 돌려서 저어요</p>
           <div class="cprog"><i style="width:${Math.round(cs.stir * 100)}%"></i><span>${Math.round(cs.stir * 100)}%</span></div>`;
         case 'top': return `<p class="chint">위에 무엇을 올릴까요?</p>
           <div class="cbtns">
-            <button class="cbtn ${cs.top === 'mallow' ? 'on' : ''}" data-k="top" data-v="mallow"><span class="ic">${itemIcon({ k: 'cocoa', t: 'mallow', d: cs.d })}</span><small>마시멜로</small></button>
-            <button class="cbtn ${cs.top === 'cream' ? 'on' : ''}" data-k="top" data-v="cream"><span class="ic">${itemIcon({ k: 'cocoa', t: 'cream', d: cs.d })}</span><small>휘핑크림</small></button>
-            <button class="cbtn ${cs.top === null ? 'on' : ''}" data-k="top" data-v=""><span class="ic">${itemIcon({ k: 'cocoa', t: 'plain', d: cs.d })}</span><small>그냥</small></button>
+            <button class="cbtn ${cs.top === 'mallow' ? 'on' : ''}" data-k="top" data-v="mallow"><span class="ic">${itemIcon({ k: 'cocoa', t: 'mallow', d: cs.d, m: cs.fill * 100 })}</span><small>마시멜로</small></button>
+            <button class="cbtn ${cs.top === 'cream' ? 'on' : ''}" data-k="top" data-v="cream"><span class="ic">${itemIcon({ k: 'cocoa', t: 'cream', d: cs.d, m: cs.fill * 100 })}</span><small>휘핑크림</small></button>
+            <button class="cbtn ${cs.top === null ? 'on' : ''}" data-k="top" data-v=""><span class="ic">${itemIcon({ k: 'cocoa', t: 'plain', d: cs.d, m: cs.fill * 100 })}</span><small>그냥</small></button>
           </div>
           <button class="btn primary cnext" data-k="finish">☕ 완성! 담기</button>`;
       }
       return '';
     }
     function mallowView() {
+      const roasting = ms.on;
       const flame = 0.8 + (roasting ? 0.25 : 0);
       return `<svg class="cake-svg" viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg">
         <rect x="10" y="76" width="100" height="20" rx="6" fill="#8c5232" stroke="${LINE}" stroke-width="2"/>
@@ -129,20 +167,25 @@
           <path class="flame" d="M-12 0 C-14 -12 -4 -14 -2 -24 C4 -16 12 -12 12 0 Z" fill="#ffd34d"/>
         </g>
         <rect x="26" y="74" width="68" height="8" rx="4" fill="#6b4430"/>
-        <g class="${roasting ? 'roast' : ''}">${stick(mallowColor(ms.heat), roasting ? 56 : 46, roasting ? 34 : 18, 1)}</g>
+        <g class="${roasting ? 'roast' : ''}">${stick(mallowColor(ms.heat), roasting ? 56 : 46, roasting ? 34 : 26, 1, 0, ms.result === 'perfect')}</g>
+        ${roasting && ms.heat > 0.9 ? `<g class="smoke" fill="#9a8f8a" opacity=".55"><circle cx="50" cy="20" r="5"/><circle cx="58" cy="12" r="4"/><circle cx="52" cy="5" r="3"/></g>` : ''}
       </svg>`;
     }
     function mallowPanel() {
       if (ms.done) return `<p class="chint big">${itemName(ms.item)} 완성! 🔥<br>🎒 인벤토리에 넣었어요</p>
         <button class="btn primary cnext" data-k="again">하나 더 굽기</button>`;
-      const q = qualityOf(ms.heat);
-      const label = { raw: '아직 말랑해요', golden: '노릇노릇! 지금이 딱 좋아요 ✨', brown: '바삭바삭해요', burnt: '앗… 탔어요 🔥' }[q];
-      return `<p class="chint"><b>꾹 누르고 있으면</b> 불에 구워져요. 노릇노릇할 때 떼요!</p>
-        <div class="heatbar"><i style="left:${Math.min(100, (ms.heat / 1.2) * 100)}%"></i>
-          <span class="z raw">말랑</span><span class="z golden">노릇</span><span class="z brown">바삭</span><span class="z burnt">탐</span></div>
-        <p class="chint small">${label}</p>
-        <button class="btn primary cnext hold" data-k="roast">🔥 꾹 눌러서 굽기</button>
-        <button class="btn ghost" data-k="take" ${ms.heat > 0.05 ? '' : 'disabled'}>🍡 다 구웠어요! 담기</button>`;
+      const bar = `<div class="heatbar"><b class="sweet" style="left:${(ms.sweet / 1.2) * 100}%;width:${(0.07 / 1.2) * 100}%"></b><i style="left:${Math.min(100, (ms.heat / 1.2) * 100)}%"></i>
+          <span class="z raw">말랑</span><span class="z golden">노릇</span><span class="z brown">바삭</span><span class="z burnt">탐</span></div>`;
+      if (ms.result) {
+        const msg = { perfect: '✨ 완벽해요!! 황금빛 마시멜로 ✨', golden: '노릇노릇 잘 구웠어요!', raw: '앗, 아직 말랑해요', brown: '조금 늦었어요, 바삭바삭', burnt: '앗… 까맣게 탔어요 🔥' }[ms.result];
+        return `<p class="chint big kres ${ms.result}">${msg}</p>${bar}
+          <button class="btn primary cnext" data-k="take">🍡 인벤토리에 담기</button>
+          <button class="btn ghost" data-k="again">다시 굽기</button>`;
+      }
+      if (!ms.on) return `<p class="chint">불에 올리면 점점 <b>빨리</b> 구워져요.<br>빨간 선이 <b class="gold">반짝이는 칸</b>에 왔을 때 빼면 완벽!</p>${bar}
+        <button class="btn primary cnext" data-k="roast">🔥 불에 올리기</button>`;
+      return `<p class="chint">지금이다 싶을 때 눌러요!</p>${bar}
+        <button class="btn primary cnext know" data-k="pull">✋ 지금 빼기!</button>`;
     }
 
     function render() {
@@ -151,7 +194,7 @@
       if (!ms) ms = newMallow();
       document.querySelectorAll('#kitchenTabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === tab));
       if (tab === 'cocoa') {
-        $('#kitchenSteps').innerHTML = steps([['pour', '우유'], ['cocoa', '코코아'], ['stir', '젓기'], ['top', '토핑']], cs.done ? 'zz' : cs.step);
+        $('#kitchenSteps').innerHTML = steps([['make', '우유 · 코코아'], ['stir', '젓기'], ['top', '토핑']], cs.done ? 'zz' : cs.step);
         $('#kitchenView').innerHTML = cocoaView();
         $('#kitchenPanel').innerHTML = cocoaPanel();
       } else {
@@ -164,40 +207,43 @@
       if (!open) return;
       $('#kitchenView').innerHTML = tab === 'cocoa' ? cocoaView() : mallowView();
       const prog = $('#kitchenPanel .cprog');
-      if (prog && tab === 'cocoa' && cs.step === 'pour') { prog.querySelector('i').style.width = Math.min(100, cs.fill * 100) + '%'; prog.querySelector('span').textContent = Math.round(cs.fill * 100) + '%'; }
+      if (prog && tab === 'cocoa' && cs.step === 'make') {
+        prog.querySelector('i').style.width = Math.min(100, cs.fill * 100) + '%'; prog.querySelector('span').textContent = Math.round(cs.fill * 100) + '%';
+        const r = ratioOf(cs.d, cs.fill * 100), tb = $('#kitchenPanel .tbar i'), kt = $('#kitchenPanel .kt');
+        if (tb) tb.style.left = Math.min(100, (r / 6) * 100) + '%';
+        if (kt) kt.textContent = cs.fill < 0.3 ? '우유를 더 부어 주세요' : !cs.d ? '코코아를 넣어 주세요' : '맛: ' + tasteOf(r)[0];
+        const ts = $('#kitchenPanel [data-k=tostir]'); if (ts) ts.disabled = !(cs.fill >= 0.3 && cs.d);
+        const ls = $('#kitchenPanel [data-k=less]'); if (ls) ls.disabled = !(cs.fill > 0.01);
+      }
       const hb = $('#kitchenPanel .heatbar i');
       if (hb) hb.style.left = Math.min(100, (ms.heat / 1.2) * 100) + '%';
-      const lab = $('#kitchenPanel .chint.small');
-      const tk = $('#kitchenPanel [data-k=take]');
-      if (tk) tk.disabled = !(ms.heat > 0.05);
-      if (lab && tab === 'mallow') lab.textContent = { raw: '아직 말랑해요', golden: '노릇노릇! 지금이 딱 좋아요 ✨', brown: '바삭바삭해요', burnt: '앗… 탔어요 🔥' }[qualityOf(ms.heat)];
     }
 
     function loop(t) {
       const dt = Math.min(0.05, (t - last) / 1000); last = t;
       let changed = false;
-      if (pouring && cs.step === 'pour') {
-        cs.fill += dt * 0.32; changed = true;
-        if (cs.fill > 1.02) { pouring = false; cs.fill = 0; cs.spilled = true; api.Sound.Sfx.splat(); render(); }
+      if (pouring && cs.step === 'make') {
+        cs.fill += dt * 0.3; changed = true;
+        if (cs.fill > 1.0) { pouring = false; cs.fill = 0.92; cs.spilled = true; api.Sound.Sfx.splat(); render(); }
       }
-      if (roasting) { ms.heat = Math.min(1.25, ms.heat + dt * 0.22); changed = true; }
+      if (ms && ms.on) {
+        // 점점 빨라지고 살짝 출렁여요 → 타이밍 게임
+        ms.t += dt;
+        const v = ms.speed * (0.16 + ms.t * 0.11) * (1 + 0.35 * Math.sin(ms.t * 5.3));
+        ms.heat = Math.min(1.25, ms.heat + dt * v); changed = true;
+        if (ms.heat >= 1.25) { raf = null; pullMallow(); return; }
+      }
       if (changed) renderLight();
-      if (pouring || roasting) raf = requestAnimationFrame(loop); else raf = null;
+      if (pouring || (ms && ms.on)) raf = requestAnimationFrame(loop); else raf = null;
     }
     function startHold(kind) {
       if (kind === 'pour') { pouring = true; cs.spilled = false; }
-      if (kind === 'roast') roasting = true;
       last = performance.now();
       if (!raf) raf = requestAnimationFrame(loop);
       renderLight();
     }
     function endHold() {
-      if (pouring) {
-        pouring = false;
-        if (cs.fill >= 0.65 && cs.fill <= 0.9) { cs.step = 'cocoa'; api.Sound.Sfx.ding(); render(); return; }
-      }
-      if (roasting) roasting = false;
-      renderLight();
+      if (pouring) { pouring = false; render(); }
     }
     const panel = $('#kitchenPanel');
     panel.addEventListener('pointerdown', (e) => {
@@ -213,18 +259,33 @@
       const b = e.target.closest('[data-k]');
       if (!b || b.disabled || b.classList.contains('hold')) return;
       const k = b.dataset.k;
-      if (k === 'spoon') { cs.d = Math.min(3, cs.d + 1); api.Sound.Sfx.plop(); }
+      if (k === 'spoon') { cs.d = Math.min(6, cs.d + 1); api.Sound.Sfx.plop(); cs.spoonAnim = true; clearTimeout(cs.sa); cs.sa = setTimeout(() => { cs.spoonAnim = false; renderLight(); }, 350); }
+      else if (k === 'unspoon') { cs.d = Math.max(0, cs.d - 1); api.Sound.Sfx.pop(); }
+      else if (k === 'less') { cs.fill = Math.max(0, cs.fill - 0.1); api.Sound.Sfx.plop(); }
+      else if (k === 'roast') { ms.on = true; ms.t = 0; ms.heat = 0; startHold('roast'); }
+      else if (k === 'pull') { pullMallow(); return; }
       else if (k === 'tostir') { cs.step = 'stir'; cs.stir = 0; }
       else if (k === 'top') { cs.top = b.dataset.v || null; api.Sound.Sfx.pop(); }
       else if (k === 'finish') {
-        cs.item = { k: 'cocoa', t: cs.top || 'plain', d: cs.d };
+        cs.item = { k: 'cocoa', t: cs.top || 'plain', d: cs.d, m: Math.round(cs.fill * 100) };
         api.craft(cs.item, (ok) => { if (ok) { cs.done = true; render(); } });
       } else if (k === 'take') {
-        ms.item = { k: 'mallow', q: qualityOf(ms.heat) };
+        ms.item = { k: 'mallow', q: ms.result || qualityOf(ms.heat) };
         api.craft(ms.item, (ok) => { if (ok) { ms.done = true; render(); } });
       } else if (k === 'again') { if (tab === 'cocoa') cs = newCocoa(); else ms = newMallow(); }
       render();
     });
+    function pullMallow() {
+      if (!ms.on) return;
+      ms.on = false;
+      const h = ms.heat;
+      ms.result = h >= ms.sweet && h <= ms.sweet + 0.07 ? 'perfect' : qualityOf(h);
+      if (ms.result === 'perfect') { api.Sound.Sfx.sparkle(); api.Sound.Sfx.tada(); }
+      else if (ms.result === 'golden') api.Sound.Sfx.ding();
+      else if (ms.result === 'burnt') api.Sound.Sfx.splat();
+      else api.Sound.Sfx.pop();
+      render();
+    }
     document.querySelectorAll('#kitchenTabs button').forEach((b) => b.addEventListener('click', () => { tab = b.dataset.tab; render(); }));
 
     // 젓기: 컵 위에서 빙글빙글
@@ -260,7 +321,7 @@
     document.querySelectorAll('[data-close-kitchen]').forEach((b) => b.addEventListener('click', () => api.close()));
 
     return {
-      setOpen(v, which) { open = v; if (which) tab = which; if (!v) { pouring = false; roasting = false; } render(); },
+      setOpen(v, which) { open = v; if (which) tab = which; if (!v) { pouring = false; if (ms) ms.on = false; } render(); },
     };
   };
 

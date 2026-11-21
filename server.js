@@ -142,7 +142,7 @@ const history = []; // 최근 채팅
 let nextPid = 1;
 
 function pub(p) {
-  return { id: p.id, nick: p.nick, avatar: p.avatar, x: p.x, y: p.y, seat: p.seat, facing: p.facing };
+  return { id: p.id, nick: p.nick, avatar: p.avatar, x: p.x, y: p.y, seat: p.seat, facing: p.facing, held: p.held || null };
 }
 function broadcast(msg, except) {
   const s = JSON.stringify(msg);
@@ -418,24 +418,29 @@ function handleCake(client, p, msg) {
 // ───────────────────────── 🎒 인벤토리 · 주방 음식 ─────────────────────────
 const INV_SIZE = 4;
 const now0 = () => Date.now();
-// cocoa: 핫초코 { t: 'plain'|'mallow'|'cream', d: 1~3 (진하기) }
-// mallow: 구운 마시멜로 { q: 'raw'|'golden'|'brown'|'burnt' }
+// cocoa: 핫초코 { t: 'plain'|'mallow'|'cream', d: 0~6 (코코아 스푼), m: 30~100 (우유 %) }
+// mallow: 구운 마시멜로 { q: 'raw'|'golden'|'perfect'|'brown'|'burnt' }
 function cleanItem(it) {
   if (!it || typeof it !== 'object') return null;
   if (it.k === 'cocoa') {
     const t = ['plain', 'mallow', 'cream'].includes(it.t) ? it.t : 'plain';
-    const d = Math.max(1, Math.min(3, Math.round(Number(it.d) || 1)));
-    return { k: 'cocoa', t, d };
+    const d = Math.max(0, Math.min(6, Math.round(Number(it.d) || 0)));
+    const m = Math.max(30, Math.min(100, Math.round(Number(it.m) || 70)));
+    return { k: 'cocoa', t, d, m };
   }
   if (it.k === 'mallow') {
-    const q = ['raw', 'golden', 'brown', 'burnt'].includes(it.q) ? it.q : 'raw';
+    const q = ['raw', 'golden', 'perfect', 'brown', 'burnt'].includes(it.q) ? it.q : 'raw';
     return { k: 'mallow', q };
   }
   return null;
 }
+function cocoaTaste(it) {
+  const r = (it.d || 0) / ((it.m || 70) / 70);
+  return r < 0.5 ? '밍밍한 ' : r < 1.5 ? '연한 ' : r <= 3.2 ? '' : r <= 4.6 ? '진한 ' : '아주 진한 ';
+}
 function itemName(it) {
-  if (it.k === 'cocoa') return it.t === 'mallow' ? '마시멜로 핫초코' : it.t === 'cream' ? '휘핑크림 핫초코' : '핫초코';
-  return { raw: '말랑 마시멜로', golden: '노릇노릇 마시멜로', brown: '바삭 마시멜로', burnt: '까맣게 탄 마시멜로' }[it.q] || '마시멜로';
+  if (it.k === 'cocoa') return cocoaTaste(it) + (it.t === 'mallow' ? '마시멜로 핫초코' : it.t === 'cream' ? '휘핑크림 핫초코' : '핫초코');
+  return { raw: '말랑 마시멜로', golden: '노릇노릇 마시멜로', perfect: '완벽한 황금 마시멜로', brown: '바삭 마시멜로', burnt: '까맣게 탄 마시멜로' }[it.q] || '마시멜로';
 }
 
 // ───────────────────────── 메시지 처리 ─────────────────────────
@@ -593,12 +598,27 @@ function handle(client, msg) {
       const [item] = user.inv.splice(i, 1);
       saveDb();
       client.send({ t: 'inv', inv: user.inv });
+      if (p.heldSlot === i) {
+        p.held = null; p.heldSlot = -1;
+        if (msg.how !== 'eat') broadcast({ t: 'hold', id: p.id, item: null });
+      } else if (p.heldSlot > i) p.heldSlot--;
       if (msg.how === 'eat') {
         broadcast({ t: 'eatItem', id: p.id, item });
         const sys = { kind: 'sys', text: `${p.nick} 님이 ${itemName(item)}을(를) ${item.k === 'cocoa' ? '마셨어요 ☕' : '먹었어요 😋'}`, ts: now0() };
         pushHistory(sys);
         broadcast({ t: 'sys', ...sys });
       }
+      break;
+    }
+    case 'hold': {
+      // 인벤토리 음식을 손에 들기 / 내려놓기 (모두에게 보여요)
+      const user = db.users[p.uid];
+      const i = Number(msg.slot);
+      if (!user || !Array.isArray(user.inv)) return;
+      if (i >= 0 && i < user.inv.length) { p.held = user.inv[i]; p.heldSlot = i; }
+      else { p.held = null; p.heldSlot = -1; }
+      broadcast({ t: 'hold', id: p.id, item: p.held });
+      client.send({ t: 'heldSlot', slot: p.heldSlot });
       break;
     }
     case 'hb': break; // 연결 유지용

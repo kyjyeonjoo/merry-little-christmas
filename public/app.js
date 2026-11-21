@@ -177,6 +177,8 @@
       case 'notice': showNotice(m); break;
       case 'inv': setInv(m.inv); if (m.added) { Sound.Sfx.ding(); pendingCraft && pendingCraft(true); pendingCraft = null; } break;
       case 'eatItem': onEatItem(m); break;
+      case 'hold': { const p = players.get(m.id); if (p) setHeld(p, m.item); break; }
+      case 'heldSlot': heldSlot = m.slot; updateEatBtn(); break;
       case 'throw': doThrow(m.from, m.to); break;
       case 'pupdate': {
         const p = players.get(m.id);
@@ -405,10 +407,11 @@
     el.className = 'player';
     el.dataset.id = d.id;
     if (d.id === me.id) el.classList.add('is-me');
-    el.innerHTML = `<div class="bubble"></div><div class="emote"></div><div class="sprite"></div><div class="name"></div>`;
+    el.innerHTML = `<div class="bubble"></div><div class="emote"></div><div class="sprite"></div><div class="held"></div><div class="name"></div>`;
     const p = { data: d, el };
     players.set(d.id, p);
     renderPlayer(p);
+    setHeld(p, d.held);
     el.style.left = d.x + 'px';
     el.style.top = d.y + 'px';
     el.style.zIndex = Math.round(d.y);
@@ -428,6 +431,17 @@
   }
   function applyFacing(p) {
     p.el.querySelector('.sprite').style.setProperty('--face', p.data.facing === -1 ? -1 : 1);
+    const h = p.el.querySelector('.held');
+    if (h) h.style.setProperty('--face', p.data.facing === -1 ? -1 : 1);
+  }
+  // 손에 든 음식 (모두에게 보여요)
+  function setHeld(p, item) {
+    p.data.held = item || null;
+    const h = p.el.querySelector('.held');
+    if (!h || h.classList.contains('eating')) return;
+    h.innerHTML = item ? Kitchen.itemIcon(item) : '';
+    h.classList.toggle('on', !!item);
+    if (p.data.id === me.id) updateEatBtn();
   }
   function removePlayer(id) {
     const p = players.get(id);
@@ -508,7 +522,8 @@
   window.addEventListener('keydown', (e) => {
     if (!me || typing() || !$('#profileModal').hidden || !$('#inviteModal').hidden) return;
     if (e.key === 'Enter') { $('#chatInput').focus(); e.preventDefault(); return; }
-    if (!$('#cakeModal').hidden || !$('#kitchenModal').hidden) return; // 창이 열려 있으면 이동·동작 키는 쉬어요
+    if (!$('#cakeModal').hidden || !$('#kitchenModal').hidden) return;
+    if ((e.key === 'q' || e.key === 'Q' || e.key === 'ㅂ') && !e.repeat) { eatHeld(); return; }
     if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (!e.repeat) send({ t: 'jump' }); return; }
     if ((e.key === 'e' || e.key === 'E' || e.key === 'ㄷ') && !e.repeat) { send({ t: 'snow' }); return; }
     if ((e.key === 'f' || e.key === 'F' || e.key === 'ㄹ') && !e.repeat) { send({ t: 'fw' }); return; }
@@ -772,30 +787,50 @@
   $('#noticeX').addEventListener('click', () => { $('#notice').hidden = true; });
 
   // ───────── 🎒 인벤토리 ─────────
-  let inv = [], pendingCraft = null;
+  let inv = [], pendingCraft = null, heldSlot = -1, eating = false;
   const INV_SIZE = 4;
   function setInv(list) {
     inv = list || [];
+    if (heldSlot >= inv.length) heldSlot = -1;
     const box = $('#inv');
     box.innerHTML = '';
     for (let i = 0; i < INV_SIZE; i++) {
       const it = inv[i];
       const b = document.createElement('button');
-      b.className = 'slot' + (it ? ' full' : '');
+      b.className = 'slot' + (it ? ' full' : '') + (i === heldSlot ? ' held' : '');
       b.dataset.i = i;
       b.innerHTML = it ? Kitchen.itemIcon(it) : '';
       b.title = it ? Kitchen.itemName(it) : '빈 칸';
       box.appendChild(b);
     }
     $('#invMenu').hidden = true;
+    updateEatBtn();
   }
+  function updateEatBtn() {
+    const myP = players.get(me && me.id);
+    const it = myP && myP.data.held;
+    const b = $('#eatBtn');
+    b.hidden = !it || eating;
+    if (it) { b.querySelector('.ic').innerHTML = Kitchen.itemIcon(it); b.querySelector('span').textContent = it.k === 'cocoa' ? '마시기' : '먹기'; }
+    document.querySelectorAll('#inv .slot').forEach((s) => s.classList.toggle('held', Number(s.dataset.i) === heldSlot && !!it));
+  }
+  function eatHeld() {
+    const myP = players.get(me && me.id);
+    if (!myP || !myP.data.held || heldSlot < 0 || eating) return;
+    send({ t: 'useItem', slot: heldSlot, how: 'eat' });
+    heldSlot = -1;
+  }
+  $('#eatBtn').addEventListener('click', eatHeld);
   $('#inv').addEventListener('click', (e) => {
     const b = e.target.closest('.slot');
     if (!b) return;
     const i = Number(b.dataset.i), it = inv[i], menu = $('#invMenu');
     if (!it) { toast('🎒 비어 있어요. 주방에서 핫초코나 마시멜로를 만들어 봐요!'); return; }
+    const isHeld = i === heldSlot;
     menu.innerHTML = `<b>${esc(Kitchen.itemName(it))}</b>
-      <button class="btn primary small" data-how="eat">${it.k === 'cocoa' ? '☕ 마시기' : '😋 먹기'}</button>
+      ${isHeld ? `<button class="btn primary small" data-how="eat">${it.k === 'cocoa' ? '☕ 마시기' : '😋 먹기'}</button>
+        <button class="btn ghost small" data-how="down">내려놓기</button>`
+        : `<button class="btn primary small" data-how="hold">✋ 손에 들기</button>`}
       <button class="btn ghost small" data-how="drop">버리기</button>`;
     menu.dataset.i = i;
     menu.hidden = false;
@@ -803,18 +838,39 @@
   $('#invMenu').addEventListener('click', (e) => {
     const b = e.target.closest('[data-how]');
     if (!b) return;
-    send({ t: 'useItem', slot: Number($('#invMenu').dataset.i), how: b.dataset.how });
+    const i = Number($('#invMenu').dataset.i), how = b.dataset.how;
+    if (how === 'hold') { send({ t: 'hold', slot: i }); Sound.Sfx.pop(); }
+    else if (how === 'down') send({ t: 'hold', slot: -1 });
+    else if (how === 'eat') eatHeld();
+    else { send({ t: 'useItem', slot: i, how }); if (i === heldSlot) heldSlot = -1; }
     $('#invMenu').hidden = true;
   });
   document.addEventListener('click', (e) => { if (!e.target.closest('#inv') && !e.target.closest('#invMenu')) $('#invMenu').hidden = true; });
+  // 먹기 모션: 입으로 가져가서 세 입 → 냠냠 / 호로록 소리
   function onEatItem(m) {
     const p = players.get(m.id);
     if (!p) return;
-    const el = p.el.querySelector('.emote');
-    el.innerHTML = `<span class="eat-ic">${Kitchen.itemIcon(m.item)}</span>`;
-    el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
-    setTimeout(() => showEmote(m.id, m.item.k === 'mallow' && m.item.q === 'burnt' ? '😖' : m.item.k === 'cocoa' ? '☺️' : '😋'), 1300);
-    Sound.Sfx.nyam();
+    const it = m.item, drink = it.k === 'cocoa', mine = m.id === me.id;
+    const h = p.el.querySelector('.held');
+    p.data.held = null;
+    if (mine) { eating = true; updateEatBtn(); }
+    h.classList.add('on', 'eating', drink ? 'drink' : 'bite');
+    h.innerHTML = Kitchen.itemIcon(it, 0);
+    const near = mine || Math.hypot(p.data.x - (players.get(me.id)?.data.x || 0), p.data.y - (players.get(me.id)?.data.y || 0)) < 600;
+    [0, 1, 2].forEach((k) => setTimeout(() => {
+      h.innerHTML = Kitchen.itemIcon(it, k + 1);
+      h.classList.remove('chomp'); void h.offsetWidth; h.classList.add('chomp');
+      if (near) drink ? Sound.Sfx.slurp(k) : Sound.Sfx.munch(k);
+    }, 450 + k * 520));
+    setTimeout(() => {
+      h.classList.remove('eating', 'drink', 'bite', 'chomp', 'on');
+      h.innerHTML = '';
+      const face = it.k === 'mallow' && it.q === 'burnt' ? '😖' : it.k === 'mallow' && it.q === 'perfect' ? '🤩' : drink ? '☺️' : '😋';
+      showEmote(m.id, face);
+      if (near && face !== '😖') Sound.Sfx.yum();
+      if (mine) { eating = false; updateEatBtn(); }
+      if (p.data.held) setHeld(p, p.data.held);
+    }, 450 + 3 * 520 + 250);
   }
 
   // ───────── ☕ 주방 ─────────

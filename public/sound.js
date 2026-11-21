@@ -149,6 +149,20 @@
       noise(0.35, 0.55);
       for (let i = 0; i < 7; i++) tone({ freq: 2400 + Math.random() * 1800, type: 'sine', dur: 0.05, vol: 0.18, delay: 0.12 + Math.random() * 0.5 });
     },
+    // 냠냠 (한 입 베어 물기): 짧은 바삭 + 통통 튀는 두 음
+    munch(i = 0) {
+      noise(0.05, 0.25);
+      const f = 520 + (i % 3) * 60;
+      tone({ freq: f, freqEnd: f * 0.7, type: 'triangle', dur: 0.07, vol: 0.35, delay: 0.04 });
+      tone({ freq: f * 1.25, freqEnd: f * 0.9, type: 'triangle', dur: 0.07, vol: 0.3, delay: 0.14 });
+    },
+    // 호로록 (마시기): 쪼르륵 올라가는 소리 + 꿀꺽
+    slurp(i = 0) {
+      for (let k = 0; k < 4; k++) bloop(300 + k * 70 + Math.random() * 40, k * 0.06, 0.07, 0.45);
+      tone({ freq: 240 - i * 10, freqEnd: 140, type: 'sine', dur: 0.12, vol: 0.45, delay: 0.32 });
+    },
+    yum() { [1047, 1319, 1568].forEach((f, i) => tone({ freq: f, type: 'sine', dur: 0.18, vol: 0.22, delay: i * 0.07 })); },
+    tick() { tone({ freq: 1200, type: 'square', dur: 0.03, vol: 0.08 }); },
     tada() { [784, 988, 1175, 1568].forEach((f, i) => tone({ freq: f, type: 'triangle', dur: 0.35, vol: 0.28, delay: i * 0.09 })); },
   };
 
