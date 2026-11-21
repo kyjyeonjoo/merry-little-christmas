@@ -50,7 +50,7 @@
       ${fill > 0 ? `<rect x="20" y="${top}" width="60" height="70" fill="${liquid}" clip-path="url(#mugIn)"/>
         <ellipse cx="50" cy="${top}" rx="${25 - (top - 30) * 0.06}" ry="4" fill="${lerp(liquid, '#ffffff', 0.15)}"/>` : ''}
       <ellipse cx="50" cy="30" rx="28" ry="6" fill="none" stroke="${LINE}" stroke-width="2.6"/>
-      ${t}
+      ${t ? `<g transform="translate(0 ${Math.max(0, top - 33)})">${t}</g>` : ''}
     </g>`;
   }
   let maskN = 0;
@@ -74,7 +74,8 @@
   function itemIcon(it, bite = 0) {
     if (!it) return '';
     if (it.k === 'cocoa') {
-      const fill = bite >= 3 ? 0.06 : 0.85 - bite * 0.25;
+      const full = Math.max(0.3, Math.min(1, (it.m || 85) / 100));
+      const fill = bite >= 3 ? 0.05 : Math.max(0.08, full * (1 - bite / 3));
       return `<svg viewBox="10 4 84 94" xmlns="http://www.w3.org/2000/svg">${mug(itemColor(it), fill, bite ? null : it.t, !bite)}</svg>`;
     }
     return `<svg viewBox="20 0 70 100" xmlns="http://www.w3.org/2000/svg">${stick(mallowColor(QUALITY_HEAT[it.q] || 0.1), 44, 22, 1.05, bite, it.q === 'perfect')}</svg>`;
