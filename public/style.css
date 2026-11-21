@@ -850,3 +850,85 @@ input:focus { border-color: #ffc9cf; }
   .gift-view { min-height: 200px; }
   .gcolors { gap: 4px; }
 }
+
+/* ───── ❄️ 눈마당 ───── */
+#outdoor { display: none; position: absolute; inset: 0; }
+.stage.scene-out #outdoor { display: block; }
+.stage.scene-out .wall, .stage.scene-out .floor, .stage.scene-out .rug, .stage.scene-out .fireplace, .stage.scene-out .deco-tree,
+.stage.scene-out .gift-xbox, .stage.scene-out .kitchen, .stage.scene-out .cake-table, .stage.scene-out .in-door { display: none; }
+.out-bg { position: absolute; inset: 0; z-index: 0; }
+.out-bg svg { width: 100%; height: 100%; display: block; }
+.out-scene .osmoke { animation: steam 2.4s ease-in-out infinite; }
+.out-scene .otw { animation: halo 2.2s ease-in-out infinite; }
+.ohs { position: absolute; z-index: 3; cursor: pointer; border-radius: 16px; }
+.ohs:hover { background: rgba(255,255,255,.18); box-shadow: 0 0 0 3px rgba(255,255,255,.5); }
+.player.away { display: none !important; }
+.seat[data-room="out"] { display: none; }
+.stage.scene-out .seat[data-room="out"] { display: block; }
+.stage.scene-out .seat:not([data-room="out"]) { display: none; }
+.seat-hit { position: absolute; left: -28px; top: -40px; width: 56px; height: 46px; border-radius: 14px; }
+.seat-hit:hover { background: rgba(255,255,255,.25); }
+.sitting[data-seat="bench"] .sprite svg { animation: none; transform: translateY(-16px) scale(.96, .92); }
+.sitting[data-seat="bench"] .name { top: 12px; }
+.sitting[data-seat="igloo"] .sprite svg { animation: none; transform: translateY(-4px) scale(.94, .9); }
+.in-door { position: absolute; left: 246px; top: 150px; width: 84px; height: 196px; z-index: 3; cursor: pointer; }
+.in-door svg { width: 100%; height: 100%; display: block; transition: transform .2s; transform-origin: 50% 100%; }
+.in-door:hover svg { transform: scale(1.03); }
+.snowman { position: absolute; width: 84px; height: 168px; transform: translate(-50%, calc(-100% + 19px)); cursor: pointer; }
+.snowman svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.snowman:hover svg { transform: rotate(-2deg); transform-origin: 50% 90%; }
+.snow-card { width: min(760px, 100%); }
+.snow-view { min-height: 280px; display: grid; place-items: center; background: radial-gradient(circle at 50% 75%, #eef5ff, #fff 70%); }
+.snow-view svg { width: 100%; max-height: 330px; }
+.sm-ball.sm-spin.go { animation: smroll .35s ease-out; }
+@keyframes smroll { from { transform: rotate(-60deg) scale(.96); } to { transform: none; } }
+.sm-lv { margin-bottom: 8px; }
+.sm-lv .on, .sm-tabs .on { background: var(--red); color: #fff; }
+.sm-rollbtn { font-size: 20px !important; padding: 14px !important; margin: 10px 0 8px; }
+.sm-opts { grid-template-columns: repeat(4, 1fr) !important; gap: 5px !important; margin-bottom: 6px; }
+.sm-opts .cbtn { padding: 8px 2px; }
+.sm-opts .cbtn small { font-size: 12px; }
+.sm-tabs button { font-size: 14px; padding: 7px 4px; }
+.sm-name { min-height: 0; height: 44px; }
+.sm-melt { margin-top: 8px; opacity: .7; }
+/* 썰매 경주 */
+.race-card { width: min(860px, 100%); }
+.race-main { display: grid; grid-template-columns: 1.5fr 1fr; gap: 14px; align-items: start; }
+.rtrack { position: relative; border-radius: 18px; overflow: hidden; padding: 10px 8px 10px; min-height: 240px;
+  background: linear-gradient(170deg, #e9f2ff 0%, #ffffff 55%, #eaf1fb 100%); box-shadow: inset 0 0 0 2px #dbe6f7; }
+.rtrack.running { background-size: 200% 100%; animation: rslide .6s linear infinite; background-image: repeating-linear-gradient(100deg, #f4f8ff 0 40px, #ffffff 40px 80px); }
+@keyframes rslide { from { background-position: 0 0; } to { background-position: -80px 0; } }
+.rfinish { position: absolute; right: 18px; top: 0; bottom: 0; width: 14px; background: repeating-conic-gradient(#5b4036 0 25%, #fff 0 50%) 0 0 / 14px 14px; opacity: .85; }
+.rlane { position: relative; height: 74px; border-bottom: 2px dashed #d6e2f3; }
+.rlane:last-of-type { border-bottom: 0; }
+.rlane.me { background: rgba(255, 214, 224, .35); border-radius: 12px; }
+.rname { position: absolute; right: 40px; top: 3px; font: 400 12px 'Jua', sans-serif; color: #6b5146; z-index: 2; }
+.rname b { color: var(--red); font-weight: 400; }
+.rsled { position: absolute; bottom: 2px; width: 70px; height: 70px; transition: left .12s linear; }
+.rrider { position: absolute; left: 10px; bottom: 9px; width: 52px; height: 62px; }
+.rrider svg { width: 100%; height: 100%; }
+.rsledsvg { position: absolute; left: 0; bottom: 0; width: 70px; height: 22px; overflow: visible; }
+.rspray { position: absolute; left: -10px; bottom: 2px; width: 14px; height: 8px; border-radius: 50%; background: #fff; box-shadow: -8px -3px 0 -1px #fff, -16px 1px 0 -2px #eaf1fb; animation: spray .3s linear infinite; }
+@keyframes spray { 50% { transform: translateX(-4px) scale(1.2); opacity: .6; } }
+.rempty { text-align: center; color: #8a9bb8; font-family: 'Jua', sans-serif; padding: 70px 0; margin: 0; }
+.rcount { position: absolute; inset: 0; display: grid; place-items: center; font: 400 76px 'Jua', sans-serif; color: var(--red); text-shadow: 0 4px 0 #fff, 0 0 20px #fff; background: rgba(255,255,255,.35); }
+.rcount.pop2 { animation: popIn .3s ease-out; }
+.rtap { font-size: 24px !important; padding: 22px 10px !important; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.rtap.hit { animation: rtapHit .12s ease-out; }
+@keyframes rtapHit { 50% { transform: scale(.95); } }
+.rbets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-bottom: 8px; }
+.rbets .cbtn small { font-size: 12px; }
+.rbets .rbc { font-size: 10px !important; color: #8a6d5c; min-height: 12px; }
+.race-panel .cnext, .race-panel > .btn { width: 100%; margin-top: 6px; }
+.rpodium { display: flex; align-items: flex-end; justify-content: center; gap: 8px; margin: 6px 0 10px; }
+.rp { background: #fff; border-radius: 14px 14px 6px 6px; padding: 8px 10px; text-align: center; box-shadow: 0 3px 0 rgba(91,64,54,.12); display: flex; flex-direction: column; min-width: 70px; }
+.rp b { font-size: 26px; font-weight: 400; } .rp span { font: 400 14px 'Jua', sans-serif; }
+.rp.p1 { order: 2; padding-bottom: 26px; background: #fff6d0; } .rp.p2 { order: 1; padding-bottom: 16px; } .rp.p3 { order: 3; }
+@media (max-width: 760px) {
+  .race-main { grid-template-columns: 1fr; }
+  .rlane { height: 50px; }
+  .rsled { transform: scale(.85); transform-origin: 0 100%; }
+  .snow-view { min-height: 190px; }
+  .snow-view svg { max-height: 200px; }
+  .rtap { padding: 18px 10px !important; }
+}

@@ -16,7 +16,14 @@
     cush3: { x: 262, y: 512, kind: 'cush', face: 1 },
     poufL: { x: 105, y: 520, kind: 'pouf', face: 1 },
     poufR: { x: 895, y: 520, kind: 'pouf', face: -1 },
+    // 눈마당
+    bench1: { x: 468, y: 402, kind: 'bench', room: 'out', face: 1 },
+    bench2: { x: 528, y: 402, kind: 'bench', room: 'out', face: -1 },
+    igloo: { x: 872, y: 418, kind: 'igloo', room: 'out' },
   };
+  let myRoom = 'in';
+  const roomOf = (p) => (p && p.data.room) || 'in';
+  const here = (id) => { const p = players.get(id); return !!p && roomOf(p) === myRoom; };
 
   // ───────── 상태 ─────────
   let ws = null;
@@ -62,7 +69,7 @@
     myUid: () => myUser && myUser.id,
     close: () => closeCake(),
   });
-  function openCake() { if ($('#kitchenModal') && !$('#kitchenModal').hidden) closeKitchen(); if (typeof closeTree === 'function') { closeTree(); closeGift(); } $('#cakeModal').hidden = false; cakeUI.setOpen(true); }
+  function openCake() { if ($('#kitchenModal') && !$('#kitchenModal').hidden) closeKitchen(); if (typeof closeTree === 'function') { closeTree(); closeGift(); closeSnow(); closeRace(); } $('#cakeModal').hidden = false; cakeUI.setOpen(true); }
   function closeCake() { $('#cakeModal').hidden = true; cakeUI.setOpen(false); }
 
   function confetti(box) {
@@ -167,7 +174,7 @@
       }
       case 'chat': showChat(m); break;
       case 'sys': addLog({ kind: 'sys', text: m.text }); break;
-      case 'emote': showEmote(m.id, m.e); Sound.Sfx.pop(); break;
+      case 'emote': showEmote(m.id, m.e); if (here(m.id)) Sound.Sfx.pop(); break;
       case 'jump': doJump(m.id); break;
       case 'cake': onCake(m.cake); break;
       case 'cakeBlow': showEmote(m.id, '🌬️'); Sound.Sfx.blow(); break;
@@ -178,6 +185,9 @@
       case 'inv': setInv(m.inv); if (m.added) { Sound.Sfx.ding(); pendingCraft && pendingCraft(true); pendingCraft = null; } break;
       case 'eatItem': onEatItem(m); break;
       case 'tree': onTree(m.tree); break;
+      case 'go': onGo(m); break;
+      case 'snowmen': renderSnowmen(m.men); break;
+      case 'race': raceUI.setRace(m.race); break;
       case 'giftState': giftUI.setState(m.gift); giftBadge(); break;
       case 'giftPool': setGiftPool(m.n); break;
       case 'giftSent': giftUI.sent(m.got); break;
@@ -276,6 +286,10 @@
     setInv(m.inv || []);
     onTree(m.tree || { items: [], top: 'star' });
     giftUI.setState(m.gift || { waiting: false, box: [] }); giftBadge(); setGiftPool(m.giftPool || 0);
+    renderSnowmen(m.snowmen || []);
+    if (m.race) raceUI.setRace(m.race);
+    $('#inDoor').innerHTML = Outdoor.doorArt();
+    { const mine = players.get(me.id); setScene(roomOf(mine)); }
     $('#kitchenCounter .art').innerHTML = Kitchen.counterArt();
     renderMe();
     updateCount();
@@ -375,6 +389,7 @@
       const el = document.createElement('div');
       el.className = `seat seat-${s.kind}`;
       el.dataset.seat = id;
+      el.dataset.room = s.room || 'in';
       el.style.left = s.x + 'px';
       el.style.top = s.y + 'px';
       if (s.kind === 'arm') {
@@ -384,6 +399,9 @@
       } else if (s.kind === 'cush') {
         el.innerHTML = `<div class="cushion"></div>`;
         el.style.zIndex = 5;
+      } else if (s.kind === 'bench' || s.kind === 'igloo') {
+        el.innerHTML = `<div class="seat-hit"></div>`;
+        el.style.zIndex = 4;
       } else if (s.kind === 'pouf') {
         el.innerHTML = `<div class="pouf"></div>`;
         el.style.zIndex = s.y - 2;
@@ -432,9 +450,52 @@
       if (SEATS[d.seat].face) d.facing = SEATS[d.seat].face;
     }
     applyFacing(p);
+    el.classList.toggle('away', roomOf(p) !== myRoom);
     $('#entities').appendChild(el);
     refreshSeats();
   }
+  // ───────── ❄️ 거실 ↔ 눈마당 ─────────
+  function setScene(room) {
+    myRoom = room;
+    $('#stage').classList.toggle('scene-out', room === 'out');
+    players.forEach((p) => p.el.classList.toggle('away', roomOf(p) !== myRoom));
+    document.querySelectorAll('.dock-item[data-feature=room]').forEach((b) => b.classList.toggle('active', room === 'in'));
+    document.querySelectorAll('.dock-item[data-feature=out]').forEach((b) => b.classList.toggle('active', room === 'out'));
+    if (room === 'out' && !$('#outBg').firstChild) $('#outBg').innerHTML = Outdoor.scene();
+    fitStage();
+  }
+  function goRoom(room) { if (room !== myRoom) send({ t: 'go', room }); }
+  function onGo(m) {
+    const p = players.get(m.id);
+    if (!p) return;
+    p.data.room = m.room; p.data.seat = null;
+    p.el.classList.remove('sitting');
+    p.el.style.transition = 'none';
+    p.el.style.left = m.x + 'px'; p.el.style.top = m.y + 'px'; p.el.style.zIndex = Math.round(m.y);
+    p.data.x = m.x; p.data.y = m.y;
+    void p.el.offsetWidth; p.el.style.transition = '';
+    if (m.id === me.id) { setScene(m.room); Sound.Sfx.whoosh(); toast(m.room === 'out' ? '❄️ 눈마당으로 나왔어요! 눈사람 공방 · 썰매 경주 · 이글루가 있어요' : '🔥 따뜻한 거실로 들어왔어요'); }
+    else p.el.classList.toggle('away', m.room !== myRoom);
+    refreshSeats();
+  }
+  // ───────── ⛄ 눈사람 ─────────
+  let snowmen = [];
+  function renderSnowmen(men) {
+    snowmen = men || [];
+    $('#snowmen').innerHTML = snowmen.map((m) => `<div class="snowman ${myUser && m.uid === myUser.id ? 'mine' : ''}" data-sid="${m.id}" style="left:${m.x}px;top:${m.y}px;z-index:${m.y}" title="${esc(m.name)} · ${esc(m.nick)} 님의 눈사람">${Outdoor.snowmanSVG(m, { name: true })}</div>`).join('');
+  }
+  const snowUI = SnowmanUI({ send, toast, Sound, close: () => closeSnow() });
+  function closeOthers() { closeCake(); closeKitchen(); closeTree(); closeGift(); closeSnow(); closeRace(); }
+  function openSnow() {
+    closeOthers();
+    const mine = snowmen.find((m) => myUser && m.uid === myUser.id);
+    $('#snowModal').hidden = false; snowUI.setOpen(true, mine || null);
+  }
+  function closeSnow() { if (!$('#snowModal').hidden) { $('#snowModal').hidden = true; snowUI.setOpen(false); } }
+  // ───────── 🛷 썰매 경주 ─────────
+  const raceUI = RaceUI({ send, toast, Sound, myUid: () => myUser && myUser.id, avatarSVG: (a) => Avatar.svg(a), close: () => closeRace() });
+  function openRace() { closeOthers(); $('#raceModal').hidden = false; raceUI.setOpen(true); }
+  function closeRace() { if (!$('#raceModal').hidden) { $('#raceModal').hidden = true; raceUI.setOpen(false); } }
   function renderPlayer(p) {
     p.el.querySelector('.sprite').innerHTML = Avatar.svg(p.data.avatar);
     p.el.querySelector('.name').textContent = p.data.nick;
@@ -501,6 +562,16 @@
     if (e.target.closest('.kitchen')) { openKitchen(); return; }
     if (e.target.closest('.deco-tree')) { openTree(); return; }
     if (e.target.closest('.gift-xbox')) { openGift(); return; }
+    if (e.target.closest('.in-door')) { goRoom('out'); return; }
+    const hs = e.target.closest('.ohs');
+    if (hs) { if (hs.dataset.k === 'door') goRoom('in'); else if (hs.dataset.k === 'workshop') openSnow(); else if (hs.dataset.k === 'race') openRace(); return; }
+    const smEl = e.target.closest('.snowman');
+    if (smEl) {
+      const m = snowmen.find((x) => x.id === Number(smEl.dataset.sid));
+      if (m && myUser && m.uid === myUser.id) openSnow();
+      else if (m) { toast(`⛄ "${m.name}" · ${m.nick} 님이 만든 눈사람이에요`); Sound.Sfx.pop(); }
+      return;
+    }
     const seatEl = e.target.closest('.seat');
     if (seatEl) {
       const id = seatEl.dataset.seat;
@@ -535,7 +606,7 @@
   window.addEventListener('keydown', (e) => {
     if (!me || typing() || !$('#profileModal').hidden || !$('#inviteModal').hidden) return;
     if (e.key === 'Enter') { $('#chatInput').focus(); e.preventDefault(); return; }
-    if (!$('#cakeModal').hidden || !$('#kitchenModal').hidden || !$('#treeModal').hidden || !$('#giftModal').hidden) return;
+    if (!$('#cakeModal').hidden || !$('#kitchenModal').hidden || !$('#treeModal').hidden || !$('#giftModal').hidden || !$('#snowModal').hidden || !$('#raceModal').hidden) return;
     if ((e.key === 'q' || e.key === 'Q' || e.key === 'ㅂ') && !e.repeat) { eatHeld(); return; }
     if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (!e.repeat) send({ t: 'jump' }); return; }
     if ((e.key === 'e' || e.key === 'E' || e.key === 'ㄷ') && !e.repeat) { send({ t: 'snow' }); return; }
@@ -583,7 +654,7 @@
     addLog(m);
     const p = players.get(m.id);
     if (!p) return;
-    Sound.Sfx.chirp(p.data.avatar && p.data.avatar.type, m.text);
+    if (here(m.id)) Sound.Sfx.chirp(p.data.avatar && p.data.avatar.type, m.text);
     const b = p.el.querySelector('.bubble');
     b.textContent = m.text;
     b.classList.remove('show');
@@ -636,7 +707,7 @@
   // ───────── 점프 · 눈 뿌리기 · 눈덩이 ─────────
   function doJump(id) {
     const p = players.get(id);
-    if (!p) return;
+    if (!p || !here(id)) return;
     const sp = p.el.querySelector('.sprite');
     sp.classList.remove('jump');
     void sp.offsetWidth;
@@ -649,7 +720,7 @@
   function posOf(p) { const c = curPos(p); return { x: c.x, y: c.y }; }
   function doSnow(id) {
     const p = players.get(id);
-    if (!p) return;
+    if (!p || !here(id)) return;
     const { x, y } = posOf(p);
     const flakes = ['❄', '❅', '❆', '•', '✦'];
     for (let i = 0; i < 22; i++) {
@@ -672,7 +743,7 @@
   }
   function doThrow(fromId, toId) {
     const a = players.get(fromId), b = players.get(toId);
-    if (!a || !b) return;
+    if (!a || !b || !here(fromId) || !here(toId)) return;
     a.data.facing = curPos(b).x < curPos(a).x ? -1 : 1;
     applyFacing(a);
     const s0 = posOf(a), s1 = posOf(b);
@@ -753,7 +824,7 @@
   // ───────── 🎆 폭죽 ─────────
   function doFirework(id) {
     const p = players.get(id);
-    if (!p) return;
+    if (!p || !here(id)) return;
     doJump(id);
     const { x, y } = posOf(p);
     const top = y - 190 - Math.random() * 40;
@@ -788,7 +859,7 @@
   function showNotice(m) {
     noticeKind = m.kind;
     $('#noticeText').textContent = m.text;
-    $('#noticeGo').hidden = !['cake', 'gift'].includes(m.kind);
+    $('#noticeGo').hidden = !['cake', 'gift', 'race'].includes(m.kind);
     const n = $('#notice');
     n.hidden = false;
     n.classList.remove('show'); void n.offsetWidth; n.classList.add('show');
@@ -796,7 +867,7 @@
     clearTimeout(noticeTimer);
     noticeTimer = setTimeout(() => { n.hidden = true; }, 10000);
   }
-  $('#noticeGo').addEventListener('click', () => { $('#notice').hidden = true; if (noticeKind === 'cake') openCake(); else if (noticeKind === 'gift') openGift(true); });
+  $('#noticeGo').addEventListener('click', () => { $('#notice').hidden = true; if (noticeKind === 'cake') openCake(); else if (noticeKind === 'gift') openGift(true); else if (noticeKind === 'race') { goRoom('out'); openRace(); } });
   $('#noticeX').addEventListener('click', () => { $('#notice').hidden = true; });
 
   // ───────── 🎒 인벤토리 ─────────
@@ -869,7 +940,7 @@
     if (mine) { eating = true; updateEatBtn(); }
     h.classList.add('on', 'eating', drink ? 'drink' : 'bite');
     h.innerHTML = Kitchen.itemIcon(it, 0);
-    const near = mine || Math.hypot(p.data.x - (players.get(me.id)?.data.x || 0), p.data.y - (players.get(me.id)?.data.y || 0)) < 600;
+    const near = mine || here(m.id) && Math.hypot(p.data.x - (players.get(me.id)?.data.x || 0), p.data.y - (players.get(me.id)?.data.y || 0)) < 600;
     [0, 1, 2].forEach((k) => setTimeout(() => {
       h.innerHTML = Kitchen.itemIcon(it, k + 1);
       h.classList.remove('chomp'); void h.offsetWidth; h.classList.add('chomp');
@@ -892,17 +963,17 @@
     craft: (item, cb) => { pendingCraft = cb; send({ t: 'craft', item }); setTimeout(() => { if (pendingCraft === cb) { pendingCraft = null; } }, 4000); },
     close: () => closeKitchen(),
   });
-  function openKitchen(which) { closeCake(); closeTree(); closeGift(); $('#kitchenModal').hidden = false; kitchenUI.setOpen(true, which); }
+  function openKitchen(which) { closeCake(); closeTree(); closeGift(); closeSnow(); closeRace(); $('#kitchenModal').hidden = false; kitchenUI.setOpen(true, which); }
   function closeKitchen() { $('#kitchenModal').hidden = true; kitchenUI.setOpen(false); }
 
   // ───────── 🎄 트리 꾸미기 ─────────
   let treeData = null;
   const treeUI = TreeUI({ send, toast, Sound, myUid: () => myUser && myUser.id, close: () => closeTree() });
-  function openTree() { closeCake(); closeKitchen(); closeGift(); $('#treeModal').hidden = false; treeUI.setOpen(true); }
+  function openTree() { closeCake(); closeKitchen(); closeGift(); closeSnow(); closeRace(); $('#treeModal').hidden = false; treeUI.setOpen(true); }
 
   // ───────── 🎁 선물 랜덤 교환 ─────────
   const giftUI = GiftUI({ send, toast, Sound, confetti: (el) => confetti(el), close: () => closeGift() });
-  function openGift(box) { closeCake(); closeKitchen(); closeTree(); $('#giftModal').hidden = false; giftUI.setOpen(true); if (box) giftUI.showBox(); }
+  function openGift(box) { closeCake(); closeKitchen(); closeTree(); closeSnow(); closeRace(); $('#giftModal').hidden = false; giftUI.setOpen(true); if (box) giftUI.showBox(); }
   function closeGift() { if (!$('#giftModal').hidden) { $('#giftModal').hidden = true; giftUI.setOpen(false); } }
   function giftBadge() {
     const n = giftUI.unopened();
@@ -919,7 +990,7 @@
 
   function showEmote(id, e) {
     const p = players.get(id);
-    if (!p) return;
+    if (!p || !here(id)) return;
     const el = p.el.querySelector('.emote');
     el.textContent = e;
     el.classList.remove('pop');
@@ -933,10 +1004,12 @@
   };
   document.querySelectorAll('.dock-item').forEach((b) =>
     b.addEventListener('click', () => {
-      if (b.dataset.feature === 'cake') openCake();
+      if (b.dataset.feature === 'room') goRoom('in');
+      else if (b.dataset.feature === 'out') goRoom('out');
+      else if (b.dataset.feature === 'cake') openCake();
       else if (b.dataset.feature === 'tree') openTree();
       else if (b.dataset.feature === 'gift') openGift();
-      else if (b.dataset.feature !== 'room') toast(COMING[b.dataset.feature]);
+      else if (COMING[b.dataset.feature]) toast(COMING[b.dataset.feature]);
     })
   );
 

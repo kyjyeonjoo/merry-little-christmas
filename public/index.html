@@ -75,9 +75,9 @@
           <div class="garland"></div>
           <div class="window w-left"><div class="win-snow"></div><div class="moon"></div></div>
           <div class="window w-right"><div class="win-snow"></div></div>
-          <div class="frame">🦌</div>
         </div>
         <div class="floor"></div>
+        <div class="in-door" id="inDoor" title="눈마당으로 나가기"></div>
         <div class="rug"></div>
 
         <!-- 벽난로 -->
@@ -102,6 +102,13 @@
 
         <!-- 좌석과 캐릭터는 app.js가 여기에 그려요 -->
         <div class="cake-table" id="cakeTable" title="다 같이 케이크 만들기"><div class="art"></div></div>
+        <div id="outdoor">
+          <div class="out-bg" id="outBg"></div>
+          <div class="ohs" data-k="door" style="left:118px;top:232px;width:84px;height:132px" title="집 안으로 들어가기"></div>
+          <div class="ohs" data-k="workshop" style="left:282px;top:284px;width:126px;height:100px" title="눈사람 공방"></div>
+          <div class="ohs" data-k="race" style="left:632px;top:280px;width:162px;height:110px" title="썰매 경주"></div>
+          <div id="snowmen"></div>
+        </div>
         <div id="entities"></div>
         <div id="fx"></div>
         <div class="stage-hint" id="stageHint">바닥을 누르면 걸어가요 · 의자를 누르면 앉아요 · 방향키/WASD로도 움직여요 · 스페이스바 점프 · 친구를 누르면 눈덩이를 던져요</div>
@@ -132,6 +139,7 @@
 
     <nav class="dock">
       <button class="dock-item active" data-feature="room"><b>🔥</b><span>벽난로</span></button>
+      <button class="dock-item" data-feature="out"><b>⛄</b><span>눈마당</span></button>
       <button class="dock-item" data-feature="cake"><b>🎂</b><span>케이크</span></button>
       <button class="dock-item" data-feature="gift"><b>🎁</b><span>선물 나눔</span></button>
       <button class="dock-item" data-feature="tree"><b>🎄</b><span>트리 꾸미기</span></button>
@@ -253,6 +261,33 @@
     </div>
   </div>
   <div class="gift-open" id="giftOpen" hidden></div>
+  <div class="modal float" id="snowModal" hidden>
+    <div class="modal-card cake-card snow-card">
+      <button class="icon-btn close" data-close-snow>✕</button>
+      <h2>⛄ 눈사람 공방</h2>
+      <div id="snowSteps"></div>
+      <div class="cake-main">
+        <div class="cake-view-wrap"><div class="cake-view snow-view" id="snowView"></div></div>
+        <div class="cake-side">
+          <div class="cake-panel" id="snowPanel"></div>
+          <ul class="mini-chat"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal float" id="raceModal" hidden>
+    <div class="modal-card cake-card race-card">
+      <button class="icon-btn close" data-close-race>✕</button>
+      <h2>🛷 썰매 경주</h2>
+      <div class="race-main">
+        <div class="race-view" id="raceView"></div>
+        <div class="cake-side">
+          <div class="cake-panel race-panel" id="racePanel"></div>
+          <ul class="mini-chat"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
   <div class="modal float" id="kitchenModal" hidden>
     <div class="modal-card cake-card kitchen-card">
       <button class="icon-btn close" data-close-kitchen>✕</button>
@@ -281,6 +316,7 @@
   <script src="kitchen.js"></script>
   <script src="tree.js"></script>
   <script src="gift.js"></script>
+  <script src="outdoor.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -43,6 +43,7 @@ async function loadDb() {
   db.users = db.users || {};
   db.tree = db.tree && Array.isArray(db.tree.items) ? db.tree : { items: [], top: 'star', next: 1 };
   db.gifts = db.gifts && Array.isArray(db.gifts.pool) ? db.gifts : { pool: [], waiting: [], next: 1 };
+  db.snow = db.snow && Array.isArray(db.snow.men) ? db.snow : { men: [], next: 1 };
   db.tokens = db.tokens || {};
 }
 
@@ -137,14 +138,20 @@ const SEATS = {
   cush3: { x: 262, y: 512 },
   poufL: { x: 105, y: 520 },
   poufR: { x: 895, y: 520 },
+  // 눈마당
+  bench1: { x: 468, y: 402, room: 'out' },
+  bench2: { x: 528, y: 402, room: 'out' },
+  igloo: { x: 872, y: 418, room: 'out' },
 };
+const seatRoom = (id) => (SEATS[id] && SEATS[id].room) || 'in';
+const DOOR = { in: { x: 290, y: 365 }, out: { x: 160, y: 380 } }; // 방을 옮기면 문 앞에 나타나요
 const seatOwner = {}; // seatId -> playerId
 const players = new Map(); // playerId -> { id, uid, nick, avatar, x, y, seat, facing, client }
 const history = []; // 최근 채팅
 let nextPid = 1;
 
 function pub(p) {
-  return { id: p.id, nick: p.nick, avatar: p.avatar, x: p.x, y: p.y, seat: p.seat, facing: p.facing, held: p.held || null };
+  return { id: p.id, nick: p.nick, avatar: p.avatar, x: p.x, y: p.y, seat: p.seat, facing: p.facing, held: p.held || null, room: p.room || 'in' };
 }
 function broadcast(msg, except) {
   const s = JSON.stringify(msg);
@@ -179,13 +186,14 @@ function enterRoom(client, user) {
   const p = {
     id: nextPid++, uid: user.id, nick: user.nick, avatar: normAvatar(user.avatar),
     // 케이크 테이블(가운데)을 피해서 양옆에 나타나요
-    x: Math.random() < 0.5 ? 320 + Math.random() * 70 : 610 + Math.random() * 70, y: 545 + Math.random() * 45, seat: null, facing: 1, client,
+    x: Math.random() < 0.5 ? 320 + Math.random() * 70 : 610 + Math.random() * 70, y: 545 + Math.random() * 45, seat: null, facing: 1, client, room: 'in',
   };
   client.player = p;
   players.set(p.id, p);
   client.send({
     t: 'welcome', me: p.id, user: publicUser(user), inv: Array.isArray(user.inv) ? user.inv : [],
     players: [...players.values()].map(pub), history, cake, tree: db.tree, gift: giftState(user), giftPool: db.gifts.pool.length,
+    snowmen: db.snow.men, race: racePub(),
   });
   broadcast({ t: 'join', player: pub(p) }, client);
   if (recentlyLeft.has(user.id)) {
@@ -204,7 +212,7 @@ function removePlayer(client) {
   leaveSeat(p);
   players.delete(p.id);
   client.player = null;
-  if (![...players.values()].some((q) => q.uid === p.uid)) cakeOnLeave(p.uid);
+  if (![...players.values()].some((q) => q.uid === p.uid)) { cakeOnLeave(p.uid); raceLeave(p.uid); }
   broadcast({ t: 'leave', id: p.id });
   const nick = p.nick, uid = p.uid;
   clearTimeout(recentlyLeft.get(uid));
@@ -610,6 +618,166 @@ async function handleGift(client, p, msg) {
   }
 }
 
+// ───────────────────────── ⛄ 눈사람 (눈마당에 세워 두면 저장돼요) ─────────────────────────
+const SNOW_SPOTS = [[270, 555], [400, 590], [530, 555], [660, 590], [790, 555], [920, 595], [150, 580], [345, 530], [730, 535], [600, 525]]; // 공방·벤치·출발선을 가리지 않는 자리
+const SM = {
+  hat: ['none', 'beanie', 'santa', 'top', 'bucket', 'muffs', 'bow'],
+  scarf: ['none', 'red', 'green', 'blue', 'pink', 'stripe'],
+  eyes: ['coal', 'sparkle', 'happy', 'sleepy', 'wink'],
+  nose: ['carrot', 'round', 'button'],
+  mouth: ['smile', 'coal', 'open', 'cat', 'tongue'],
+  arms: ['twig', 'mitten', 'none'],
+  buttons: ['coal', 'color', 'none'],
+};
+function cleanSnowman(o) {
+  if (!o || typeof o !== 'object') return null;
+  const pick = (k) => (SM[k].includes(o[k]) ? o[k] : SM[k][0]);
+  const sz = Array.isArray(o.sz) ? o.sz : [];
+  const lv = o.lv === 2 ? 2 : 3;
+  const out = { lv, sz: [clampN(sz[0], 34, 52), clampN(sz[1], 24, 40), clampN(sz[2], 18, 30)] };
+  for (const k of Object.keys(SM)) out[k] = pick(k);
+  out.blush = !!o.blush;
+  out.name = String(o.name || '').replace(/[\u0000-\u001f]/g, '').trim().slice(0, 10) || '눈사람';
+  return out;
+}
+function handleSnowman(client, p, msg) {
+  const sn = db.snow;
+  const now = Date.now();
+  if (now - (client.lastSnow || 0) < 1500) return;
+  client.lastSnow = now;
+  if (msg.act === 'build') {
+    const sm = cleanSnowman(msg.sm);
+    if (!sm) return;
+    const mine = sn.men.find((m) => m.uid === p.uid);
+    if (mine) Object.assign(mine, sm, { nick: p.nick }); // 내 눈사람은 하나 → 고쳐 세워요
+    else {
+      const used = new Set(sn.men.map((m) => m.spot));
+      let spot = SNOW_SPOTS.findIndex((_, i) => !used.has(i));
+      if (spot < 0) { const old = sn.men.shift(); spot = old.spot; } // 꽉 차면 가장 오래된 눈사람이 녹아요
+      const [x, y] = SNOW_SPOTS[spot];
+      sn.men.push({ ...sm, id: sn.next++, uid: p.uid, nick: p.nick, spot, x, y, ts: now });
+      const sys = { kind: 'sys', text: `⛄ ${p.nick} 님이 눈마당에 눈사람 "${sm.name}"을(를) 세웠어요`, ts: now };
+      pushHistory(sys); broadcast({ t: 'sys', ...sys });
+    }
+  } else if (msg.act === 'del') {
+    const i = sn.men.findIndex((m) => m.uid === p.uid);
+    if (i < 0) return;
+    sn.men.splice(i, 1);
+  } else return;
+  saveDb();
+  broadcast({ t: 'snowmen', men: sn.men });
+}
+
+// ───────────────────────── 🛷 썰매 경주 (연타 미니게임) ─────────────────────────
+const RACE_MAX = 6, RACE_GOAL = 100, RACE_STEP = 1.25;
+let race = { stage: 'idle', host: null, racers: [], bets: {}, startAt: 0, endAt: 0, results: [] };
+let raceDirty = false, raceTick = null;
+function racePub() {
+  return {
+    stage: race.stage, host: race.host, bets: race.bets, results: race.results,
+    racers: race.racers.map((r) => ({ uid: r.uid, nick: r.nick, avatar: r.avatar, pos: Math.round(r.pos * 10) / 10, place: r.place || 0 })),
+    cd: race.stage === 'count' ? Math.max(0, race.startAt - Date.now()) : 0,
+  };
+}
+function raceSend() { broadcast({ t: 'race', race: racePub() }); }
+function raceFlush() { if (raceDirty) { raceDirty = false; raceSend(); } }
+function raceFinish() {
+  if (race.stage !== 'run') return;
+  race.stage = 'done';
+  clearInterval(raceTick); raceTick = null;
+  const ranked = race.racers.slice().sort((a, b) => (a.place || 99) - (b.place || 99) || b.pos - a.pos);
+  race.results = ranked.map((r, i) => ({ uid: r.uid, nick: r.nick, place: i + 1, done: !!r.place }));
+  const win = ranked[0];
+  if (win && race.racers.length > 1) {
+    // 1등 + 1등을 맞힌 사람은 황금 마시멜로를 받아요 (인벤토리에 자리가 있으면)
+    const lucky = [win.uid, ...Object.entries(race.bets).filter(([, v]) => v === win.uid).map(([k]) => k)];
+    for (const uid of new Set(lucky)) {
+      const u = db.users[uid];
+      if (!u) continue;
+      u.inv = Array.isArray(u.inv) ? u.inv : [];
+      if (u.inv.length >= INV_SIZE) continue;
+      const item = { k: 'mallow', q: 'perfect' };
+      u.inv.push(item);
+      clientsOf(uid).forEach((c) => { c.send({ t: 'inv', inv: u.inv, added: item }); c.send({ t: 'toast', msg: uid === win.uid ? '🏆 1등 상품! 황금 마시멜로를 받았어요' : '🎯 내기 성공! 황금 마시멜로를 받았어요' }); });
+    }
+    saveDb();
+    const right = Object.entries(race.bets).filter(([, v]) => v === win.uid).length;
+    const sys = { kind: 'sys', text: `🛷 썰매 경주 1등은 ${win.nick} 님! 🏆${right ? ` (맞힌 사람 ${right}명)` : ''}`, ts: Date.now() };
+    pushHistory(sys); broadcast({ t: 'sys', ...sys });
+    notice('race', `🏆 썰매 경주 1등은 ${win.nick} 님이에요!`);
+  }
+  raceSend();
+}
+function raceLeave(uid) {
+  if (race.stage !== 'lobby' && race.stage !== 'count') return;
+  const i = race.racers.findIndex((r) => r.uid === uid);
+  if (i >= 0) race.racers.splice(i, 1);
+  delete race.bets[uid];
+  for (const [k, v] of Object.entries(race.bets)) if (v === uid) delete race.bets[k];
+  if (!race.racers.length) { race = { stage: 'idle', host: null, racers: [], bets: {}, startAt: 0, endAt: 0, results: [] }; }
+  else if (race.host === uid) race.host = race.racers[0].uid;
+  raceSend();
+}
+function handleRace(client, p, msg) {
+  const now = Date.now();
+  const toast = (m) => client.send({ t: 'toast', msg: m });
+  const me = race.racers.find((r) => r.uid === p.uid);
+  switch (msg.act) {
+    case 'open':
+      if (race.stage === 'lobby' || race.stage === 'count' || race.stage === 'run') return toast('이미 경주가 열려 있어요');
+      race = { stage: 'lobby', host: p.uid, racers: [{ uid: p.uid, nick: p.nick, avatar: p.avatar, pos: 0 }], bets: {}, startAt: 0, endAt: 0, results: [] };
+      notice('race', `🛷 ${p.nick} 님이 썰매 경주를 열었어요! 같이 달리거나 1등을 맞혀 봐요`);
+      break;
+    case 'join':
+      if (race.stage !== 'lobby' || me) return;
+      if (race.racers.length >= RACE_MAX) return toast(`썰매는 ${RACE_MAX}대까지예요`);
+      delete race.bets[p.uid];
+      race.racers.push({ uid: p.uid, nick: p.nick, avatar: p.avatar, pos: 0 });
+      break;
+    case 'leave': return raceLeave(p.uid);
+    case 'bet': {
+      if ((race.stage !== 'lobby' && race.stage !== 'count') || me) return;
+      if (!race.racers.some((r) => r.uid === msg.uid)) return;
+      race.bets[p.uid] = msg.uid;
+      break;
+    }
+    case 'start':
+      if (race.stage !== 'lobby' || race.host !== p.uid) return;
+      race.stage = 'count'; race.startAt = now + 3200;
+      race.racers.forEach((r) => { r.pos = 0; r.place = 0; });
+      setTimeout(() => {
+        if (race.stage !== 'count') return;
+        race.stage = 'run'; race.endAt = Date.now() + 45000; race.places = 0;
+        raceTick = setInterval(() => {
+          raceFlush();
+          if (race.stage === 'run' && Date.now() > race.endAt) raceFinish();
+        }, 100);
+        raceSend();
+      }, 3200);
+      break;
+    case 'tap': {
+      if (race.stage !== 'run' || !me || me.place) return;
+      client.taps = (client.taps || []).filter((t) => now - t < 1000);
+      if (client.taps.length >= 14) return; // 1초에 14번까지만 쳐요 (자동 연타 방지)
+      client.taps.push(now);
+      me.pos = Math.min(RACE_GOAL, me.pos + RACE_STEP);
+      if (me.pos >= RACE_GOAL) {
+        me.place = ++race.places;
+        if (me.place === 1) race.endAt = Math.min(race.endAt, now + 8000); // 1등이 들어오면 8초 뒤 끝나요
+        if (race.racers.every((r) => r.place)) { raceFlush(); raceDirty = true; raceFinish(); return; }
+      }
+      raceDirty = true;
+      return;
+    }
+    case 'reset':
+      if (race.stage !== 'done') return;
+      race = { stage: 'idle', host: null, racers: [], bets: {}, startAt: 0, endAt: 0, results: [] };
+      break;
+    default: return;
+  }
+  raceSend();
+}
+
 // ───────────────────────── 메시지 처리 ─────────────────────────
 function handle(client, msg) {
   if (!msg || typeof msg.t !== 'string') return;
@@ -661,7 +829,7 @@ function handle(client, msg) {
     }
     case 'sit': {
       const seat = SEATS[msg.seat];
-      if (!seat) return;
+      if (!seat || seatRoom(msg.seat) !== (p.room || 'in')) return;
       const owner = seatOwner[msg.seat];
       if (owner && owner !== p.id) return client.send({ t: 'toast', msg: '거긴 이미 누가 앉아 있어요 🙈' });
       leaveSeat(p);
@@ -733,7 +901,7 @@ function handle(client, msg) {
       client.fxTimes.push(now);
       if (msg.t === 'throw') {
         const target = players.get(Number(msg.to));
-        if (!target || target.id === p.id) return;
+        if (!target || target.id === p.id || target.room !== p.room) return;
         p.facing = target.x < p.x ? -1 : 1;
         broadcast({ t: 'throw', from: p.id, to: target.id });
       } else {
@@ -741,6 +909,19 @@ function handle(client, msg) {
       }
       break;
     }
+    case 'go': {
+      // 거실 ↔ 눈마당
+      const room = msg.room === 'out' ? 'out' : 'in';
+      if (room === p.room) return;
+      leaveSeat(p);
+      p.room = room;
+      const d = DOOR[room];
+      p.x = d.x + Math.round(Math.random() * 40 - 20); p.y = d.y + Math.round(Math.random() * 20);
+      broadcast({ t: 'go', id: p.id, room, x: p.x, y: p.y });
+      break;
+    }
+    case 'snowman': handleSnowman(client, p, msg); break;
+    case 'race': handleRace(client, p, msg); break;
     case 'cake': handleCake(client, p, msg); break;
     case 'tree': handleTree(client, p, msg); break;
     case 'gift': handleGift(client, p, msg).catch((e) => console.error(e)); break;
