@@ -874,7 +874,7 @@ input:focus { border-color: #ffc9cf; }
 .in-door { position: absolute; left: 246px; top: 150px; width: 84px; height: 196px; z-index: 3; cursor: pointer; }
 .in-door svg { width: 100%; height: 100%; display: block; transition: transform .2s; transform-origin: 50% 100%; }
 .in-door:hover svg { transform: scale(1.03); }
-.snowman { position: absolute; width: 84px; height: 168px; transform: translate(-50%, calc(-100% + 19px)); cursor: pointer; }
+.snowman { position: absolute; width: 84px; height: 168px; transform: translate(-50%, calc(-100% + 19px)); pointer-events: none; }
 .snowman svg { width: 100%; height: 100%; display: block; overflow: visible; }
 .snowman:hover svg { transform: rotate(-2deg); transform-origin: 50% 90%; }
 .snow-card { width: min(760px, 100%); }
@@ -995,7 +995,7 @@ input:focus { border-color: #ffc9cf; }
 .btn.blue { background: #5b8def; color: #fff; box-shadow: 0 4px 0 #3f6cc4; }
 .fscore { text-align: center; font: 400 40px 'Jua', sans-serif; }
 /* ───── 🏰 눈성 ───── */
-.yard-castle { position: absolute; left: 364px; top: 378px; width: 272px; height: 144px; z-index: 520; cursor: pointer; }
+.yard-castle { position: absolute; left: 364px; top: 300px; width: 272px; height: 144px; z-index: 444; cursor: pointer; }
 .yard-castle svg { width: 100%; height: 100%; display: block; overflow: visible; }
 .yard-castle:hover svg { filter: drop-shadow(0 0 6px rgba(255,255,255,.9)); }
 .castle-card { width: min(860px, 100%); }
@@ -1010,3 +1010,9 @@ input:focus { border-color: #ffc9cf; }
   .castle-card .cake-main { grid-template-columns: 1fr; }
   .fight-board { font-size: 15px; padding: 4px 12px; top: 6px; }
 }
+
+.oobj { position: absolute; pointer-events: none; }
+.oobj.ohs { pointer-events: auto; }
+.oobj svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.oobj.ohs:hover { background: none; box-shadow: none; }
+.oobj.ohs:hover svg { filter: drop-shadow(0 0 6px rgba(255,255,255,.95)); }

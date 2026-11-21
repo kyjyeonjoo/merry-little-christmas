@@ -45,6 +45,7 @@ async function loadDb() {
   db.gifts = db.gifts && Array.isArray(db.gifts.pool) ? db.gifts : { pool: [], waiting: [], next: 1 };
   db.snow = db.snow && Array.isArray(db.snow.men) ? db.snow : { men: [], next: 1 };
   db.castle = db.castle && db.castle.cells ? db.castle : { cells: {} };
+  snowRelayout();
   db.tokens = db.tokens || {};
 }
 
@@ -140,9 +141,9 @@ const SEATS = {
   poufL: { x: 105, y: 520 },
   poufR: { x: 895, y: 520 },
   // 눈마당
-  bench1: { x: 468, y: 402, room: 'out' },
-  bench2: { x: 528, y: 402, room: 'out' },
-  igloo: { x: 872, y: 418, room: 'out' },
+  bench1: { x: 357, y: 600, room: 'out' },
+  bench2: { x: 413, y: 600, room: 'out' },
+  igloo: { x: 888, y: 484, room: 'out' },
 };
 const seatRoom = (id) => (SEATS[id] && SEATS[id].room) || 'in';
 const DOOR = { in: { x: 290, y: 365 }, out: { x: 160, y: 380 } }; // 방을 옮기면 문 앞에 나타나요
@@ -620,7 +621,12 @@ async function handleGift(client, p, msg) {
 }
 
 // ───────────────────────── ⛄ 눈사람 (눈마당에 세워 두면 저장돼요) ─────────────────────────
-const SNOW_SPOTS = [[270, 555], [400, 590], [530, 555], [660, 590], [790, 555], [920, 595], [150, 580], [345, 530], [730, 535], [600, 525]]; // 공방·벤치·출발선을 가리지 않는 자리
+const SNOW_SPOTS = [[72, 505], [575, 540], [700, 600], [795, 575], [965, 598], [300, 470]]; // 서로 겹치지 않게 마당 곳곳에
+function snowRelayout() { // 자리 배치가 바뀌면 원래 있던 눈사람도 새 자리로 옮겨요
+  const men = db.snow.men.slice(-SNOW_SPOTS.length);
+  men.forEach((m, i) => { m.spot = i; [m.x, m.y] = SNOW_SPOTS[i]; });
+  db.snow.men = men;
+}
 const SM = {
   hat: ['none', 'beanie', 'santa', 'top', 'bucket', 'muffs', 'bow'],
   scarf: ['none', 'red', 'green', 'blue', 'pink', 'stripe'],

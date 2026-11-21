@@ -17,9 +17,9 @@
     poufL: { x: 105, y: 520, kind: 'pouf', face: 1 },
     poufR: { x: 895, y: 520, kind: 'pouf', face: -1 },
     // 눈마당
-    bench1: { x: 468, y: 402, kind: 'bench', room: 'out', face: 1 },
-    bench2: { x: 528, y: 402, kind: 'bench', room: 'out', face: -1 },
-    igloo: { x: 872, y: 418, kind: 'igloo', room: 'out' },
+    bench1: { x: 357, y: 600, kind: 'bench', room: 'out', face: 1 },
+    bench2: { x: 413, y: 600, kind: 'bench', room: 'out', face: -1 },
+    igloo: { x: 888, y: 484, kind: 'igloo', room: 'out' },
   };
   let myRoom = 'in';
   const roomOf = (p) => (p && p.data.room) || 'in';
@@ -407,7 +407,7 @@
         el.style.zIndex = 5;
       } else if (s.kind === 'bench' || s.kind === 'igloo') {
         el.innerHTML = `<div class="seat-hit"></div>`;
-        el.style.zIndex = 4;
+        el.style.zIndex = s.y + 2; // 벤치·이글루 그림보다 위에서 눌려요
       } else if (s.kind === 'pouf') {
         el.innerHTML = `<div class="pouf"></div>`;
         el.style.zIndex = s.y - 2;
@@ -471,7 +471,7 @@
     $('#dockOut').hidden = room !== 'out';
     $('#angelBtn').hidden = room !== 'out';
     if (room !== 'out') $('#prints').innerHTML = '';
-    if (room === 'out' && !$('#outBg').firstChild) $('#outBg').innerHTML = Outdoor.scene();
+    if (room === 'out' && !$('#outBg').firstChild) { $('#outBg').innerHTML = Outdoor.scene(); $('#outObjs').innerHTML = Outdoor.objects(); }
     fitStage();
   }
   function goRoom(room) { if (room !== myRoom) send({ t: 'go', room }); }

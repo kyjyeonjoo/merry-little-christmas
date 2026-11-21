@@ -34,8 +34,10 @@
       <rect y="320" width="1000" height="300" fill="url(#oGround)"/>
       <path d="M0 330 Q250 312 500 330 Q760 348 1000 326 L1000 345 L0 345 Z" fill="#dfe8f7"/>
       ${Array.from({ length: 14 }, (_, i) => `<ellipse cx="${(r() * 1000).toFixed(0)}" cy="${(380 + r() * 220).toFixed(0)}" rx="${(30 + r() * 60).toFixed(0)}" ry="${(5 + r() * 6).toFixed(0)}" fill="#dbe5f5" opacity=".7"/>`).join('')}
-      <!-- 썰매 자국 -->
-      <path d="M700 372 Q600 440 520 610 M716 376 Q620 446 542 612" stroke="#d3def2" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <!-- 집에서 이어지는 눈길 · 썰매 자국 -->
+      <path d="M150 372 Q230 420 300 450 Q380 480 470 470 Q560 460 640 480 Q760 510 860 500" stroke="#e2eaf7" stroke-width="34" fill="none" stroke-linecap="round" opacity=".9"/>
+      <path d="M150 372 Q230 420 300 450 Q380 480 470 470 Q560 460 640 480 Q760 510 860 500" stroke="#d3def2" stroke-width="2" stroke-dasharray="3 10" fill="none" stroke-linecap="round"/>
+      <path d="M714 380 Q690 470 660 640 M734 382 Q712 472 684 640" stroke="#d3def2" stroke-width="5" fill="none" stroke-linecap="round"/>
 
       <!-- 집 -->
       <g>
@@ -61,36 +63,8 @@
         <path d="M-10 362 Q30 344 70 360 Q110 346 150 362 Q190 344 240 362 L240 372 L-10 372 Z" fill="#fff"/>
       </g>
 
-      <!-- 가로등 -->
-      <ellipse cx="608" cy="268" rx="70" ry="70" fill="url(#oLamp)"/>
-      <rect x="604" y="268" width="8" height="122" fill="#3c4660"/>
-      <path d="M594 262 L622 262 L616 280 L600 280 Z" fill="#ffe9a8" stroke="#3c4660" stroke-width="3" stroke-linejoin="round"/>
-      <path d="M592 262 L624 262 L608 248 Z" fill="#3c4660"/><rect x="598" y="386" width="20" height="6" rx="2" fill="#3c4660"/>
-      <path d="M602 300 Q608 292 614 300" fill="#e8474f" stroke="${LINE}" stroke-width="1.4"/>
-
-      <!-- 눈사람 공방 -->
-      <g transform="translate(345 368)">
-        <ellipse cx="0" cy="4" rx="58" ry="12" fill="#cfdbef"/>
-        <path d="M-52 4 Q-50 -26 -18 -30 Q-4 -46 18 -32 Q48 -28 52 4 Z" fill="#fff" stroke="#c4d2ea" stroke-width="2.4"/>
-        <circle cx="-30" cy="-6" r="13" fill="#fff" stroke="#c4d2ea" stroke-width="2"/>
-        <g transform="translate(30 -18) rotate(22)"><rect x="-3" y="-44" width="6" height="40" fill="#b97a4f" stroke="${LINE}" stroke-width="1.8"/><path d="M-11 -4 L11 -4 L9 16 Q0 20 -9 16 Z" fill="#9fb1c9" stroke="${LINE}" stroke-width="2"/></g>
-        <path d="M-60 -6 L-44 -6 L-46 12 L-58 12 Z" fill="#5b9cf0" stroke="${LINE}" stroke-width="2"/>
-        <g transform="translate(-6 -64)"><rect x="-2.5" y="0" width="5" height="34" fill="#8c5232"/>
-          <rect x="-36" y="-22" width="72" height="24" rx="6" fill="#fffaf2" stroke="${LINE}" stroke-width="2.4"/>
-          <text y="-5" text-anchor="middle" font-size="13" font-family="Jua, sans-serif" fill="${LINE}">눈사람 공방</text></g>
-      </g>
-
-      <!-- 벤치 -->
-      <g transform="translate(498 384)">
-        <rect x="-62" y="-36" width="124" height="10" rx="3" fill="#b97a4f" stroke="${LINE}" stroke-width="2.4"/>
-        <rect x="-62" y="-22" width="124" height="10" rx="3" fill="#b97a4f" stroke="${LINE}" stroke-width="2.4"/>
-        <path d="M-62 -38 Q-30 -46 0 -38 Q30 -46 62 -38" stroke="#fff" stroke-width="6" stroke-linecap="round" fill="none"/>
-        <rect x="-66" y="-6" width="132" height="10" rx="3" fill="#c98a5e" stroke="${LINE}" stroke-width="2.4"/>
-        <path d="M-56 4 L-56 20 M56 4 L56 20 M-50 -26 L-50 -6 M50 -26 L50 -6" stroke="${LINE}" stroke-width="4" stroke-linecap="round"/>
-      </g>
-
       <!-- 썰매 경주 출발선 -->
-      <g transform="translate(712 330)">
+      <g transform="translate(724 332)">
         <path d="M-74 -46 L-74 42 M74 -46 L74 42" stroke="#8c5232" stroke-width="6" stroke-linecap="round"/>
         <path d="M-74 -44 Q0 -30 74 -44 L74 -16 Q0 -2 -74 -16 Z" fill="#e8474f" stroke="${LINE}" stroke-width="2.6"/>
         <text y="-17" text-anchor="middle" font-size="16" font-family="Jua, sans-serif" fill="#fff">썰매 경주</text>
@@ -98,18 +72,66 @@
         ${sledArt(-36, 30, 0.8)}${sledArt(30, 34, 0.8, '#5b9cf0')}
       </g>
 
-      <!-- 이글루 -->
-      <g transform="translate(872 416)">
-        <ellipse cx="0" cy="2" rx="96" ry="12" fill="#cfdbef"/>
-        <path d="M-86 0 Q-86 -92 0 -94 Q86 -92 86 0 Z" fill="#f4f8ff" stroke="#9fb4d6" stroke-width="3.4"/>
-        ${[-22, -46, -68].map((y, i) => `<path d="M${-86 + i * 7} ${y} Q0 ${y - 6} ${86 - i * 7} ${y}" stroke="#c4d2ea" stroke-width="2.4" fill="none"/>`).join('')}
-        ${[[-60, -11], [-20, -11], [20, -11], [60, -11], [-40, -34], [0, -34], [40, -34], [-52, -57], [-14, -57], [26, -57], [-20, -80], [20, -80]].map(([x, y]) => `<path d="M${x} ${y - 11} L${x} ${y + 11}" stroke="#c4d2ea" stroke-width="2.2"/>`).join('')}
-        <path d="M-34 0 Q-34 -46 0 -46 Q34 -46 34 0 Z" fill="#e3ebf8" stroke="#9fb4d6" stroke-width="3"/>
-        <path d="M-22 0 Q-22 -32 0 -32 Q22 -32 22 0 Z" fill="#3a527c"/>
-        <path d="M-18 -8 Q0 -14 18 -8" stroke="#ffd98a" stroke-width="3" opacity=".6" fill="none"/>
-      </g>
-      ${pine(975, 330, 0.9)}${pine(560, 300, 0.55)}${pine(262, 350, 0.6)}
     </svg>`;
+  }
+  // 눈마당에 서 있는 것들: 캐릭터와 앞뒤가 맞게 따로 그려요 (발 밑 y 기준)
+  const OBJ_LIST = [
+    { k: 'workshop', x: 190, y: 548, w: 160, h: 128, z: 548 },
+    { k: 'igloo', x: 888, y: 480, w: 210, h: 122, z: 480 },
+    { k: 'bench', x: 385, y: 598, w: 150, h: 72, z: 576 },
+    { k: 'lamp', x: 474, y: 600, w: 70, h: 176, z: 600 },
+    { k: 'pine', x: 312, y: 396, s: 0.62 },
+    { k: 'pine', x: 820, y: 376, s: 0.55 },
+    { k: 'pine', x: 24, y: 616, s: 1.15 },
+    { k: 'pine', x: 990, y: 612, s: 1.05 },
+  ];
+  function objSVG(o) {
+    switch (o.k) {
+      case 'workshop': return `<svg viewBox="-80 -126 160 130"><g>
+        <ellipse cx="0" cy="-2" rx="66" ry="12" fill="#cfdbef"/>
+        <path d="M-58 -2 Q-56 -36 -20 -40 Q-4 -58 20 -42 Q54 -38 58 -2 Z" fill="#fff" stroke="#c4d2ea" stroke-width="2.4"/>
+        <circle cx="-34" cy="-12" r="14" fill="#fff" stroke="#c4d2ea" stroke-width="2"/><circle cx="-12" cy="-8" r="9" fill="#fff" stroke="#c4d2ea" stroke-width="2"/>
+        <g transform="translate(34 -26) rotate(22)"><rect x="-3" y="-48" width="6" height="44" fill="#b97a4f" stroke="${LINE}" stroke-width="1.8"/><path d="M-12 -4 L12 -4 L10 18 Q0 22 -10 18 Z" fill="#9fb1c9" stroke="${LINE}" stroke-width="2"/></g>
+        <path d="M-70 -14 L-52 -14 L-54 6 L-68 6 Z" fill="#5b9cf0" stroke="${LINE}" stroke-width="2"/><path d="M-70 -14 Q-61 -24 -52 -14" stroke="${LINE}" stroke-width="1.6" fill="none"/>
+        <g transform="translate(-6 -78)"><rect x="-2.5" y="0" width="5" height="40" fill="#8c5232"/>
+          <rect x="-44" y="-26" width="88" height="28" rx="7" fill="#fffaf2" stroke="${LINE}" stroke-width="2.4"/>
+          <text y="-7" text-anchor="middle" font-size="15" font-family="Jua, sans-serif" fill="${LINE}">눈사람 공방</text></g></g></svg>`;
+      case 'igloo': return `<svg viewBox="-105 -118 210 122"><g>
+        <ellipse cx="0" cy="-2" rx="102" ry="13" fill="#cfdbef"/>
+        <path d="M-90 -2 Q-90 -100 0 -102 Q90 -100 90 -2 Z" fill="#f4f8ff" stroke="#9fb4d6" stroke-width="3.4"/>
+        ${[-26, -52, -76].map((y, i) => `<path d="M${-90 + i * 8} ${y} Q0 ${y - 6} ${90 - i * 8} ${y}" stroke="#c4d2ea" stroke-width="2.4" fill="none"/>`).join('')}
+        ${[[-62, -14], [-22, -14], [22, -14], [62, -14], [-42, -39], [0, -39], [42, -39], [-54, -64], [-16, -64], [26, -64], [-22, -88], [20, -88]].map(([x, y]) => `<path d="M${x} ${y - 11} L${x} ${y + 11}" stroke="#c4d2ea" stroke-width="2.2"/>`).join('')}
+        <path d="M-36 -2 Q-36 -52 0 -52 Q36 -52 36 -2 Z" fill="#e3ebf8" stroke="#9fb4d6" stroke-width="3"/>
+        <path d="M-24 -2 Q-24 -38 0 -38 Q24 -38 24 -2 Z" fill="#3a527c"/>
+        <path d="M-18 -12 Q0 -18 18 -12" stroke="#ffd98a" stroke-width="3" opacity=".6" fill="none"/></g></svg>`;
+      case 'bench': return `<svg viewBox="-75 -68 150 72"><g>
+        <ellipse cx="0" cy="-1" rx="70" ry="7" fill="#cfdbef"/>
+        <path d="M-58 -2 L-58 -24 M58 -2 L58 -24" stroke="${LINE}" stroke-width="4.5" stroke-linecap="round"/>
+        <rect x="-64" y="-62" width="128" height="11" rx="3" fill="#b97a4f" stroke="${LINE}" stroke-width="2.4"/>
+        <rect x="-64" y="-47" width="128" height="11" rx="3" fill="#b97a4f" stroke="${LINE}" stroke-width="2.4"/>
+        <path d="M-52 -36 L-52 -26 M52 -36 L52 -26" stroke="${LINE}" stroke-width="4" stroke-linecap="round"/>
+        <path d="M-64 -64 Q-32 -72 0 -64 Q32 -72 64 -64" stroke="#fff" stroke-width="6" stroke-linecap="round" fill="none"/>
+        <rect x="-68" y="-28" width="136" height="11" rx="3" fill="#c98a5e" stroke="${LINE}" stroke-width="2.4"/>
+        <path d="M-60 -29 Q-20 -34 20 -29" stroke="#fff" stroke-width="4" stroke-linecap="round" fill="none" opacity=".9"/></g></svg>`;
+      case 'lamp': return `<svg viewBox="-35 -178 70 182"><g>
+        <circle cx="0" cy="-150" r="34" fill="url(#oLampG)"/>
+        <defs><radialGradient id="oLampG"><stop offset="0" stop-color="#ffe7a0" stop-opacity=".8"/><stop offset="1" stop-color="#ffe7a0" stop-opacity="0"/></radialGradient></defs>
+        <ellipse cx="0" cy="-1" rx="16" ry="4" fill="#cfdbef"/>
+        <rect x="-4" y="-150" width="8" height="148" fill="#3c4660"/><rect x="-10" y="-8" width="20" height="7" rx="2" fill="#3c4660"/>
+        <path d="M-14 -156 L14 -156 L8 -138 L-8 -138 Z" fill="#ffe9a8" stroke="#3c4660" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M-16 -156 L16 -156 L0 -170 Z" fill="#3c4660"/>
+        <path d="M-6 -118 Q0 -126 6 -118 L4 -112 L0 -116 L-4 -112 Z" fill="#e8474f" stroke="${LINE}" stroke-width="1.4"/>
+        <path d="M-4 -112 L-7 -100 M4 -112 L7 -100" stroke="#e8474f" stroke-width="2.4" stroke-linecap="round"/></g></svg>`;
+      case 'pine': return `<svg viewBox="-46 -96 92 108">${pine(0, 0, 1)}</svg>`;
+    }
+    return '';
+  }
+  function objects() {
+    return OBJ_LIST.map((o) => {
+      const w = o.w || 92 * (o.s || 1), h = o.h || 108 * (o.s || 1);
+      const click = o.k === 'workshop' ? ' ohs" data-k="workshop" title="눈사람 공방' : '';
+      return `<div class="oobj o-${o.k}${click}" style="left:${o.x - w / 2}px;top:${o.y - h + (o.k === 'pine' ? 12 * (o.s || 1) : 4)}px;width:${w}px;height:${h}px;z-index:${o.z || o.y}">${objSVG(o)}</div>`;
+    }).join('');
   }
   function sledArt(x, y, s, color = '#e8474f') {
     return `<g transform="translate(${x} ${y}) scale(${s})">
@@ -229,7 +251,7 @@
   }
   const snowmanSVG = (sm, opt = {}) => `<svg viewBox="-75 -265 150 ${opt.name ? 300 : 272}" xmlns="http://www.w3.org/2000/svg">${snowman(sm, opt)}</svg>`;
 
-  window.Outdoor = { scene, doorArt, snowmanSVG, sledArt };
+  window.Outdoor = { scene, objects, doorArt, snowmanSVG, sledArt };
 
   // ───────── 눈사람 공방 창 ─────────
   const OPTS = {
