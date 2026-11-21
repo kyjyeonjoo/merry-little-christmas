@@ -123,7 +123,7 @@
           ? `<div class="gshelf">${state.box.map((g) => `<button class="gitem ${g.opened ? 'opened' : ''}" data-id="${g.id}">${box(g.wrap, g.rib, g.opened ? 0.25 : 0, !g.opened)}<small>${g.opened ? esc(g.from || '익명의 친구') : '새 선물!'}</small></button>`).join('')}</div>`
           : `<div class="gempty">${box('green', 'gold')}<p>아직 받은 선물이 없어요.<br>그림 선물을 교환 상자에 넣으면<br>다른 친구의 선물이 나와요!</p></div>`;
         panel.innerHTML = `<p class="chint">선물을 누르면 열어 볼 수 있어요 🎁</p>
-          <p class="chint small">${state.waiting ? '⏳ 내 선물이 교환을 기다리는 중이에요. 다른 친구가 선물을 넣으면 바로 받아요!' : '받은 선물은 내 계정에 보관돼요 (최대 30개)'}</p>`;
+          <p class="chint small">${state.waiting ? '⏳ 내 선물이 교환을 기다리는 중이에요. 다른 친구가 선물을 넣으면 바로 받아요!' : '받은 선물은 내 계정에 5개까지 보관돼요. 넘치면 열어 본 오래된 선물부터 빠져요'}</p>`;
         canvas = null; ctx = null;
         return;
       }
@@ -238,7 +238,7 @@
     });
 
     return {
-      setOpen(v) { open = v; if (!v) { $('#giftView').innerHTML = ''; ctx = null; } render(); },
+      setOpen(v) { open = v; if (!v) { $('#giftView').innerHTML = ''; ctx = null; result = null; } render(); },
       setState(st) { state = st || state; render(); },
       sent(got) {
         sending = false; result = got ? { got, wrap: 'gold', rib: 'red' } : { got, wrap, rib }; strokes = []; step = 'draw';

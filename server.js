@@ -521,6 +521,13 @@ async function putImg(id, data) {
     await fs.promises.writeFile(path.join(GIFT_DIR, id + '.txt'), data);
   }
 }
+const GIFT_KEEP = 5; // 받은 선물함 칸 수
+function delImg(id) {
+  const job = USE_REDIS
+    ? fetch(`${UP_URL}/del/gimg:${id}`, { method: 'POST', headers: { Authorization: `Bearer ${UP_TOKEN}` } })
+    : fs.promises.unlink(path.join(GIFT_DIR, id + '.txt'));
+  Promise.resolve(job).catch(() => {});
+}
 async function getImg(id) {
   try {
     if (USE_REDIS) {
@@ -553,7 +560,13 @@ function giftMatch() {
     const u = db.users[uid]; if (!u) continue;
     u.gifts = Array.isArray(u.gifts) ? u.gifts : [];
     u.gifts.unshift({ id: g.id, from: g.anon ? null : g.nick, wrap: g.wrap, rib: g.rib, ts: Date.now(), opened: false });
-    if (u.gifts.length > 30) u.gifts.length = 30;
+    while (u.gifts.length > GIFT_KEEP) {
+      // 넘치면 이미 열어 본 것 중 가장 오래된 것부터 빼요 (안 연 선물은 최대한 지켜요)
+      let k = -1;
+      for (let j = u.gifts.length - 1; j >= 0; j--) if (u.gifts[j].opened) { k = j; break; }
+      if (k < 0) k = u.gifts.length - 1;
+      delImg(u.gifts.splice(k, 1)[0].id);
+    }
     sendGiftState(uid);
     clientsOf(uid).forEach((c) => c.send({ t: 'giftArrived' }));
     clientsOf(g.from).forEach((c) => c.send({ t: 'toast', msg: '🎁 내가 넣은 선물이 누군가에게 도착했어요!' }));
@@ -593,7 +606,7 @@ async function handleGift(client, p, msg) {
   } else if (msg.act === 'toss') {
     const i = (user.gifts || []).findIndex((x) => x.id === msg.id);
     if (i < 0) return;
-    user.gifts.splice(i, 1); saveDb(); sendGiftState(p.uid);
+    delImg(user.gifts.splice(i, 1)[0].id); saveDb(); sendGiftState(p.uid);
   }
 }
 
