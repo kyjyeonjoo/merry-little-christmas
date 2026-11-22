@@ -1241,4 +1241,4 @@ input:focus { border-color: #ffc9cf; }
 .w-left { left: 92px; width: 120px; border-radius: 60px 60px 10px 10px; }
 .kit-arch { left: 0; top: 146px; width: 68px; height: 255px; z-index: 4; }
 .kit-arch:hover svg { filter: drop-shadow(0 0 8px rgba(255, 236, 190, 1)); }
-.in-door { left: 244px; top: 152px; width: 80px; height: 196px; }
+.in-door { left: 252px; top: 196px; width: 62px; height: 152px; }
