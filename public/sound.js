@@ -163,6 +163,8 @@
     },
     yum() { [1047, 1319, 1568].forEach((f, i) => tone({ freq: f, type: 'sine', dur: 0.18, vol: 0.22, delay: i * 0.07 })); },
     tick() { tone({ freq: 1200, type: 'square', dur: 0.03, vol: 0.08 }); },
+    jingle() { [1568, 1760, 1568, 2093, 1760].forEach((f, i) => tone({ freq: f, type: 'sine', dur: 0.12, vol: 0.12, delay: i * 0.11 })); },
+    ho() { [196, 220, 196].forEach((f, i) => tone({ freq: f, freqEnd: f * 0.9, type: 'triangle', dur: 0.2, vol: 0.35, delay: i * 0.24 })); },
     tada() { [784, 988, 1175, 1568].forEach((f, i) => tone({ freq: f, type: 'triangle', dur: 0.35, vol: 0.28, delay: i * 0.09 })); },
   };
 

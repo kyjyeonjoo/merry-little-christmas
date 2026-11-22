@@ -193,6 +193,8 @@
       case 'fight': onFight(m.fight); break;
       case 'fightHit': onFightHit(m); break;
       case 'castle': onCastle(m.cells); break;
+      case 'santa': onSanta(m); break;
+      case 'sleigh': onSleigh(m); break;
       case 'clearChat': $('#chatLog').innerHTML = ''; document.querySelectorAll('.mini-chat').forEach((u) => { u.innerHTML = ''; }); break;
       case 'angel': doAngel(m.id); break;
       case 'giftState': giftUI.setState(m.gift); giftBadge(); break;
@@ -477,6 +479,7 @@
     $('#dockIn').hidden = room === 'out';
     $('#dockOut').hidden = room !== 'out';
     $('#angelBtn').hidden = room !== 'out';
+    if (santaEl) santaEl.classList.toggle('away', room !== 'in');
     if (room !== 'out') $('#prints').innerHTML = '';
     if (room === 'out' && !$('#outBg').firstChild) { $('#outBg').innerHTML = Outdoor.scene(); $('#outObjs').innerHTML = Outdoor.objects(); }
     fitStage();
@@ -616,11 +619,81 @@
   function openCastle() { closeOthers(); $('#castleModal').hidden = false; castleUI.setOpen(true); }
   function closeCastle() { if (!$('#castleModal').hidden) { $('#castleModal').hidden = true; castleUI.setOpen(false); } }
 
+  // ───────── 🎅 산타 선물 배달 ─────────
+  let santaEl = null, santaId = 0, santaTimers = [];
+  function santaGo(x, y, dur) {
+    if (!santaEl) return;
+    const cx = parseFloat(santaEl.style.left) || x;
+    santaEl.querySelector('svg').style.setProperty('--face', x < cx ? -1 : 1);
+    santaEl.style.transition = `left ${dur}s linear, top ${dur}s linear`;
+    santaEl.style.left = x + 'px'; santaEl.style.top = y + 'px'; santaEl.style.zIndex = Math.round(y);
+  }
+  function onSanta(m) {
+    if (m.act === 'come') {
+      santaTimers.forEach(clearTimeout); santaTimers = [];
+      if (santaEl) santaEl.remove();
+      santaId = m.id;
+      santaEl = document.createElement('div');
+      santaEl.className = 'santa-npc entering';
+      santaEl.innerHTML = `<div class="sbubble">호호호! 🎅</div>${SantaArt.santaSVG(true)}`;
+      santaEl.style.left = '765px'; santaEl.style.top = '232px'; santaEl.style.zIndex = 233;
+      $('#entities').appendChild(santaEl);
+      santaEl.classList.toggle('away', myRoom !== 'in');
+      if (myRoom === 'in') { Sound.Sfx.jingle(); Sound.Sfx.ho(); }
+      // 창문에서 폴짝 → 방을 돌아다녀요
+      let t = 900;
+      santaTimers.push(setTimeout(() => { santaEl && santaEl.classList.remove('entering'); santaGo(m.pts[0][0], m.pts[0][1], 0.5); }, 600));
+      for (let i = 1; i < m.pts.length; i++) {
+        const [x0, y0] = m.pts[i - 1], [x1, y1] = m.pts[i];
+        const d = Math.hypot(x1 - x0, y1 - y0) / 150 + 0.1;
+        t += 600;
+        santaTimers.push(setTimeout(() => santaGo(x1, y1, d), t));
+        t += d * 1000;
+      }
+    } else if (m.act === 'caught' && m.id === santaId && santaEl) {
+      santaTimers.forEach(clearTimeout); santaTimers = [];
+      const cur = getComputedStyle(santaEl); santaEl.style.transition = 'none'; santaEl.style.left = cur.left; santaEl.style.top = cur.top;
+      santaEl.classList.add('caught');
+      santaEl.querySelector('.sbubble').textContent = `${m.nick} 님, 메리 크리스마스! 🎁`;
+      if (myRoom === 'in') { Sound.Sfx.tada(); showEmote(m.by, '🎁'); }
+    } else if (m.act === 'leave' && m.id === santaId && santaEl) {
+      santaTimers.forEach(clearTimeout); santaTimers = [];
+      const el = santaEl; santaEl = null;
+      el.classList.add('leaving');
+      if (myRoom === 'in') Sound.Sfx.jingle();
+      setTimeout(() => el.remove(), 700);
+    }
+  }
+  // ───────── 🦌 하늘을 지나가는 썰매 그림자 ─────────
+  function onSleigh(m) {
+    const dir = m.dir === -1 ? -1 : 1;
+    if (myRoom === 'out') {
+      const el = document.createElement('div');
+      el.className = 'sleigh-fly out ' + (dir === 1 ? 'ltr' : 'rtl');
+      el.innerHTML = SantaArt.sleighSVG();
+      $('#outdoor').appendChild(el);
+      setTimeout(() => el.remove(), 12500);
+    } else {
+      // 거실 창문 두 개로 차례차례 보여요
+      const wins = [...document.querySelectorAll('.window')];
+      (dir === 1 ? wins : wins.slice().reverse()).forEach((w, i) => {
+        const el = document.createElement('div');
+        el.className = 'sleigh-fly win ' + (dir === 1 ? 'ltr' : 'rtl');
+        el.style.animationDelay = (i * 2.6) + 's';
+        el.innerHTML = SantaArt.sleighSVG();
+        w.appendChild(el);
+        setTimeout(() => el.remove(), 2600 * i + 4200);
+      });
+    }
+    Sound.Sfx.jingle();
+  }
+
   // ───────── 🛠️ 개발자 도구 ─────────
   $('#adminBtn').addEventListener('click', () => { $('#adminModal').hidden = false; });
   document.querySelectorAll('[data-close-admin]').forEach((b) => b.addEventListener('click', () => { $('#adminModal').hidden = true; }));
   $('#adminModal').addEventListener('click', (e) => {
     const b = e.target.closest('[data-admin]'); if (!b) return;
+    if (b.dataset.now) { send({ t: 'admin', act: b.dataset.admin }); Sound.Sfx.pop(); $('#adminModal').hidden = true; return; }
     if (b.dataset.armed !== '1') { document.querySelectorAll('[data-admin]').forEach((x) => { if (x.dataset.armed === '1') { x.dataset.armed = ''; x.textContent = x.dataset.label; } }); b.dataset.label = b.dataset.label || b.textContent; b.dataset.armed = '1'; b.textContent = '정말요? 한 번 더!'; return; }
     b.dataset.armed = ''; b.textContent = b.dataset.label;
     send({ t: 'admin', act: b.dataset.admin }); Sound.Sfx.pop();
@@ -711,6 +784,7 @@
     if (e.target.closest('.deco-tree')) { openTree(); return; }
     if (e.target.closest('.gift-xbox')) { openGift(); return; }
     if (e.target.closest('.in-door')) { goRoom('out'); return; }
+    if (e.target.closest('.santa-npc')) { send({ t: 'santaCatch', id: santaId }); return; }
     const hs = e.target.closest('.ohs');
     if (hs) { if (hs.dataset.k === 'door') goRoom('in'); else if (hs.dataset.k === 'workshop') openSnow(); else if (hs.dataset.k === 'race') openRace(); return; }
     if (e.target.closest('.yard-castle')) { openCastle(); return; }

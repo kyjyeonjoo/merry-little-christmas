@@ -471,13 +471,25 @@ function cleanItem(it) {
     const q = ['raw', 'golden', 'perfect', 'brown', 'burnt'].includes(it.q) ? it.q : 'raw';
     return { k: 'mallow', q };
   }
+  if (it.k === 'food' && FOOD_NAMES[it.t]) {
+    const out = { k: 'food', t: it.t };
+    if (it.q && ['ok', 'good', 'great', 'burnt'].includes(it.q)) out.q = it.q;
+    return out;
+  }
   return null;
 }
+// 음식 (산타 선물 · 주방 요리)
+const FOOD_NAMES = {
+  cane: '지팡이 사탕', cookie: '진저브레드 쿠키', pancake: '핫케이크', pizza: '피자', chicken: '치킨', ramen: '라면',
+  omelet: '오므라이스', cupcake: '컵케이크', salad: '샐러드', toast: '프렌치토스트', tteok: '떡볶이', fruit: '과일 꼬치',
+};
+const FOOD_Q = { great: '최고의 ', good: '맛있는 ', ok: '', burnt: '살짝 탄 ' };
 function cocoaTaste(it) {
   const r = (it.d || 0) / ((it.m || 70) / 70);
   return r < 0.5 ? '밍밍한 ' : r < 1.5 ? '연한 ' : r <= 3.2 ? '' : r <= 4.6 ? '진한 ' : '아주 진한 ';
 }
 function itemName(it) {
+  if (it.k === 'food') return (FOOD_Q[it.q] || '') + (FOOD_NAMES[it.t] || '음식');
   if (it.k === 'cocoa') return cocoaTaste(it) + (it.t === 'mallow' ? '마시멜로 핫초코' : it.t === 'cream' ? '휘핑크림 핫초코' : '핫초코');
   return { raw: '말랑 마시멜로', golden: '노릇노릇 마시멜로', perfect: '완벽한 황금 마시멜로', brown: '바삭 마시멜로', burnt: '까맣게 탄 마시멜로' }[it.q] || '마시멜로';
 }
@@ -940,6 +952,43 @@ function handleCastle(client, p, msg) {
   broadcast({ t: 'castle', cells });
 }
 
+// ───────────────────────── 🎅 산타 선물 배달 · 🦌 썰매 그림자 ─────────────────────────
+let santa = null, santaSeq = 1;
+const SANTA_GIFTS = [{ k: 'food', t: 'cane' }, { k: 'food', t: 'cookie' }, { k: 'mallow', q: 'perfect' }, { k: 'cocoa', t: 'cream', d: 2, m: 80 }];
+function santaCome() {
+  if (santa || ![...players.values()].some((q) => q.room !== 'out')) return false;
+  // 오른쪽 창문으로 들어와서 → 방을 한 바퀴 → 창문으로 나가요
+  const pts = [[765, 360]];
+  for (let i = 0; i < 4; i++) pts.push([120 + Math.round(Math.random() * 760), 400 + Math.round(Math.random() * 180)]);
+  pts.push([765, 360]);
+  const id = santaSeq++;
+  santa = { id, caught: false };
+  broadcast({ t: 'santa', act: 'come', id, pts });
+  const sys = { kind: 'sys', text: '🎅 쉿! 산타 할아버지가 창문으로 들어왔어요. 먼저 잡으면 선물을 줘요!', ts: Date.now() };
+  pushHistory(sys); broadcast({ t: 'sys', ...sys });
+  santa.timer = setTimeout(() => { if (santa && santa.id === id) { broadcast({ t: 'santa', act: 'leave', id }); santa = null; } }, 26000);
+  return true;
+}
+function santaCatch(client, p, msg) {
+  if (!santa || santa.id !== msg.id || santa.caught || p.room === 'out') return;
+  const u = db.users[p.uid]; if (!u) return;
+  u.inv = Array.isArray(u.inv) ? u.inv : [];
+  if (u.inv.length >= INV_SIZE) return client.send({ t: 'toast', msg: '🎒 가방이 꽉 차서 선물을 못 받아요! 하나 먹거나 버리고 와요' });
+  santa.caught = true;
+  const item = { ...SANTA_GIFTS[Math.floor(Math.random() * SANTA_GIFTS.length)] };
+  u.inv.push(item); saveDb();
+  client.send({ t: 'inv', inv: u.inv, added: item });
+  broadcast({ t: 'santa', act: 'caught', id: santa.id, by: p.id, nick: p.nick });
+  const sys = { kind: 'sys', text: `🎅 ${p.nick} 님이 산타를 잡아서 ${itemName(item)}을(를) 받았어요! 🎁`, ts: Date.now() };
+  pushHistory(sys); broadcast({ t: 'sys', ...sys });
+  const id = santa.id;
+  clearTimeout(santa.timer);
+  santa.timer = setTimeout(() => { if (santa && santa.id === id) { broadcast({ t: 'santa', act: 'leave', id }); santa = null; } }, 4000);
+}
+function sleighPass() { broadcast({ t: 'sleigh', dir: Math.random() < 0.5 ? 1 : -1 }); }
+(function santaLoop() { setTimeout(() => { if (players.size) santaCome(); santaLoop(); }, (300 + Math.random() * 300) * 1000); })();
+(function sleighLoop() { setTimeout(() => { if (players.size) sleighPass(); sleighLoop(); }, (120 + Math.random() * 120) * 1000); })();
+
 // ───────────────────────── 🛠️ 개발자 모드 ─────────────────────────
 function isAdmin(user) { return !!(user && user.admin && user.nick.toLowerCase() === ADMIN_NICK && ADMIN_PW); }
 function handleAdmin(client, p, msg) {
@@ -960,6 +1009,8 @@ function handleAdmin(client, p, msg) {
       if (typeof resetExtraGames === 'function') resetExtraGames();
       done('진행 중인 미니게임을 모두 멈췄어요'); break;
     case 'chat': history.length = 0; broadcast({ t: 'clearChat' }); done('채팅 기록을 지웠어요'); break;
+    case 'santa': if (!santaCome()) done('산타가 이미 왔거나 거실에 아무도 없어요'); return;
+    case 'sleigh': sleighPass(); return;
     default: return;
   }
   const sys = { kind: 'sys', text: '🛠️ 개발자가 정리했어요', ts: Date.now() };
@@ -1123,6 +1174,7 @@ function handle(client, msg) {
     case 'fight': handleFight(client, p, msg); break;
     case 'castle': handleCastle(client, p, msg); break;
     case 'admin': handleAdmin(client, p, msg); break;
+    case 'santaCatch': santaCatch(client, p, msg); break;
     case 'cake': handleCake(client, p, msg); break;
     case 'tree': handleTree(client, p, msg); break;
     case 'gift': handleGift(client, p, msg).catch((e) => console.error(e)); break;

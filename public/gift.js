@@ -60,20 +60,31 @@
     let open = false, tab = 'make', step = 'draw', state = { waiting: false, box: [] };
     let color = COLORS[0], size = 1, eraser = false, strokes = [], cur = null;
     let wrap = 'red', rib = 'gold', anon = false, sending = false, result = null;
-    let canvas = null, ctx = null;
+    let canvas = null, ctx = null, photo = null, layer = null;
 
     function redraw() {
       if (!ctx) return;
-      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-      for (const s of strokes.concat(cur ? [cur] : [])) {
-        ctx.strokeStyle = s.c; ctx.lineWidth = s.w; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-        const p = s.p;
-        ctx.beginPath(); ctx.moveTo(p[0][0], p[0][1]);
-        if (p.length === 1) ctx.lineTo(p[0][0] + 0.1, p[0][1]);
-        for (let i = 1; i < p.length - 1; i++) ctx.quadraticCurveTo(p[i][0], p[i][1], (p[i][0] + p[i + 1][0]) / 2, (p[i][1] + p[i + 1][1]) / 2);
-        if (p.length > 1) ctx.lineTo(p[p.length - 1][0], p[p.length - 1][1]);
-        ctx.stroke();
+      const W = canvas.width, H = canvas.height;
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+      if (photo) { // 사진은 꽉 차게 (가운데 맞춰 자르기)
+        const r = Math.max(W / photo.width, H / photo.height), w = photo.width * r, h = photo.height * r;
+        ctx.drawImage(photo, (W - w) / 2, (H - h) / 2, w, h);
       }
+      // 그림은 따로 그린 다음 위에 얹어요 (지우개는 그림만 지워요)
+      if (!layer) { layer = document.createElement('canvas'); }
+      layer.width = W; layer.height = H;
+      const lc = layer.getContext('2d');
+      for (const s of strokes.concat(cur ? [cur] : [])) {
+        lc.globalCompositeOperation = s.e ? 'destination-out' : 'source-over';
+        lc.strokeStyle = s.e ? '#000' : s.c; lc.lineWidth = s.w; lc.lineCap = 'round'; lc.lineJoin = 'round';
+        const p = s.p;
+        lc.beginPath(); lc.moveTo(p[0][0], p[0][1]);
+        if (p.length === 1) lc.lineTo(p[0][0] + 0.1, p[0][1]);
+        for (let i = 1; i < p.length - 1; i++) lc.quadraticCurveTo(p[i][0], p[i][1], (p[i][0] + p[i + 1][0]) / 2, (p[i][1] + p[i + 1][1]) / 2);
+        if (p.length > 1) lc.lineTo(p[p.length - 1][0], p[p.length - 1][1]);
+        lc.stroke();
+      }
+      ctx.drawImage(layer, 0, 0);
     }
     function cpos(e) {
       const r = canvas.getBoundingClientRect();
@@ -86,7 +97,7 @@
       canvas.addEventListener('pointerdown', (e) => {
         e.preventDefault();
         try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
-        cur = { c: eraser ? '#ffffff' : color, w: SIZES[size] * (eraser ? 2 : 1), p: [cpos(e)] };
+        cur = { c: color, e: eraser, w: SIZES[size] * (eraser ? 2 : 1), p: [cpos(e)] };
         redraw();
       });
       canvas.addEventListener('pointermove', (e) => {
@@ -100,7 +111,7 @@
     }
     function updateBtns() {
       const u = $('#giftPanel [data-act=undo]'); if (u) u.disabled = !strokes.length;
-      const n = $('#giftPanel [data-act=wrap]'); if (n) n.disabled = strokes.reduce((a, s) => a + s.p.length, 0) < 8;
+      const n = $('#giftPanel [data-act=wrap]'); if (n) n.disabled = !photo && strokes.reduce((a, s) => a + s.p.length, 0) < 8;
     }
     function exportImg() {
       const out = document.createElement('canvas'); out.width = 360; out.height = 360;
@@ -144,7 +155,9 @@
       }
       if (step === 'draw') {
         if (!$('#giftCanvas')) view.innerHTML = `<canvas id="giftCanvas" class="gcanvas" width="600" height="600"></canvas>`;
-        panel.innerHTML = `<p class="chint">친구에게 줄 <b>그림 선물</b>을 그려요. 누가 받을지는 랜덤이에요!</p>
+        panel.innerHTML = `<p class="chint">친구에게 줄 <b>그림 선물</b>을 그려요. 사진을 넣고 위에 꾸며도 돼요!</p>
+          <div class="crow gphoto"><label class="btn ghost small">📷 사진 넣기<input type="file" id="giftPhoto" accept="image/*" hidden></label>
+            ${photo ? '<button class="btn ghost small" data-act="nophoto">사진 빼기</button>' : ''}</div>
           <div class="gcolors">${COLORS.map((c) => `<button class="gcol ${!eraser && c === color ? 'on' : ''}" data-col="${c}" style="background:${c}"></button>`).join('')}</div>
           <div class="crow gtools">
             ${SIZES.map((s, i) => `<button class="gsize ${!eraser && i === size ? 'on' : ''}" data-size="${i}"><i style="width:${4 + i * 5}px;height:${4 + i * 5}px"></i></button>`).join('')}
@@ -155,6 +168,15 @@
           <button class="btn primary cnext" data-act="wrap">🎀 다 그렸어요! 포장하기</button>`;
         if (!ctx || canvas !== $('#giftCanvas')) bindCanvas();
         updateBtns();
+        $('#giftPhoto').addEventListener('change', (e) => {
+          const f = e.target.files && e.target.files[0];
+          if (!f) return;
+          if (!/^image\//.test(f.type)) { api.toast('사진 파일만 넣을 수 있어요'); return; }
+          const url = URL.createObjectURL(f), img = new Image();
+          img.onload = () => { photo = img; api.Sound.Sfx.ding(); render(); redraw(); updateBtns(); };
+          img.onerror = () => api.toast('사진을 열지 못했어요 😢');
+          img.src = url;
+        });
         return;
       }
       // 포장
@@ -179,7 +201,8 @@
       else switch (b.dataset.act) {
         case 'eraser': eraser = !eraser; render(); break;
         case 'undo': strokes.pop(); redraw(); updateBtns(); break;
-        case 'clear': if (strokes.length && confirmClear()) { strokes = []; redraw(); updateBtns(); } break;
+        case 'clear': if ((strokes.length || photo) && confirmClear()) { strokes = []; photo = null; render(); redraw(); updateBtns(); } break;
+        case 'nophoto': photo = null; render(); redraw(); updateBtns(); break;
         case 'wrap': step = 'wrap'; api.Sound.Sfx.plop(); render(); break;
         case 'back': step = 'draw'; $('#giftView').innerHTML = ''; ctx = null; render(); break;
         case 'send':
@@ -241,7 +264,7 @@
       setOpen(v) { open = v; if (!v) { $('#giftView').innerHTML = ''; ctx = null; result = null; } render(); },
       setState(st) { state = st || state; render(); },
       sent(got) {
-        sending = false; result = got ? { got, wrap: 'gold', rib: 'red' } : { got, wrap, rib }; strokes = []; step = 'draw';
+        sending = false; result = got ? { got, wrap: 'gold', rib: 'red' } : { got, wrap, rib }; strokes = []; photo = null; step = 'draw';
         api.Sound.Sfx[got ? 'tada' : 'ding'](); render();
       },
       opened: showOpen,

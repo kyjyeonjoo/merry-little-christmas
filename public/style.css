@@ -1090,3 +1090,37 @@ input:focus { border-color: #ffc9cf; }
 .cake-table .art svg, .kitchen .art svg, .deco-tree svg, .gift-xbox svg, .in-door svg, .yard-castle svg, .oobj.ohs svg { pointer-events: none; }
 .cake-table .art svg *, .kitchen .art svg *, .deco-tree svg *, .gift-xbox svg *, .in-door svg *, .yard-castle svg *, .oobj.ohs svg * { pointer-events: visiblePainted; }
 .cake-table .art svg ellipse[opacity], .deco-tree svg ellipse[opacity], .gift-xbox svg ellipse[opacity], .oobj.ohs svg ellipse:first-child { pointer-events: none; }
+/* ───── 🎅 산타 · 🦌 썰매 ───── */
+.santa-npc { position: absolute; width: 0; height: 0; cursor: pointer; }
+.santa-npc.away { display: none; }
+.santa-npc svg { position: absolute; left: -42px; top: -98px; width: 84px; height: 102px; overflow: visible; transform: scaleX(var(--face, 1)); }
+.santa-npc .santa-walk .sleg { animation: sleg .35s ease-in-out infinite alternate; }
+@keyframes sleg { to { transform: translateY(-2px); } }
+.santa-npc svg { animation: sbob .5s ease-in-out infinite alternate; }
+@keyframes sbob { to { margin-top: -3px; } }
+.santa-npc.entering svg { animation: sin .6s ease-out; }
+@keyframes sin { from { transform: scale(.3) translateY(-40px); opacity: 0; } }
+.santa-npc.leaving svg { animation: sout .6s ease-in forwards; }
+@keyframes sout { to { transform: scale(.2) translateY(-120px); opacity: 0; } }
+.santa-npc.caught svg { animation: shop .4s ease-in-out infinite alternate; }
+@keyframes shop { to { transform: translateY(-10px); } }
+.santa-npc .sbubble { position: absolute; left: 50%; top: -128px; transform: translateX(-50%); white-space: nowrap; background: #fff; border-radius: 14px; padding: 4px 10px;
+  font: 400 14px 'Jua', sans-serif; color: var(--red); box-shadow: 0 3px 0 rgba(0,0,0,.12); pointer-events: none; }
+.santa-npc:hover svg { filter: drop-shadow(0 0 6px #ffe58a); }
+.sleigh-fly { position: absolute; pointer-events: none; }
+.sleigh-fly.out { top: 40px; left: 0; width: 300px; height: 70px; z-index: 2; animation: flyOut 12s linear forwards; }
+.sleigh-fly.out.rtl svg { transform: scaleX(-1); }
+.sleigh-fly svg { width: 100%; height: 100%; display: block; overflow: visible; }
+@keyframes flyOut { 0% { transform: translate(-320px, 70px); } 50% { transform: translate(350px, 10px); } 100% { transform: translate(1020px, 40px); } }
+.sleigh-fly.out.rtl { animation-name: flyOutR; }
+@keyframes flyOutR { 0% { transform: translate(1020px, 60px); } 50% { transform: translate(560px, 0px); } 100% { transform: translate(-320px, 40px); } }
+.sleigh-fly.win { top: 22px; left: 0; width: 120px; height: 28px; z-index: 0; animation: flyWin 2.8s linear both; opacity: .9; }
+.sleigh-fly.win.rtl svg { transform: scaleX(-1); }
+@keyframes flyWin { from { transform: translate(-130px, 18px); } to { transform: translate(160px, -6px); } }
+.sleigh-fly.win.rtl { animation-name: flyWinR; }
+@keyframes flyWinR { from { transform: translate(160px, 18px); } to { transform: translate(-130px, -6px); } }
+.sleigh-fly .rudolph { animation: halo 0.8s ease-in-out infinite; }
+.gphoto { margin-bottom: 8px; }
+.gphoto label { cursor: pointer; }
+.sleigh-fly svg { filter: drop-shadow(0 0 2px rgba(255, 247, 196, .95)) drop-shadow(0 0 6px rgba(255, 247, 196, .5)); }
+.sleigh-fly.win { width: 150px; height: 35px; top: 16px; }

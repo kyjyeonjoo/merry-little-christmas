@@ -22,6 +22,7 @@
 
   function itemName(it) {
     if (!it) return '';
+    if (it.k === 'food') return Foods.name(it.t, it.q);
     if (it.k === 'cocoa') return tasteOf(ratioOf(it.d, it.m))[1] + (it.t === 'mallow' ? '마시멜로 핫초코' : it.t === 'cream' ? '휘핑크림 핫초코' : '핫초코');
     return { raw: '말랑 마시멜로', golden: '노릇노릇 마시멜로', perfect: '완벽한 황금 마시멜로', brown: '바삭 마시멜로', burnt: '까맣게 탄 마시멜로' }[it.q] || '마시멜로';
   }
@@ -73,6 +74,7 @@
   }
   function itemIcon(it, bite = 0) {
     if (!it) return '';
+    if (it.k === 'food') return Foods.art(it.t, bite, it.q);
     if (it.k === 'cocoa') {
       const full = Math.max(0.3, Math.min(1, (it.m || 85) / 100));
       const fill = bite >= 3 ? 0.05 : Math.max(0.08, full * (1 - bite / 3));
