@@ -157,10 +157,8 @@ const SEATS = {
   cush1: { x: 345, y: 500 },
   cush2: { x: 655, y: 500 },
   cush3: { x: 262, y: 512 },
-  rock: { x: 108, y: 528 }, // 흔들의자
+  rock: { x: 404, y: 398 }, // 흔들의자 (벽난로 앞)
   poufR: { x: 895, y: 520 },
-  hearthL: { x: 382, y: 368 }, // 난로 앞 방석
-  hearthR: { x: 604, y: 368 },
   // 눈마당
   bench1: { x: 357, y: 600, room: 'out' },
   bench2: { x: 413, y: 600, room: 'out' },

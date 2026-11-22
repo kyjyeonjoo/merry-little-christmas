@@ -14,9 +14,7 @@
     cush1: { x: 345, y: 500, kind: 'cush', face: 1 },
     cush2: { x: 655, y: 500, kind: 'cush', face: -1 },
     cush3: { x: 262, y: 512, kind: 'cush', face: 1 },
-    hearthL: { x: 382, y: 368, kind: 'hearth', face: 1 },
-    hearthR: { x: 604, y: 368, kind: 'hearth', face: -1 },
-    rock: { x: 108, y: 528, kind: 'rock', face: 1 },
+    rock: { x: 404, y: 398, kind: 'rock', face: 1 },
     poufR: { x: 895, y: 520, kind: 'pouf', face: -1 },
     // 눈마당
     bench1: { x: 357, y: 600, kind: 'bench', room: 'out', face: 1 },

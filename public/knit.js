@@ -9,6 +9,9 @@
       <path d="M-30 -96 L-16 -96 M-30 -78 L-16 -78 M-30 -60 L-17 -60 M-31 -42 L-17 -42" stroke="${L}" stroke-width="2"/>
       <path d="M-28 -104 Q-36 -82 -26 -60 Q-20 -46 -24 -30 L-18 -30 L-16 -104 Z" fill="#e8474f" opacity=".9"/>
       <path d="M-28 -98 L-18 -98 M-28 -86 L-18 -86 M-27 -74 L-18 -74 M-25 -62 L-18 -62" stroke="#fff6e0" stroke-width="2.4" opacity=".8"/>
+      <rect x="-38" y="-38" width="74" height="12" rx="5" fill="#c98a5e" stroke="${L}" stroke-width="2.4"/>
+      <path d="M-36 -40 Q-2 -48 34 -40" stroke="#fff6e0" stroke-width="7" fill="none" stroke-linecap="round" opacity=".95"/>
+      <path d="M-36 -40 Q-2 -48 34 -40" stroke="#e8474f" stroke-width="7" fill="none" stroke-dasharray="5 6" opacity=".8"/>
     </g></svg>`;
   }
   function chairFront() {
@@ -16,9 +19,7 @@
       <path d="M-48 2 Q0 14 48 -4" stroke="#8c5232" stroke-width="6" fill="none" stroke-linecap="round"/>
       <path d="M-48 2 Q0 14 48 -4" stroke="${L}" stroke-width="1.6" fill="none" opacity=".4"/>
       <path d="M-30 -30 L-30 6 M24 -30 L26 4" stroke="#8c5232" stroke-width="5" stroke-linecap="round"/>
-      <rect x="-38" y="-38" width="74" height="12" rx="5" fill="#c98a5e" stroke="${L}" stroke-width="2.4"/>
-      <path d="M-36 -40 Q-2 -48 34 -40" stroke="#fff6e0" stroke-width="7" fill="none" stroke-linecap="round" opacity=".95"/>
-      <path d="M-36 -40 Q-2 -48 34 -40" stroke="#e8474f" stroke-width="7" fill="none" stroke-dasharray="5 6" opacity=".8"/>
+      <rect x="-38" y="-30" width="74" height="6" rx="3" fill="#b97a4f" stroke="${L}" stroke-width="2"/>
       <path d="M28 -64 Q40 -66 40 -54 L36 -36" stroke="#b97a4f" stroke-width="5" fill="none" stroke-linecap="round"/>
     </g></svg>`;
   }

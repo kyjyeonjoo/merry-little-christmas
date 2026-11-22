@@ -1134,7 +1134,7 @@ input:focus { border-color: #ffc9cf; }
 .rock-back svg { pointer-events: visiblePainted; cursor: pointer; }
 .rocking .rock-g { animation: rocking 2.4s ease-in-out infinite; transform-origin: 0 0; }
 @keyframes rocking { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
-.sitting[data-seat="rock"] .sprite svg { animation: rocking 2.4s ease-in-out infinite !important; transform-origin: 50% 100%; margin-top: -22px; }
+.sitting[data-seat="rock"] .sprite svg { animation: rocking 2.4s ease-in-out infinite !important; transform-origin: 50% 100%; margin-top: -40px; }
 .stage.scene-out #rockFront, .stage.scene-kit #rockFront { display: none; }
 .knit-ic { position: absolute; left: 6px; top: -46px; width: 34px; height: 34px; pointer-events: none; animation: knitbob .5s ease-in-out infinite alternate; z-index: 3; }
 .knit-ic svg { width: 100%; height: 100%; }
