@@ -146,37 +146,41 @@
     </svg>`;
   }
   // 거실 벽의 주방 입구: 나무 아치 + 체크무늬 카페 커튼 + 안쪽에 살짝 보이는 주방
-  function archArt() {
-    const g = (x, w) => `<pattern id="gingham${x}" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#fff"/><rect width="6" height="12" fill="#e8474f" opacity=".45"/><rect width="12" height="6" fill="#e8474f" opacity=".45"/></pattern>`;
-    return `<svg viewBox="0 0 170 272" xmlns="http://www.w3.org/2000/svg">
-      <defs>${g(0)}<linearGradient id="kaGlow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3d6"/><stop offset="1" stop-color="#ffe2b0"/></linearGradient></defs>
-      <path d="M8 272 V86 Q8 10 85 10 Q162 10 162 86 V272 Z" fill="#c98a5e" stroke="${L}" stroke-width="3"/>
-      <path d="M20 272 V90 Q20 24 85 24 Q150 24 150 90 V272 Z" fill="url(#kaGlow)" stroke="${L}" stroke-width="2.4"/>
-      <!-- 안쪽: 민트 타일 · 선반 · 작은 화분 -->
-      <clipPath id="kaIn"><path d="M20 272 V90 Q20 24 85 24 Q150 24 150 90 V272 Z"/></clipPath>
+  function archArt() { // 거실 왼쪽 끝 — 옆으로 이어지는 주방 통로
+    return `<svg viewBox="0 0 90 340" xmlns="http://www.w3.org/2000/svg">
+      <defs><pattern id="gingham0" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#fff"/><rect width="6" height="12" fill="#e8474f" opacity=".45"/><rect width="12" height="6" fill="#e8474f" opacity=".45"/></pattern>
+        <linearGradient id="kaGlow" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffe2b0"/><stop offset="1" stop-color="#fff3d6"/></linearGradient>
+        <linearGradient id="kaSpill" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffe9b8" stop-opacity=".85"/><stop offset="1" stop-color="#ffe9b8" stop-opacity="0"/></linearGradient>
+        <clipPath id="kaIn"><path d="M0 82 Q48 82 48 132 V265 H0 Z"/></clipPath></defs>
+      <!-- 바닥에 번지는 주방 불빛 + 러너 -->
+      <path d="M0 265 H52 L88 340 H0 Z" fill="url(#kaSpill)"/>
+      <path d="M0 278 H40 Q50 278 50 288 V312 Q50 322 40 322 H0 Z" fill="#e8474f" stroke="${L}" stroke-width="2"/>
+      <path d="M0 286 H36 M0 314 H36" stroke="#fff" stroke-width="2" stroke-dasharray="5 4"/>
+      <!-- 반쯤 보이는 나무 아치 -->
+      <path d="M0 68 Q62 68 62 128 V265 H0 Z" fill="#c98a5e" stroke="${L}" stroke-width="3"/>
+      <path d="M0 82 Q48 82 48 132 V265 H0 Z" fill="url(#kaGlow)" stroke="${L}" stroke-width="2.4"/>
       <g clip-path="url(#kaIn)">
-        <rect x="20" y="150" width="130" height="122" fill="#cfe9df"/>
-        ${[150, 166, 182, 198, 214, 230].map((y, i) => `<path d="M20 ${y} H150" stroke="#b6dccd" stroke-width="2"/>` + [0, 1, 2, 3, 4].map((j) => `<path d="M${30 + j * 26 + (i % 2) * 13} ${y} v16" stroke="#b6dccd" stroke-width="2"/>`).join('')).join('')}
-        <rect x="20" y="246" width="130" height="26" fill="#f2d7b6"/>
-        <rect x="38" y="118" width="94" height="7" rx="3" fill="#c98a5e" stroke="${L}" stroke-width="1.6"/>
-        ${[[50, '#e8474f'], [70, '#ffd34d'], [92, '#8fd17a'], [114, '#ff9db5']].map(([x, c], i) => `<g transform="translate(${x} 118)"><rect x="-7" y="-${16 + (i % 2) * 4}" width="14" height="${16 + (i % 2) * 4}" rx="3" fill="#fff" stroke="${L}" stroke-width="1.4"/><rect x="-5" y="-${11 + (i % 2) * 3}" width="10" height="${9 + (i % 2) * 3}" rx="2" fill="${c}"/></g>`).join('')}
-        <g transform="translate(118 246)"><rect x="-22" y="-44" width="44" height="44" rx="4" fill="#fffaf2" stroke="${L}" stroke-width="2"/><rect x="-16" y="-34" width="32" height="22" rx="4" fill="#3a3340"/><rect x="-16" y="-34" width="32" height="22" rx="4" fill="#ffb347" opacity=".3"/>
-          <ellipse cx="-9" cy="-46" rx="8" ry="2.4" fill="#4d5a6a"/><path d="M-16 -48 Q-16 -60 -6 -60 Q4 -60 4 -48 Z" fill="#e8474f" stroke="${L}" stroke-width="1.6"/></g>
-        <g class="ksteam" fill="#fff" opacity=".85"><circle cx="112" cy="178" r="5"/><circle cx="118" cy="166" r="3.6"/></g>
+        <rect x="0" y="180" width="48" height="85" fill="#cfe9df"/>
+        ${[180, 196, 212, 228].map((y, i) => `<path d="M0 ${y} H48" stroke="#b6dccd" stroke-width="2"/><path d="M${12 + (i % 2) * 13} ${y} v16 M${38 + (i % 2) * 13} ${y} v16" stroke="#b6dccd" stroke-width="2"/>`).join('')}
+        <rect x="0" y="244" width="48" height="21" fill="#f2d7b6"/>
+        <rect x="-4" y="150" width="44" height="6" rx="3" fill="#c98a5e" stroke="${L}" stroke-width="1.6"/>
+        <g transform="translate(12 150)"><rect x="-6" y="-18" width="12" height="18" rx="3" fill="#fff" stroke="${L}" stroke-width="1.4"/><rect x="-4" y="-12" width="8" height="10" rx="2" fill="#ffd34d"/></g>
+        <g transform="translate(30 150)"><rect x="-6" y="-14" width="12" height="14" rx="3" fill="#fff" stroke="${L}" stroke-width="1.4"/><rect x="-4" y="-9" width="8" height="7" rx="2" fill="#e8474f"/></g>
+        <g class="ksteam" fill="#fff" opacity=".85"><circle cx="20" cy="206" r="5"/><circle cx="26" cy="194" r="3.6"/></g>
       </g>
-      <!-- 카페 커튼 -->
-      <path d="M16 70 H154" stroke="#8c5232" stroke-width="5" stroke-linecap="round"/>
-      <circle cx="16" cy="70" r="5" fill="#ffd34d" stroke="${L}" stroke-width="1.6"/><circle cx="154" cy="70" r="5" fill="#ffd34d" stroke="${L}" stroke-width="1.6"/>
-      <path d="M22 70 L82 70 L82 150 Q72 158 62 150 Q52 158 42 150 Q32 158 22 150 Z" fill="url(#gingham0)" stroke="${L}" stroke-width="2.2" stroke-linejoin="round"/>
-      <path d="M88 70 L148 70 L148 150 Q138 158 128 150 Q118 158 108 150 Q98 158 88 150 Z" fill="url(#gingham0)" stroke="${L}" stroke-width="2.2" stroke-linejoin="round"/>
-      ${[30, 42, 54, 66, 78].map((x) => `<circle cx="${x - 2}" cy="72" r="3" fill="#fff" stroke="${L}" stroke-width="1.2"/>`).join('')}${[94, 106, 118, 130, 142].map((x) => `<circle cx="${x}" cy="72" r="3" fill="#fff" stroke="${L}" stroke-width="1.2"/>`).join('')}
-      <!-- 간판 -->
-      <path d="M62 10 L70 0 M108 10 L100 0" stroke="${L}" stroke-width="1.6"/>
-      <g transform="translate(85 18)"><rect x="-32" y="-14" width="64" height="26" rx="8" fill="#fffaf2" stroke="${L}" stroke-width="2.2"/>
-        <text y="5" text-anchor="middle" font-size="15" font-family="Jua, sans-serif" fill="${L}">주방</text>
-        <path d="M-22 -2 q4 -6 8 0 M14 -2 q4 -6 8 0" stroke="#3f9c6d" stroke-width="2" fill="none"/><circle cx="-18" cy="0" r="2" fill="#e8474f"/><circle cx="18" cy="0" r="2" fill="#e8474f"/></g>
-      <!-- 발판 -->
-      <ellipse cx="85" cy="268" rx="56" ry="6" fill="#e8474f" opacity=".85"/>
+      <!-- 옆으로 묶어 둔 깅엄 커튼 -->
+      <path d="M-2 92 H50" stroke="#8c5232" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="50" cy="92" r="5" fill="#ffd34d" stroke="${L}" stroke-width="1.6"/>
+      <path d="M26 94 L46 94 Q48 140 40 168 Q50 200 46 252 L30 252 Q36 200 30 170 Q22 140 26 94 Z" fill="url(#gingham0)" stroke="${L}" stroke-width="2.2" stroke-linejoin="round"/>
+      <path d="M28 168 Q38 162 46 168" stroke="#3f9c6d" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="37" cy="166" r="3.4" fill="#e8474f" stroke="${L}" stroke-width="1.2"/>
+      <!-- ← 주방 화살표 간판 -->
+      <path d="M30 20 V34 M66 20 V34" stroke="${L}" stroke-width="1.6"/>
+      <circle cx="30" cy="19" r="2.4" fill="${L}"/><circle cx="66" cy="19" r="2.4" fill="${L}"/>
+      <g transform="translate(0 34)"><path d="M14 13 L26 0 H82 Q86 0 86 4 V22 Q86 26 82 26 H26 Z" fill="#fffaf2" stroke="${L}" stroke-width="2.2" stroke-linejoin="round"/>
+        <text x="55" y="18.5" text-anchor="middle" font-size="14" font-family="Jua, sans-serif" fill="${L}">주방</text>
+        <circle cx="30" cy="13" r="2.2" fill="#e8474f"/></g>
+      <!-- 누를 영역(통로 전체) -->
+      <path d="M0 68 Q62 68 62 128 V330 H0 Z" fill="transparent"/>
     </svg>`;
   }
   const OBJS = [

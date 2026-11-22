@@ -1238,6 +1238,7 @@ input:focus { border-color: #ffc9cf; }
 .stage.scene-out .kit-arch, .stage.scene-kit .kit-arch { display: none; }
 
 /* 왼쪽 벽: 창문 · 주방 아치 · 바깥 문 나란히 */
-.w-left { left: 12px; width: 112px; border-radius: 56px 56px 10px 10px; }
-.kit-arch { left: 142px; top: 160px; width: 118px; height: 190px; }
-.in-door { left: 264px; top: 156px; width: 78px; height: 192px; }
+.w-left { left: 92px; width: 120px; border-radius: 60px 60px 10px 10px; }
+.kit-arch { left: 0; top: 80px; width: 90px; height: 340px; z-index: 4; }
+.kit-arch:hover svg { filter: drop-shadow(0 0 8px rgba(255, 236, 190, 1)); }
+.in-door { left: 244px; top: 152px; width: 80px; height: 196px; }
