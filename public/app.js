@@ -1511,6 +1511,27 @@
     refreshInvite();
   });
   const closeInvite = () => { $('#inviteModal').hidden = true; clearTimeout(invitePoll); };
+  // 📱 전체 화면: 되는 브라우저는 바로, 안 되는 곳(아이폰 사파리)은 홈 화면 추가 안내
+  (() => {
+    const btn = $('#fsBtn'); if (!btn) return;
+    const touch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+    const standalone = matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || navigator.standalone;
+    if (!touch || standalone) return;
+    btn.hidden = false;
+    const de = document.documentElement;
+    const canFs = !!(de.requestFullscreen || de.webkitRequestFullscreen);
+    const isFs = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+    const sync = () => btn.classList.toggle('on', isFs());
+    document.addEventListener('fullscreenchange', sync); document.addEventListener('webkitfullscreenchange', sync);
+    const showTip = () => { $('#fsModal').hidden = false; };
+    btn.addEventListener('click', async () => {
+      if (isFs()) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; }
+      if (!canFs) return showTip();
+      try { await (de.requestFullscreen ? de.requestFullscreen({ navigationUI: 'hide' }) : de.webkitRequestFullscreen()); } catch (e) { showTip(); }
+    });
+    document.querySelectorAll('[data-close-fs]').forEach((b) => b.addEventListener('click', () => { $('#fsModal').hidden = true; }));
+    $('#fsModal').addEventListener('click', (e) => { if (e.target.id === 'fsModal') $('#fsModal').hidden = true; });
+  })();
   document.querySelectorAll('[data-close-invite]').forEach((b) => b.addEventListener('click', closeInvite));
   $('#inviteModal').addEventListener('click', (e) => { if (e.target.id === 'inviteModal') closeInvite(); });
   $('#copyLink').addEventListener('click', async () => {

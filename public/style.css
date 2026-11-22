@@ -1242,3 +1242,15 @@ input:focus { border-color: #ffc9cf; }
 .kit-arch { left: 0; top: 146px; width: 68px; height: 255px; z-index: 4; }
 .kit-arch:hover svg { filter: drop-shadow(0 0 8px rgba(255, 236, 190, 1)); }
 .in-door { left: 244px; top: 164px; width: 80px; height: 196px; }
+
+/* 📱 전체 화면 · 홈 화면 앱 */
+.fs-btn { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; border: 0; background: #fff; color: var(--ink, #5b4036); box-shadow: 0 3px 0 rgba(91,64,54,.15); cursor: pointer; padding: 0; }
+.fs-btn svg { width: 18px; height: 18px; }
+.fs-btn.on svg path { d: path("M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"); }
+.fs-card { max-width: 420px; }
+.fs-sub { margin: 4px 0 10px; line-height: 1.5; }
+.fs-steps { margin: 0; padding-left: 20px; line-height: 1.8; }
+.fs-ico { display: inline-block; padding: 0 5px; border-radius: 6px; background: #eef3ff; color: #3a6fd8; }
+/* 노치/홈바 피하기 */
+#app { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); box-sizing: border-box; background: inherit; }
+@media (orientation: landscape) and (max-height: 520px) { .fs-btn { width: 30px; height: 30px; } .fs-btn svg { width: 15px; height: 15px; } }
