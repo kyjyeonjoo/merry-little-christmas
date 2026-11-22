@@ -313,7 +313,7 @@
     $('#adminBtn').hidden = !m.admin;
     $('#inDoor').innerHTML = Outdoor.doorArt();
     { const mine = players.get(me.id); setScene(roomOf(mine)); }
-    $('#kitchenCounter .art').innerHTML = KitchenRoom.doorArt();
+    $('#kitArch').innerHTML = KitchenRoom.archArt();
     knitUI.setKnits(m.knits || []); cookUI.setIngr(m.ingr || {});
     if (m.hide) hideUI.set(m.hide);
     if (m.tag) tagUI.set(m.tag);
@@ -896,7 +896,7 @@
     const mine = players.get(me.id);
     if (!mine) return;
     if (e.target.closest('.cake-table')) { openCake(); return; }
-    if (e.target.closest('.kitchen')) { goRoom('kit'); return; }
+    if (e.target.closest('.kit-arch')) { goRoom('kit'); return; }
     const kh = e.target.closest('.khs');
     if (kh) {
       const k = kh.dataset.k;

@@ -1228,3 +1228,11 @@ input:focus { border-color: #ffc9cf; }
   .dock-place { flex-direction: column; }
   .game-board { top: 92px; } .game-board.tag { top: 130px; }
 }
+
+/* 거실 → 주방 아치 입구 */
+.kit-arch { position: absolute; left: 70px; top: 78px; width: 170px; height: 272px; z-index: 3; pointer-events: none; }
+.kit-arch svg { width: 100%; height: 100%; display: block; overflow: visible; pointer-events: none; }
+.kit-arch svg * { pointer-events: visiblePainted; cursor: pointer; }
+.kit-arch:hover svg { filter: drop-shadow(0 0 6px rgba(255, 236, 190, .95)); }
+.kit-arch .ksteam { animation: steam 1.8s ease-in-out infinite; }
+.stage.scene-out .kit-arch, .stage.scene-kit .kit-arch { display: none; }
