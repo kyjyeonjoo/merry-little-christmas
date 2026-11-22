@@ -1236,3 +1236,8 @@ input:focus { border-color: #ffc9cf; }
 .kit-arch:hover svg { filter: drop-shadow(0 0 6px rgba(255, 236, 190, .95)); }
 .kit-arch .ksteam { animation: steam 1.8s ease-in-out infinite; }
 .stage.scene-out .kit-arch, .stage.scene-kit .kit-arch { display: none; }
+
+/* 왼쪽 벽: 창문 · 주방 아치 · 바깥 문 나란히 */
+.w-left { left: 12px; width: 112px; border-radius: 56px 56px 10px 10px; }
+.kit-arch { left: 142px; top: 160px; width: 118px; height: 190px; }
+.in-door { left: 264px; top: 156px; width: 78px; height: 192px; }
