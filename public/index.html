@@ -64,6 +64,9 @@
 
     <main class="stage-wrap" id="stageWrap">
       <div class="fight-board" id="fightBoard" hidden></div>
+      <div class="fight-board game-board" id="hideBoard" hidden></div>
+      <div class="fight-board game-board tag" id="tagBoard" hidden></div>
+      <div class="hide-blind" id="hideBlind" hidden><div><p>👀 술래는 눈 감고 숫자 세는 중…</p><b>20</b><small>친구들이 숨고 있어요</small></div></div>
       <div class="notice" id="notice" hidden><span id="noticeText"></span><button class="btn primary small" id="noticeGo">보러 가기</button><button class="icon-btn" id="noticeX">✕</button></div>
       <div class="inv" id="inv" title="인벤토리"></div>
       <div class="inv-menu" id="invMenu" hidden></div>
@@ -100,7 +103,7 @@
         <!-- 장식 트리 -->
         <div class="deco-tree" id="roomTree" title="다 같이 트리 꾸미기"></div>
         <div class="gift-xbox" id="giftXbox" title="선물 교환 상자"></div>
-        <div class="kitchen" id="kitchenCounter" title="주방: 핫초코 · 마시멜로"><div class="art"></div></div>
+        <div class="kitchen" id="kitchenCounter" title="주방으로 가기"><div class="art"></div></div>
 
         <!-- 좌석과 캐릭터는 app.js가 여기에 그려요 -->
         <div class="cake-table" id="cakeTable" title="다 같이 케이크 만들기"><div class="art"></div></div>
@@ -113,7 +116,13 @@
           <div id="outObjs"></div>
           <div id="snowmen"></div>
         </div>
+        <div id="kitroom">
+          <div class="kit-bg" id="kitBg"></div>
+          <div id="kitObjs"></div>
+          <div class="ohs" data-k="kitdoor" style="left:862px;top:168px;width:96px;height:176px" title="거실로 가기"></div>
+        </div>
         <div id="entities"></div>
+        <div id="hideSpots" hidden></div>
         <div id="fx"></div>
         <div class="stage-hint" id="stageHint">바닥을 누르면 걸어가요 · 의자를 누르면 앉아요 · 방향키/WASD로도 움직여요 · 스페이스바 점프 · 친구를 누르면 눈덩이를 던져요</div>
       </div>
@@ -135,6 +144,8 @@
         <button class="act-btn" id="fwBtn" title="폭죽 (F)">🎆<span>폭죽</span></button>
         <button class="act-btn" id="angelBtn" hidden title="눈천사 (G)">😇<span>눈천사</span></button>
         <button class="act-btn throw-btn" id="throwBtn" hidden title="가까운 상대에게 던지기 (T)">🎯<span>던지기</span></button>
+        <button class="act-btn knit-btn" id="knitBtn" hidden title="뜨개질">🧶<span>뜨개질</span></button>
+        <button class="act-btn catch-btn" id="catchBtn" hidden title="가까운 친구 잡기 (T)">🎅<span>잡기</span></button>
         <button class="act-btn eat-btn" id="eatBtn" hidden title="먹기 (Q)"><i class="ic"></i><span>먹기</span></button>
       </div>
       <form id="chatForm">
@@ -145,21 +156,31 @@
 
     <nav class="dock">
       <div class="dock-place" role="tablist" aria-label="장소">
-        <button class="place-btn active" data-feature="room"><i>🔥 </i>거실</button>
-        <button class="place-btn" data-feature="out"><i>⛄ </i>눈마당</button>
+        <button class="place-btn active" data-room="in"><i>🔥 </i>거실</button>
+        <button class="place-btn" data-room="kit"><i>🍳 </i>주방</button>
+        <button class="place-btn" data-room="out"><i>⛄ </i>눈마당</button>
       </div>
       <div class="dock-acts" id="dockIn">
         <button class="dock-item" data-feature="cake"><b>🎂</b><span>케이크</span></button>
-        <button class="dock-item" data-feature="kitchen"><b>☕</b><span>주방</span></button>
         <button class="dock-item" data-feature="tree"><b>🎄</b><span>트리 꾸미기</span></button>
         <button class="dock-item" data-feature="gift"><b>🎁</b><span>선물 나눔</span></button>
-        <button class="dock-item" data-feature="mafia"><b>🎅</b><span>산타 마피아</span></button>
+        <button class="dock-item" data-feature="knit"><b>🧶</b><span>뜨개 옷장</span></button>
+        <button class="dock-item" data-feature="hide"><b>🙈</b><span>숨바꼭질</span></button>
+        <button class="dock-item" data-feature="tag"><b>🎅</b><span>술래잡기</span></button>
+      </div>
+      <div class="dock-acts kit" id="dockKit" hidden>
+        <button class="dock-item" data-feature="cook"><b>🍳</b><span>요리하기</span></button>
+        <button class="dock-item" data-feature="drinks"><b>☕</b><span>핫초코</span></button>
+        <button class="dock-item" data-feature="hide"><b>🙈</b><span>숨바꼭질</span></button>
+        <button class="dock-item" data-feature="tag"><b>🎅</b><span>술래잡기</span></button>
       </div>
       <div class="dock-acts out" id="dockOut" hidden>
         <button class="dock-item" data-feature="snowman"><b>⛄</b><span>눈사람 공방</span></button>
         <button class="dock-item" data-feature="race"><b>🛷</b><span>썰매 경주</span></button>
         <button class="dock-item" data-feature="fight"><b>❄️</b><span>눈싸움</span></button>
         <button class="dock-item" data-feature="castle"><b>🏰</b><span>눈성 쌓기</span></button>
+        <button class="dock-item" data-feature="hide"><b>🙈</b><span>숨바꼭질</span></button>
+        <button class="dock-item" data-feature="tag"><b>🎅</b><span>술래잡기</span></button>
       </div>
     </nav>
   </section>
@@ -343,6 +364,47 @@
       </div>
     </div>
   </div>
+  <div class="modal float" id="knitModal" hidden>
+    <div class="modal-card cake-card knit-card">
+      <button class="icon-btn close" data-close-knit>✕</button>
+      <h2>🧶 흔들의자 뜨개질</h2>
+      <div class="ktabs" id="knitTabs"><button data-tab="knit" class="on">🧶 뜨개질</button><button data-tab="closet">👕 내 뜨개 옷장</button></div>
+      <div class="cake-main">
+        <div class="cake-view-wrap"><div class="cake-view" id="knitView"></div></div>
+        <div class="cake-side">
+          <div class="cake-panel" id="knitPanel"></div>
+          <ul class="mini-chat"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal float" id="cookModal" hidden>
+    <div class="modal-card cake-card cook-card">
+      <button class="icon-btn close" data-close-cook>✕</button>
+      <h2>🍳 요리하기</h2>
+      <div class="cake-main">
+        <div class="cake-view-wrap"><div class="cake-view" id="cookView"></div></div>
+        <div class="cake-side">
+          <div class="cake-panel" id="cookPanel"></div>
+          <ul class="mini-chat"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal float" id="hideModal" hidden>
+    <div class="modal-card cake-card game-card">
+      <button class="icon-btn close" data-close-hide>✕</button>
+      <h2>🙈 숨바꼭질</h2>
+      <div class="cake-panel" id="hidePanel"></div>
+    </div>
+  </div>
+  <div class="modal float" id="tagModal" hidden>
+    <div class="modal-card cake-card game-card">
+      <button class="icon-btn close" data-close-tag>✕</button>
+      <h2>🎅 산타 술래잡기</h2>
+      <div class="cake-panel" id="tagPanel"></div>
+    </div>
+  </div>
   <div class="modal float" id="kitchenModal" hidden>
     <div class="modal-card cake-card kitchen-card">
       <button class="icon-btn close" data-close-kitchen>✕</button>
@@ -371,6 +433,9 @@
   <script src="foods.js"></script>
   <script src="santa.js"></script>
   <script src="kitchen.js"></script>
+  <script src="knit.js"></script>
+  <script src="kitchenroom.js"></script>
+  <script src="games.js"></script>
   <script src="tree.js"></script>
   <script src="gift.js"></script>
   <script src="outdoor.js"></script>

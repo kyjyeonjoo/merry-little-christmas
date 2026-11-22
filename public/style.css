@@ -1124,3 +1124,107 @@ input:focus { border-color: #ffc9cf; }
 .gphoto label { cursor: pointer; }
 .sleigh-fly svg { filter: drop-shadow(0 0 2px rgba(255, 247, 196, .95)) drop-shadow(0 0 6px rgba(255, 247, 196, .5)); }
 .sleigh-fly.win { width: 150px; height: 35px; top: 16px; }
+
+/* ───── 🪑 흔들의자 · 🧶 뜨개질 ───── */
+.rock-back, .rock-front { position: absolute; left: -60px; top: -118px; width: 120px; height: 128px; pointer-events: none; }
+.rock-front { position: absolute; width: 0; height: 0; left: 0; top: 0; }
+#rockFront { position: absolute; width: 0; height: 0; pointer-events: none; }
+#rockFront svg, .rock-back svg { position: absolute; left: -60px; top: -118px; width: 120px; height: 128px; overflow: visible; }
+.rock-back { left: 0; top: 0; width: 0; height: 0; pointer-events: auto; }
+.rock-back svg { pointer-events: visiblePainted; cursor: pointer; }
+.rocking .rock-g { animation: rocking 2.4s ease-in-out infinite; transform-origin: 0 0; }
+@keyframes rocking { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+.sitting[data-seat="rock"] .sprite svg { animation: rocking 2.4s ease-in-out infinite !important; transform-origin: 50% 100%; margin-top: -22px; }
+.stage.scene-out #rockFront, .stage.scene-kit #rockFront { display: none; }
+.knit-ic { position: absolute; left: 6px; top: -46px; width: 34px; height: 34px; pointer-events: none; animation: knitbob .5s ease-in-out infinite alternate; z-index: 3; }
+.knit-ic svg { width: 100%; height: 100%; }
+@keyframes knitbob { to { transform: rotate(8deg) translateY(-2px); } }
+.knit-btn, .catch-btn { background: #fff0f1; }
+.knit-card { width: min(760px, 100%); }
+.kpreview { display: grid; place-items: center; min-height: 220px; background: radial-gradient(circle, #fff8ec, #fff 70%); border-radius: 14px; }
+.kpreview svg { width: 100%; max-height: 260px; }
+.kpreview.done svg { animation: popIn .4s ease-out; }
+.kyarn { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; margin-bottom: 8px; }
+.kcol { aspect-ratio: 1; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px #e6d3b8; cursor: pointer; padding: 0; }
+.kcol.on { box-shadow: 0 0 0 3px var(--red); transform: scale(1.1); }
+.kparts { margin-bottom: 8px; } .kparts .on { background: var(--red); color: #fff; }
+.kbar { position: relative; height: 26px; border-radius: 13px; background: #f3e4cf; margin: 10px 0; box-shadow: inset 0 2px 0 rgba(0,0,0,.06); }
+.kbar b { position: absolute; top: 3px; bottom: 3px; border-radius: 10px; background: #8fd17a; box-shadow: 0 0 0 2px #3f9c6d; }
+.kbar i { position: absolute; top: -6px; width: 6px; height: 38px; margin-left: -3px; border-radius: 3px; background: #c9ced8; border: 2px solid #5b4036; }
+.ktap { font-size: 20px !important; padding: 16px !important; touch-action: manipulation; user-select: none; }
+.ktap.miss { animation: kmiss .3s; } @keyframes kmiss { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+.kcloset { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.kcloset .ic { width: 52px; height: 46px; } .kcloset .ic svg { width: 100%; height: 100%; }
+.kcloset-av { display: grid; place-items: center; min-height: 220px; } .kcloset-av svg { width: 160px; height: 190px; }
+
+/* ───── 🍳 주방 방 ───── */
+#kitroom { display: none; position: absolute; inset: 0; }
+.stage.scene-kit #kitroom { display: block; }
+.stage.scene-kit .wall, .stage.scene-kit .floor, .stage.scene-kit .rug, .stage.scene-kit .fireplace, .stage.scene-kit .deco-tree,
+.stage.scene-kit .gift-xbox, .stage.scene-kit .kitchen, .stage.scene-kit .cake-table, .stage.scene-kit .in-door { display: none; }
+.kit-bg { position: absolute; inset: 0; z-index: 0; } .kit-bg svg { width: 100%; height: 100%; display: block; }
+.kobj { position: absolute; pointer-events: none; }
+.kobj svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.kobj.khs svg { pointer-events: none; } .kobj.khs svg * { pointer-events: visiblePainted; cursor: pointer; }
+.kobj.khs:hover svg { filter: drop-shadow(0 0 6px rgba(255,255,255,.95)); }
+.kit-scene .ksteam, .kobj .ksteam { animation: steam 1.6s ease-in-out infinite; }
+.seat[data-room="kit"] { display: none; }
+.stage.scene-kit .seat[data-room="kit"] { display: block; }
+.stage.scene-kit .seat:not([data-room="kit"]) { display: none; }
+.stage.scene-out .seat[data-room="kit"] { display: none; }
+.stool { position: absolute; left: -30px; top: -44px; width: 60px; height: 48px; }
+.stool svg { width: 100%; height: 100%; display: block; }
+.sitting[data-seat="stool"] .sprite svg { animation: none; transform: translateY(-14px) scale(.95, .92); }
+.ingr-ic { width: 30px; height: 32px; display: block; } .ingr-ic.big { width: 44px; height: 46px; }
+.ingr-pop { position: absolute; transform: translate(-50%, 0); display: flex; flex-direction: column; align-items: center; z-index: 2000; pointer-events: none; animation: fhit 1.3s ease-out forwards; }
+.ingr-pop span { background: #fff; border-radius: 10px; padding: 2px 8px; font: 400 14px 'Jua', sans-serif; box-shadow: 0 3px 0 rgba(0,0,0,.12); white-space: nowrap; }
+.cook-card { width: min(860px, 100%); }
+.kmenu { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; width: 100%; }
+.kdish { background: #fff; border: 3px solid transparent; border-radius: 14px; padding: 4px 2px; cursor: pointer; display: flex; flex-direction: column; align-items: center; opacity: .55; box-shadow: 0 3px 0 rgba(91,64,54,.12); }
+.kdish svg { width: 54px; height: 54px; } .kdish small { font-size: 11px; font-family: 'Jua', sans-serif; }
+.kdish.ok { opacity: 1; } .kdish.on { border-color: var(--red); background: #fff0f1; opacity: 1; }
+.kbag, .kneed { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+.kchip { display: flex; flex-direction: column; align-items: center; background: #fff; border-radius: 10px; padding: 3px 5px; box-shadow: 0 2px 0 rgba(91,64,54,.12); position: relative; }
+.kchip b { position: absolute; right: -4px; top: -6px; background: var(--red); color: #fff; border-radius: 999px; font: 400 11px/16px 'Jua', sans-serif; min-width: 16px; text-align: center; }
+.kchip small { font-size: 10.5px; } .kchip.miss { opacity: .4; filter: grayscale(1); }
+.btnchip { border: 0; cursor: pointer; } .btnchip.used { opacity: .35; }
+.kpan { position: relative; width: 100%; min-height: 230px; border-radius: 16px; background: radial-gradient(circle at 50% 60%, #4d5a6a 0 34%, #3a3340 35% 38%, #fff8ec 39%); }
+.kpan.oven { background: linear-gradient(#3a3340, #3a3340) center/70% 70% no-repeat, #fff8ec; border-radius: 16px; }
+.kpan.board { background: radial-gradient(ellipse at 50% 55%, #e8b46a 0 40%, #fff8ec 41%); }
+.kpan .kin { position: absolute; transform: translate(-50%, -50%); animation: popIn .3s ease-out; }
+.kpan.cooking, .kpan.done { display: grid; place-items: center; }
+.kpan.cooking svg, .kpan.done svg { width: 150px; height: 150px; }
+.kpan.cooking svg { animation: sizzle .4s ease-in-out infinite alternate; }
+@keyframes sizzle { to { transform: translateY(-3px) rotate(1deg); } }
+.kpan .kfire { position: absolute; left: 50%; bottom: 8px; width: 90px; height: 16px; margin-left: -45px; border-radius: 50%; background: radial-gradient(#ffd34d, #ff7a3c 60%, transparent 70%); animation: halo .5s infinite alternate; }
+
+/* ───── 🙈 숨바꼭질 · 🎅 술래잡기 ───── */
+#hideSpots { position: absolute; inset: 0; z-index: 3000; pointer-events: none; }
+.hspot { position: absolute; pointer-events: auto; border: 3px dashed rgba(255,255,255,.95); background: rgba(255, 214, 224, .28); border-radius: 18px; cursor: pointer; display: grid; place-items: end center; padding: 0 0 4px; animation: halo 1.6s ease-in-out infinite; }
+.hspot span { background: #fff; border-radius: 999px; padding: 2px 10px; font: 400 13px 'Jua', sans-serif; color: var(--red); white-space: nowrap; box-shadow: 0 2px 0 rgba(0,0,0,.12); }
+.hspot.seek { background: rgba(143, 196, 245, .25); border-color: #fff; }
+.hspot.mine { background: rgba(232, 71, 79, .25); border-style: solid; animation: none; opacity: 1; }
+.hspot.peek { transform: scale(.96); }
+.player.hiding { display: none !important; }
+.player.hiding-me { opacity: .35; }
+.hide-blind { position: absolute; inset: 0; z-index: 70; background: rgba(20, 28, 51, .92); display: grid; place-items: center; text-align: center; color: #fff; }
+.hide-blind p { font: 400 20px 'Jua', sans-serif; margin: 0 0 6px; } .hide-blind b { font: 400 64px 'Jua', sans-serif; display: block; color: #ffd34d; } .hide-blind small { opacity: .8; }
+.game-board { top: 104px; } .game-board.tag { top: 150px; }
+.game-board .it { color: var(--red); }
+.hfx { position: absolute; transform: translate(-50%, 0); font: 400 22px 'Jua', sans-serif; z-index: 3100; pointer-events: none; animation: fhit 1.2s ease-out forwards; text-shadow: 0 2px 0 #fff; }
+.hfx.hit { color: var(--red); } .hfx.miss { color: #6b7d99; }
+.game-card { width: min(480px, 100%); }
+.hplayers, .tagtimes { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px; }
+.hplayers span, .tagtimes span { background: #fff; border-radius: 999px; padding: 4px 12px; font: 400 14px 'Jua', sans-serif; box-shadow: 0 2px 0 rgba(91,64,54,.12); }
+.tagtimes span.it { background: #ffe3e6; color: var(--red); } .tagtimes span.win { background: #fff6d0; }
+.tagtimes small { color: #8a6d5c; font-size: 11px; }
+.player.tag-it .sprite::before { content: ''; position: absolute; left: 50%; top: -6px; width: 44px; height: 30px; margin-left: -22px; z-index: 5; pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 30'%3E%3Cpath d='M4 26 C6 8 22 0 38 6 C34 10 34 18 36 26 Z' fill='%23e8474f' stroke='%235b4036' stroke-width='2'/%3E%3Crect x='1' y='22' width='38' height='7' rx='3.5' fill='%23fff' stroke='%235b4036' stroke-width='1.6'/%3E%3Ccircle cx='39' cy='6' r='4.5' fill='%23fff' stroke='%235b4036' stroke-width='1.6'/%3E%3C/svg%3E") center/contain no-repeat; }
+.player.tag-it .name { background: var(--red); color: #fff; }
+.player.tag-it .sprite { filter: drop-shadow(0 0 6px rgba(232, 71, 79, .8)); }
+@media (max-width: 760px) {
+  .kmenu { grid-template-columns: repeat(5, 1fr); } .kdish svg { width: 44px; height: 44px; }
+  .dock-acts { overflow-x: auto; }
+  .dock-place { flex-direction: column; }
+  .game-board { top: 92px; } .game-board.tag { top: 130px; }
+}

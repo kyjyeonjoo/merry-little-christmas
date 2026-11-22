@@ -111,12 +111,18 @@ function normAvatar(a) {
   a = a || {};
   let accs = Array.isArray(a.accs) ? a.accs : a.acc && a.acc !== 'none' ? [a.acc] : [];
   accs = [...new Set(accs.filter((x) => ACCS.includes(x)))].slice(0, MAX_ACCS);
-  return {
+  const out = {
     type: ANIMALS.includes(a.type) ? a.type : 'bear',
     color: COLORS.includes(a.color) ? a.color : COLORS[1],
     accs,
   };
+  const k = a.knit && typeof a.knit === 'object' ? a.knit : {};
+  const kn = {};
+  for (const part of ['scarf', 'hat']) if (Array.isArray(k[part]) && k[part].length === 2 && k[part].every((c) => YARN.includes(c))) kn[part] = k[part].slice();
+  if (kn.scarf || kn.hat) out.knit = kn;
+  return out;
 }
+const YARN = ['#e8474f', '#fff6e0', '#3f9c6d', '#3a4f86', '#ff9db5', '#ffd34d', '#8fc4f5', '#a487e8'];
 function cleanAvatar(a) {
   if (!a || typeof a !== 'object' || !ANIMALS.includes(a.type) || !COLORS.includes(a.color)) return null;
   if (!Array.isArray(a.accs) || a.accs.length > MAX_ACCS) return null;
@@ -151,7 +157,7 @@ const SEATS = {
   cush1: { x: 345, y: 500 },
   cush2: { x: 655, y: 500 },
   cush3: { x: 262, y: 512 },
-  poufL: { x: 105, y: 520 },
+  rock: { x: 108, y: 528 }, // 흔들의자
   poufR: { x: 895, y: 520 },
   hearthL: { x: 382, y: 368 }, // 난로 앞 방석
   hearthR: { x: 604, y: 368 },
@@ -159,9 +165,13 @@ const SEATS = {
   bench1: { x: 357, y: 600, room: 'out' },
   bench2: { x: 413, y: 600, room: 'out' },
   igloo: { x: 888, y: 484, room: 'out' },
+  // 주방
+  kseat1: { x: 432, y: 548, room: 'kit' },
+  kseat2: { x: 568, y: 548, room: 'kit' },
 };
 const seatRoom = (id) => (SEATS[id] && SEATS[id].room) || 'in';
-const DOOR = { in: { x: 290, y: 365 }, out: { x: 160, y: 380 } }; // 방을 옮기면 문 앞에 나타나요
+const DOOR = { in: { x: 290, y: 365 }, out: { x: 160, y: 380 }, kit: { x: 880, y: 400 }, 'kit>in': { x: 130, y: 470 } }; // 방을 옮기면 문 앞에 나타나요
+const ROOMS = ['in', 'out', 'kit'];
 const seatOwner = {}; // seatId -> playerId
 const players = new Map(); // playerId -> { id, uid, nick, avatar, x, y, seat, facing, client }
 const history = []; // 최근 채팅
@@ -211,6 +221,7 @@ function enterRoom(client, user) {
     t: 'welcome', me: p.id, user: publicUser(user), admin: isAdmin(user), inv: Array.isArray(user.inv) ? user.inv : [],
     players: [...players.values()].map(pub), history, cake, tree: db.tree, gift: giftState(user), giftPool: db.gifts.pool.length,
     snowmen: db.snow.men, race: racePub(), fight: fightPub(), castle: db.castle.cells,
+    knits: Array.isArray(user.knits) ? user.knits : [], ingr: user.ingr || {}, tag: tagPub(), hide: { ...hidePub(), mySpot: hide.hidden[user.id] || null },
   });
   broadcast({ t: 'join', player: pub(p) }, client);
   if (recentlyLeft.has(user.id)) {
@@ -229,7 +240,7 @@ function removePlayer(client) {
   leaveSeat(p);
   players.delete(p.id);
   client.player = null;
-  if (![...players.values()].some((q) => q.uid === p.uid)) { cakeOnLeave(p.uid); raceLeave(p.uid); fightLeave(p.uid); }
+  if (![...players.values()].some((q) => q.uid === p.uid)) { cakeOnLeave(p.uid); raceLeave(p.uid); fightLeave(p.uid); handleHide({ send() {} }, p, { act: 'leave' }); handleTag({ send() {} }, p, { act: 'leave' }); }
   broadcast({ t: 'leave', id: p.id });
   const nick = p.nick, uid = p.uid;
   clearTimeout(recentlyLeft.get(uid));
@@ -989,6 +1000,279 @@ function sleighPass() { broadcast({ t: 'sleigh', dir: Math.random() < 0.5 ? 1 : 
 (function santaLoop() { setTimeout(() => { if (players.size) santaCome(); santaLoop(); }, (300 + Math.random() * 300) * 1000); })();
 (function sleighLoop() { setTimeout(() => { if (players.size) sleighPass(); sleighLoop(); }, (120 + Math.random() * 120) * 1000); })();
 
+// ───────────────────────── 🧶 흔들의자 · 뜨개질 ─────────────────────────
+function handleKnit(client, p, msg) {
+  const u = db.users[p.uid]; if (!u) return;
+  u.knits = Array.isArray(u.knits) ? u.knits : [];
+  const wear = (part, cols) => {
+    u.avatar = normAvatar(u.avatar);
+    const kn = { ...(u.avatar.knit || {}) };
+    if (cols) kn[part] = cols; else delete kn[part];
+    u.avatar.knit = kn;
+    u.avatar = normAvatar(u.avatar);
+    p.avatar = u.avatar;
+    broadcast({ t: 'pupdate', id: p.id, nick: p.nick, avatar: p.avatar });
+  };
+  if (msg.act === 'on' || msg.act === 'off') {
+    p.knitting = msg.act === 'on' && p.seat === 'rock';
+    broadcast({ t: 'knitting', id: p.id, on: p.knitting });
+    return;
+  }
+  if (msg.act === 'done') {
+    if (p.seat !== 'rock') return client.send({ t: 'toast', msg: '흔들의자에 앉아서 떠요 🧶' });
+    const now = Date.now();
+    if (now - (client.lastKnit || 0) < 8000) return; // 너무 빨리 뜰 수는 없어요
+    client.lastKnit = now;
+    const part = msg.part === 'hat' ? 'hat' : 'scarf';
+    const cols = [msg.c1, msg.c2];
+    if (!cols.every((c) => YARN.includes(c))) return;
+    u.knits.unshift({ part, cols });
+    if (u.knits.length > 8) u.knits.length = 8;
+    wear(part, cols);
+    const sys = { kind: 'sys', text: `🧶 ${p.nick} 님이 ${part === 'hat' ? '털모자' : '목도리'}를 다 떴어요!`, ts: now };
+    pushHistory(sys); broadcast({ t: 'sys', ...sys });
+  } else if (msg.act === 'wear') {
+    const k = u.knits[Number(msg.i)];
+    if (!k) return;
+    const cur = u.avatar && u.avatar.knit && u.avatar.knit[k.part];
+    const same = cur && cur[0] === k.cols[0] && cur[1] === k.cols[1];
+    wear(k.part, same ? null : k.cols);
+  } else if (msg.act === 'unwear') {
+    wear(msg.part === 'hat' ? 'hat' : 'scarf', null);
+  } else if (msg.act === 'toss') {
+    const i = Number(msg.i); if (!u.knits[i]) return;
+    u.knits.splice(i, 1);
+  } else return;
+  saveDb();
+  client.send({ t: 'knits', knits: u.knits });
+}
+
+// ───────────────────────── 🍳 주방: 재료 뒤적이기 · 요리 ─────────────────────────
+const INGR_SRC = {
+  fridge: ['egg', 'milk', 'butter', 'cheese', 'tomato', 'lettuce', 'strawberry', 'tangerine', 'chicken', 'sausage'],
+  pantry: ['flour', 'sugar', 'noodle', 'rice', 'ricecake', 'bread', 'gochujang'],
+};
+const INGR_ALL = [...INGR_SRC.fridge, ...INGR_SRC.pantry];
+const INGR_MAX = 5;
+const RECIPES = {
+  pancake: ['flour', 'egg', 'milk', 'butter'], pizza: ['flour', 'cheese', 'tomato', 'sausage'], chicken: ['chicken', 'flour', 'egg'],
+  ramen: ['noodle', 'egg'], omelet: ['rice', 'egg', 'tomato'], cupcake: ['flour', 'sugar', 'egg', 'strawberry'],
+  salad: ['lettuce', 'tomato'], toast: ['bread', 'egg', 'milk', 'sugar'], tteok: ['ricecake', 'gochujang'], fruit: ['strawberry', 'tangerine'],
+};
+function handleCook(client, p, msg) {
+  const u = db.users[p.uid]; if (!u) return;
+  u.ingr = u.ingr && typeof u.ingr === 'object' ? u.ingr : {};
+  const now = Date.now();
+  const toast = (m) => client.send({ t: 'toast', msg: m });
+  if (msg.act === 'rummage') {
+    const src = INGR_SRC[msg.src]; if (!src || p.room !== 'kit') return;
+    if (now - (client.lastRummage || 0) < 1200) return;
+    client.lastRummage = now;
+    let found = null;
+    if (Math.random() < 0.8) {
+      const k = src[Math.floor(Math.random() * src.length)];
+      if ((u.ingr[k] || 0) >= INGR_MAX) return client.send({ t: 'ingr', ingr: u.ingr, found: k, full: true, src: msg.src });
+      u.ingr[k] = (u.ingr[k] || 0) + 1; found = k;
+    }
+    saveDb();
+    client.send({ t: 'ingr', ingr: u.ingr, found, src: msg.src });
+    broadcast({ t: 'rummage', id: p.id, src: msg.src }, client);
+  } else if (msg.act === 'cook') {
+    const need = RECIPES[msg.dish]; if (!need) return;
+    if (now - (client.lastCook || 0) < 4000) return;
+    if (!need.every((k) => (u.ingr[k] || 0) > 0)) return toast('재료가 모자라요. 냉장고랑 찬장을 뒤져 봐요!');
+    u.inv = Array.isArray(u.inv) ? u.inv : [];
+    if (u.inv.length >= INV_SIZE) return toast('🎒 가방이 꽉 찼어요! 하나 먹거나 버리고 와요');
+    client.lastCook = now;
+    need.forEach((k) => { u.ingr[k]--; if (!u.ingr[k]) delete u.ingr[k]; });
+    const q = ['great', 'good', 'ok', 'burnt'].includes(msg.q) ? msg.q : 'ok';
+    const item = { k: 'food', t: msg.dish, q };
+    u.inv.push(item); saveDb();
+    client.send({ t: 'ingr', ingr: u.ingr });
+    client.send({ t: 'inv', inv: u.inv, added: item });
+    const sys = { kind: 'sys', text: `🍳 ${p.nick} 님이 ${itemName(item)}을(를) 만들었어요!`, ts: now };
+    pushHistory(sys); broadcast({ t: 'sys', ...sys });
+  }
+}
+
+// ───────────────────────── 🙈 숨바꼭질 ─────────────────────────
+const HIDE_SPOTS = {
+  in: ['tree', 'sofa', 'armL', 'armR', 'gift', 'cake', 'curtain', 'rock'],
+  out: ['igloo', 'workshop', 'castle', 'bench', 'pineL', 'pineR', 'race', 'house'],
+  kit: ['fridge', 'pantry', 'oven', 'table', 'counter'],
+};
+const HIDE_TIME = 20000, SEEK_TIME = 60000;
+const newHide = () => ({ stage: 'idle', room: 'in', host: null, seeker: null, players: [], hidden: {}, found: [], endAt: 0 });
+let hide = newHide(), hideTimer = null;
+const isHidden = (uid) => (hide.stage === 'hide' || hide.stage === 'seek') && !!hide.hidden[uid] && !hide.found.includes(uid);
+function hidePub() {
+  return { stage: hide.stage, room: hide.room, host: hide.host, seeker: hide.seeker, players: hide.players, found: hide.found,
+    hiddenUids: Object.keys(hide.hidden), left: Math.max(0, hide.endAt - Date.now()) };
+}
+function hideSend() {
+  // 어디 숨었는지는 본인에게만 알려줘요
+  for (const q of players.values()) q.client.send({ t: 'hide', hide: { ...hidePub(), mySpot: hide.hidden[q.uid] || null } });
+}
+function hideEnd() {
+  if (hide.stage !== 'seek' && hide.stage !== 'hide') return;
+  clearTimeout(hideTimer);
+  hide.stage = 'done';
+  const survivors = hide.players.filter((m) => m.uid !== hide.seeker && !hide.found.includes(m.uid));
+  hide.survivors = survivors.map((m) => m.nick);
+  const seekerNick = (hide.players.find((m) => m.uid === hide.seeker) || {}).nick || '술래';
+  const txt = survivors.length ? `🙈 숨바꼭질 끝! 끝까지 안 들킨 사람: ${survivors.map((m) => m.nick).join(', ')}` : `🙈 숨바꼭질 끝! 술래 ${seekerNick} 님이 모두 찾았어요`;
+  const sys = { kind: 'sys', text: txt, ts: Date.now() };
+  pushHistory(sys); broadcast({ t: 'sys', ...sys });
+  notice('hide', txt);
+  hideSend();
+}
+function handleHide(client, p, msg) {
+  const toast = (m) => client.send({ t: 'toast', msg: m });
+  const inGame = hide.players.some((m) => m.uid === p.uid);
+  switch (msg.act) {
+    case 'open':
+      if (hide.stage === 'lobby' || hide.stage === 'hide' || hide.stage === 'seek') return toast('이미 숨바꼭질이 열려 있어요');
+      hide = newHide(); hide.stage = 'lobby'; hide.room = p.room || 'in'; hide.host = p.uid; hide.players = [{ uid: p.uid, nick: p.nick }];
+      notice('hide', `🙈 ${p.nick} 님이 ${hide.room === 'out' ? '눈마당' : hide.room === 'kit' ? '주방' : '거실'}에서 숨바꼭질을 열었어요!`);
+      break;
+    case 'join':
+      if (hide.stage !== 'lobby' || inGame) return;
+      if (hide.players.length >= 10) return toast('숨바꼭질은 10명까지예요');
+      hide.players.push({ uid: p.uid, nick: p.nick });
+      break;
+    case 'leave':
+      if (hide.stage === 'lobby') {
+        hide.players = hide.players.filter((m) => m.uid !== p.uid);
+        if (!hide.players.length) hide = newHide(); else if (hide.host === p.uid) hide.host = hide.players[0].uid;
+      } else if ((hide.stage === 'hide' || hide.stage === 'seek') && inGame) {
+        // 중간에 그만두기
+        if (p.uid === hide.seeker) { hideEnd(); return; }
+        hide.players = hide.players.filter((m) => m.uid !== p.uid); delete hide.hidden[p.uid];
+        if (hide.players.filter((m) => m.uid !== hide.seeker).length === 0) { hideEnd(); return; }
+      } else return;
+      break;
+    case 'start': {
+      if (hide.stage !== 'lobby' || hide.host !== p.uid) return;
+      if (hide.players.length < 2) return toast('두 명 이상 있어야 해요');
+      const inRoom = hide.players.filter((m) => [...players.values()].some((q) => q.uid === m.uid && q.room === hide.room));
+      if (inRoom.length < hide.players.length) return toast(`모두 ${hide.room === 'out' ? '눈마당' : hide.room === 'kit' ? '주방' : '거실'}에 모여야 시작해요`);
+      hide.seeker = hide.players[Math.floor(Math.random() * hide.players.length)].uid;
+      hide.stage = 'hide'; hide.endAt = Date.now() + HIDE_TIME; hide.hidden = {}; hide.found = [];
+      hideTimer = setTimeout(() => {
+        // 못 숨은 사람은 남은 곳에 쏙
+        const spots = HIDE_SPOTS[hide.room];
+        hide.players.forEach((m) => { if (m.uid !== hide.seeker && !hide.hidden[m.uid]) hide.hidden[m.uid] = spots[Math.floor(Math.random() * spots.length)]; });
+        hide.stage = 'seek'; hide.endAt = Date.now() + SEEK_TIME;
+        hideTimer = setTimeout(hideEnd, SEEK_TIME);
+        notice('hide', '🔍 찾는다~! 술래가 숨은 곳을 찾기 시작했어요');
+        hideSend();
+      }, HIDE_TIME);
+      break;
+    }
+    case 'spot': {
+      if (hide.stage !== 'hide' || !inGame || p.uid === hide.seeker || p.room !== hide.room) return;
+      if (!HIDE_SPOTS[hide.room].includes(msg.spot)) return;
+      if (Object.values(hide.hidden).filter((v) => v === msg.spot).length >= 2) return toast('거긴 이미 꽉 찼어요! 다른 곳에 숨어요');
+      hide.hidden[p.uid] = msg.spot;
+      leaveSeat(p);
+      break;
+    }
+    case 'seek': {
+      if (hide.stage !== 'seek' || p.uid !== hide.seeker) return;
+      if (!HIDE_SPOTS[hide.room].includes(msg.spot)) return;
+      const now = Date.now();
+      if (now - (client.lastSeek || 0) < 700) return;
+      client.lastSeek = now;
+      const there = Object.entries(hide.hidden).filter(([u, v]) => v === msg.spot && !hide.found.includes(u)).map(([u]) => u);
+      broadcast({ t: 'hideSeek', spot: msg.spot, found: there });
+      if (there.length) {
+        hide.found.push(...there);
+        const names = there.map((u) => (hide.players.find((m) => m.uid === u) || {}).nick).join(', ');
+        const sys = { kind: 'sys', text: `🙈 찾았다! ${names} 님`, ts: now };
+        pushHistory(sys); broadcast({ t: 'sys', ...sys });
+        if (hide.players.every((m) => m.uid === hide.seeker || hide.found.includes(m.uid))) { hideEnd(); return; }
+      }
+      break;
+    }
+    case 'reset': if (hide.stage === 'done') hide = newHide(); break;
+    default: return;
+  }
+  hideSend();
+}
+
+// ───────────────────────── 🎅 산타 술래잡기 ─────────────────────────
+const TAG_TIME = 90000, TAG_RANGE = 120;
+const newTag = () => ({ stage: 'idle', room: 'in', host: null, players: [], it: null, since: 0, times: {}, endAt: 0, lastFrom: null, immuneAt: 0, results: [] });
+let tag = newTag(), tagTimer = null;
+function tagPub() {
+  const times = { ...tag.times };
+  if (tag.stage === 'run' && tag.it) times[tag.it] = (times[tag.it] || 0) + (Date.now() - tag.since);
+  return { stage: tag.stage, room: tag.room, host: tag.host, players: tag.players, it: tag.it, times, left: Math.max(0, tag.endAt - Date.now()), results: tag.results };
+}
+const tagSend = () => broadcast({ t: 'tag', tag: tagPub() });
+function tagEnd() {
+  if (tag.stage !== 'run') return;
+  clearTimeout(tagTimer);
+  const t = tagPub().times;
+  tag.results = tag.players.map((m) => ({ uid: m.uid, nick: m.nick, ms: t[m.uid] || 0 })).sort((a, b) => a.ms - b.ms);
+  const last = (tag.players.find((m) => m.uid === tag.it) || {}).nick;
+  tag.stage = 'done';
+  const win = tag.results[0];
+  const txt = `🎅 산타 술래잡기 끝! 산타를 제일 적게 한 ${win ? win.nick : ''} 님 승리${last ? ` · 마지막 산타는 ${last} 님` : ''}`;
+  const sys = { kind: 'sys', text: txt, ts: Date.now() };
+  pushHistory(sys); broadcast({ t: 'sys', ...sys });
+  notice('tag', txt);
+  tagSend();
+}
+function handleTag(client, p, msg) {
+  const toast = (m) => client.send({ t: 'toast', msg: m });
+  const inGame = tag.players.some((m) => m.uid === p.uid);
+  const now = Date.now();
+  switch (msg.act) {
+    case 'open':
+      if (tag.stage === 'lobby' || tag.stage === 'run') return toast('이미 산타 술래잡기가 열려 있어요');
+      tag = newTag(); tag.stage = 'lobby'; tag.room = p.room || 'in'; tag.host = p.uid; tag.players = [{ uid: p.uid, nick: p.nick }];
+      notice('tag', `🎅 ${p.nick} 님이 산타 술래잡기를 열었어요! 산타한테 잡히면 내가 산타가 돼요`);
+      break;
+    case 'join':
+      if (tag.stage !== 'lobby' || inGame) return;
+      if (tag.players.length >= 10) return toast('10명까지예요');
+      tag.players.push({ uid: p.uid, nick: p.nick });
+      break;
+    case 'leave':
+      if (!inGame) return;
+      tag.players = tag.players.filter((m) => m.uid !== p.uid);
+      if (tag.stage === 'lobby') { if (!tag.players.length) tag = newTag(); else if (tag.host === p.uid) tag.host = tag.players[0].uid; }
+      else if (tag.stage === 'run') {
+        if (tag.players.length < 2) { tagEnd(); return; }
+        if (tag.it === p.uid) { tag.times[p.uid] = (tag.times[p.uid] || 0) + (now - tag.since); tag.it = tag.players[Math.floor(Math.random() * tag.players.length)].uid; tag.since = now; }
+      } else return;
+      break;
+    case 'start':
+      if (tag.stage !== 'lobby' || tag.host !== p.uid) return;
+      if (tag.players.length < 2) return toast('두 명 이상 있어야 해요');
+      tag.stage = 'run'; tag.endAt = now + TAG_TIME; tag.times = {};
+      tag.it = tag.players[Math.floor(Math.random() * tag.players.length)].uid; tag.since = now; tag.immuneAt = now + 3000; tag.lastFrom = null;
+      tagTimer = setTimeout(tagEnd, TAG_TIME);
+      break;
+    case 'tag': {
+      if (tag.stage !== 'run' || p.uid !== tag.it || now < tag.immuneAt) return;
+      const target = players.get(Number(msg.to));
+      if (!target || !tag.players.some((m) => m.uid === target.uid) || target.uid === p.uid || target.room !== p.room) return;
+      if (target.uid === tag.lastFrom && now < tag.immuneAt + 2000) return toast('방금 산타였던 친구는 잠깐 못 잡아요!');
+      if (Math.hypot(target.x - p.x, target.y - p.y) > TAG_RANGE) return toast('조금 더 가까이 가야 잡을 수 있어요!');
+      tag.times[p.uid] = (tag.times[p.uid] || 0) + (now - tag.since);
+      tag.lastFrom = p.uid; tag.it = target.uid; tag.since = now; tag.immuneAt = now + 2000;
+      broadcast({ t: 'tagged', from: p.id, to: target.id });
+      break;
+    }
+    case 'reset': if (tag.stage === 'done') tag = newTag(); break;
+    default: return;
+  }
+  tagSend();
+}
+function resetExtraGames() { clearTimeout(hideTimer); hide = newHide(); hideSend(); clearTimeout(tagTimer); tag = newTag(); tagSend(); }
+
 // ───────────────────────── 🛠️ 개발자 모드 ─────────────────────────
 function isAdmin(user) { return !!(user && user.admin && user.nick.toLowerCase() === ADMIN_NICK && ADMIN_PW); }
 function handleAdmin(client, p, msg) {
@@ -1066,6 +1350,7 @@ function handle(client, msg) {
 
   switch (msg.t) {
     case 'move': {
+      if (isHidden(p.uid)) return;
       const x = clamp(Number(msg.x) || 0, ROOM.minX, ROOM.maxX);
       const y = clamp(Number(msg.y) || 0, ROOM.minY, ROOM.maxY);
       if (x !== p.x) p.facing = x < p.x ? -1 : 1;
@@ -1116,6 +1401,7 @@ function handle(client, msg) {
       if (msg.avatar !== undefined) {
         const a = cleanAvatar(msg.avatar);
         if (!a) return client.send({ t: 'profileErr', msg: '캐릭터 정보가 이상해요.' });
+        if (user.avatar && user.avatar.knit) a.knit = user.avatar.knit; // 뜨개 옷은 그대로
         user.avatar = a;
       }
       if (msg.nick !== undefined && msg.nick.trim() !== user.nick) {
@@ -1160,11 +1446,13 @@ function handle(client, msg) {
     }
     case 'go': {
       // 거실 ↔ 눈마당
-      const room = msg.room === 'out' ? 'out' : 'in';
+      const room = ROOMS.includes(msg.room) ? msg.room : 'in';
       if (room === p.room) return;
+      if (isHidden(p.uid)) return client.send({ t: 'toast', msg: '숨바꼭질 중에는 움직일 수 없어요 🤫' });
       leaveSeat(p);
+      const from = p.room;
       p.room = room;
-      const d = DOOR[room];
+      const d = DOOR[`${from}>${room}`] || DOOR[room];
       p.x = d.x + Math.round(Math.random() * 40 - 20); p.y = d.y + Math.round(Math.random() * 20);
       broadcast({ t: 'go', id: p.id, room, x: p.x, y: p.y });
       break;
@@ -1175,6 +1463,10 @@ function handle(client, msg) {
     case 'castle': handleCastle(client, p, msg); break;
     case 'admin': handleAdmin(client, p, msg); break;
     case 'santaCatch': santaCatch(client, p, msg); break;
+    case 'knit': handleKnit(client, p, msg); break;
+    case 'cook': handleCook(client, p, msg); break;
+    case 'hide': handleHide(client, p, msg); break;
+    case 'tag': handleTag(client, p, msg); break;
     case 'cake': handleCake(client, p, msg); break;
     case 'tree': handleTree(client, p, msg); break;
     case 'gift': handleGift(client, p, msg).catch((e) => console.error(e)); break;

@@ -16,12 +16,15 @@
     cush3: { x: 262, y: 512, kind: 'cush', face: 1 },
     hearthL: { x: 382, y: 368, kind: 'hearth', face: 1 },
     hearthR: { x: 604, y: 368, kind: 'hearth', face: -1 },
-    poufL: { x: 105, y: 520, kind: 'pouf', face: 1 },
+    rock: { x: 108, y: 528, kind: 'rock', face: 1 },
     poufR: { x: 895, y: 520, kind: 'pouf', face: -1 },
     // 눈마당
     bench1: { x: 357, y: 600, kind: 'bench', room: 'out', face: 1 },
     bench2: { x: 413, y: 600, kind: 'bench', room: 'out', face: -1 },
     igloo: { x: 888, y: 484, kind: 'igloo', room: 'out' },
+    // 주방
+    kseat1: { x: 432, y: 548, kind: 'stool', room: 'kit', face: 1 },
+    kseat2: { x: 568, y: 548, kind: 'stool', room: 'kit', face: -1 },
   };
   let myRoom = 'in';
   const roomOf = (p) => (p && p.data.room) || 'in';
@@ -194,6 +197,14 @@
       case 'fightHit': onFightHit(m); break;
       case 'castle': onCastle(m.cells); break;
       case 'santa': onSanta(m); break;
+      case 'ingr': onIngr(m); break;
+      case 'rummage': if (here(m.id)) KitchenRoom.openDoor(m.src, 700); break;
+      case 'knits': knitUI.setKnits(m.knits); break;
+      case 'knitting': { const p = players.get(m.id); if (p) setKnitting(p, m.on); break; }
+      case 'hide': hideUI.set(m.hide); break;
+      case 'hideSeek': hideUI.seekFx(m); break;
+      case 'tag': tagUI.set(m.tag); break;
+      case 'tagged': onTagged(m); break;
       case 'sleigh': onSleigh(m); break;
       case 'clearChat': $('#chatLog').innerHTML = ''; document.querySelectorAll('.mini-chat').forEach((u) => { u.innerHTML = ''; }); break;
       case 'angel': doAngel(m.id); break;
@@ -302,7 +313,10 @@
     $('#adminBtn').hidden = !m.admin;
     $('#inDoor').innerHTML = Outdoor.doorArt();
     { const mine = players.get(me.id); setScene(roomOf(mine)); }
-    $('#kitchenCounter .art').innerHTML = Kitchen.counterArt();
+    $('#kitchenCounter .art').innerHTML = KitchenRoom.doorArt();
+    knitUI.setKnits(m.knits || []); cookUI.setIngr(m.ingr || {});
+    if (m.hide) hideUI.set(m.hide);
+    if (m.tag) tagUI.set(m.tag);
     renderMe();
     updateCount();
     fitStage();
@@ -414,6 +428,18 @@
       } else if (s.kind === 'hearth') {
         el.innerHTML = `<div class="cushion hearth-mat"></div>`;
         el.style.zIndex = 5;
+      } else if (s.kind === 'rock') {
+        el.innerHTML = `<div class="rock-back">${KnitArt.chairBack()}</div>`;
+        el.style.zIndex = s.y - 3;
+        const old = $('#rockFront'); if (old) old.remove();
+        const f = document.createElement('div');
+        f.className = 'rock-front'; f.id = 'rockFront';
+        f.style.left = s.x + 'px'; f.style.top = s.y + 'px'; f.style.zIndex = s.y + 3;
+        f.innerHTML = KnitArt.chairFront();
+        $('#stage').appendChild(f);
+      } else if (s.kind === 'stool') {
+        el.innerHTML = `<div class="stool">${KitchenRoom.stoolSVG()}</div>`;
+        el.style.zIndex = s.y - 3;
       } else if (s.kind === 'bench' || s.kind === 'igloo') {
         el.innerHTML = `<div class="seat-hit"></div>`;
         el.style.zIndex = s.y + 2; // 벤치·이글루 그림보다 위에서 눌려요
@@ -432,6 +458,9 @@
   function refreshSeats() {
     const bySeat = {};
     players.forEach((p) => { if (p.data.seat) bySeat[p.data.seat] = p; });
+    const rockOn = !!bySeat.rock;
+    document.querySelectorAll('.seat[data-seat=rock], #rockFront').forEach((x) => x.classList.toggle('rocking', rockOn));
+    if (window.__knitReady) updateKnitBtn();
     for (const [id, el] of Object.entries(seatEls)) {
       el.classList.toggle('taken', !!bySeat[id]);
       const plate = el.querySelector('.plate');
@@ -474,10 +503,14 @@
   function setScene(room) {
     myRoom = room;
     $('#stage').classList.toggle('scene-out', room === 'out');
+    $('#stage').classList.toggle('scene-kit', room === 'kit');
     players.forEach((p) => p.el.classList.toggle('away', roomOf(p) !== myRoom));
-    document.querySelectorAll('.place-btn').forEach((b) => b.classList.toggle('active', (b.dataset.feature === 'out') === (room === 'out')));
-    $('#dockIn').hidden = room === 'out';
+    document.querySelectorAll('.place-btn').forEach((b) => b.classList.toggle('active', b.dataset.room === room));
+    $('#dockIn').hidden = room !== 'in';
     $('#dockOut').hidden = room !== 'out';
+    $('#dockKit').hidden = room !== 'kit';
+    if (room === 'kit' && !$('#kitBg').firstChild) { $('#kitBg').innerHTML = KitchenRoom.scene(); $('#kitObjs').innerHTML = KitchenRoom.objects(); }
+    if (typeof hideUI !== 'undefined') hideUI.refresh();
     $('#angelBtn').hidden = room !== 'out';
     if (santaEl) santaEl.classList.toggle('away', room !== 'in');
     if (room !== 'out') $('#prints').innerHTML = '';
@@ -494,7 +527,7 @@
     p.el.style.left = m.x + 'px'; p.el.style.top = m.y + 'px'; p.el.style.zIndex = Math.round(m.y);
     p.data.x = m.x; p.data.y = m.y;
     void p.el.offsetWidth; p.el.style.transition = '';
-    if (m.id === me.id) { setScene(m.room); Sound.Sfx.whoosh(); toast(m.room === 'out' ? '❄️ 눈마당으로 나왔어요! 눈사람 공방 · 썰매 경주 · 이글루가 있어요' : '🔥 따뜻한 거실로 들어왔어요'); }
+    if (m.id === me.id) { setScene(m.room); Sound.Sfx.whoosh(); toast(m.room === 'out' ? '❄️ 눈마당으로 나왔어요! 눈사람 공방 · 썰매 경주 · 이글루가 있어요' : m.room === 'kit' ? '🍳 주방이에요! 냉장고랑 찬장을 뒤져서 재료를 모아 요리해요' : '🔥 따뜻한 거실로 들어왔어요'); }
     else p.el.classList.toggle('away', m.room !== myRoom);
     refreshSeats();
   }
@@ -688,6 +721,89 @@
     Sound.Sfx.jingle();
   }
 
+  // ───────── 🧶 흔들의자 · 뜨개질 ─────────
+  const knitUI = KnitUI({ send, toast, Sound, close: () => closeKnit(),
+    sitting: () => { const p = players.get(me && me.id); return !!(p && p.data.seat === 'rock'); },
+    worn: () => { const p = players.get(me && me.id); return (p && p.data.avatar && p.data.avatar.knit) || {}; },
+    myAvatar: () => { const p = players.get(me && me.id); return p ? Avatar.svg(p.data.avatar) : ''; } });
+  window.__knitReady = true;
+  function openKnit(tab) { closeOthers(); $('#knitModal').hidden = false; knitUI.setOpen(true, tab); }
+  function closeKnit() { if (!$('#knitModal').hidden) { $('#knitModal').hidden = true; knitUI.setOpen(false); } }
+  function updateKnitBtn() {
+    const p = players.get(me && me.id);
+    const sit = !!(p && p.data.seat === 'rock');
+    $('#knitBtn').hidden = !sit;
+    if (!sit) knitUI.onStand();
+  }
+  $('#knitBtn').addEventListener('click', () => openKnit('knit'));
+  function setKnitting(p, on) {
+    let ic = p.el.querySelector('.knit-ic');
+    if (on && !ic) { ic = document.createElement('div'); ic.className = 'knit-ic'; ic.innerHTML = KnitArt.yarnBall(); p.el.appendChild(ic); }
+    if (!on && ic) ic.remove();
+  }
+  // ───────── 🍳 주방: 재료 · 요리 ─────────
+  const cookUI = CookUI({ send, toast, Sound, close: () => closeCook(), bagRoom: () => inv.length < 4 });
+  function openCook() { if (myRoom !== 'kit') goRoom('kit'); closeOthers(); $('#cookModal').hidden = false; cookUI.setOpen(true); }
+  function closeCook() { if (!$('#cookModal').hidden) { $('#cookModal').hidden = true; cookUI.setOpen(false); } }
+  function onIngr(m) {
+    cookUI.setIngr(m.ingr);
+    if (!m.src) return;
+    const o = document.querySelector(`.kobj.o-${m.src}`);
+    const pop = document.createElement('div');
+    pop.className = 'ingr-pop';
+    pop.innerHTML = m.found ? `${KitchenRoom.ingrIcon(m.found, 'big')}<span>${KitchenRoom.ingrName(m.found)}${m.full ? ' (가득!)' : ' +1'}</span>` : '<span>텅… 아무것도 없네</span>';
+    if (o) { pop.style.left = (parseFloat(o.style.left) + parseFloat(o.style.width) / 2) + 'px'; pop.style.top = (parseFloat(o.style.top) + 30) + 'px'; }
+    $('#fx').appendChild(pop); setTimeout(() => pop.remove(), 1300);
+    if (m.found && !m.full) Sound.Sfx.ding(); else Sound.Sfx.pop();
+  }
+  // ───────── 🙈 숨바꼭질 · 🎅 술래잡기 ─────────
+  let myHiddenNow = false;
+  const amHidden = () => myHiddenNow;
+  const hideUI = HideUI({ send, toast, Sound, close: () => closeHide(), myUid: () => myUser && myUser.id, myRoom: () => myRoom,
+    applyHidden(st) {
+      const on = st.stage === 'hide' || st.stage === 'seek';
+      myHiddenNow = false;
+      players.forEach((p) => {
+        const hid = on && st.hiddenUids.includes(p.data.uid) && !st.found.includes(p.data.uid);
+        const mine = p.data.id === me.id;
+        p.el.classList.toggle('hiding', hid && !mine);
+        p.el.classList.toggle('hiding-me', hid && mine);
+        if (hid && mine) myHiddenNow = true;
+      });
+    } });
+  function openHide() { closeOthers(); $('#hideModal').hidden = false; hideUI.setOpen(true); }
+  function closeHide() { if (!$('#hideModal').hidden) { $('#hideModal').hidden = true; hideUI.setOpen(false); } }
+  const tagUI = TagUI({ send, toast, Sound, close: () => closeTag(), myUid: () => myUser && myUser.id,
+    applyTag(st) {
+      players.forEach((p) => {
+        p.el.classList.toggle('tag-it', st.stage === 'run' && p.data.uid === st.it);
+        p.el.classList.toggle('tag-in', st.stage === 'run' && st.players.some((m) => m.uid === p.data.uid));
+      });
+      $('#catchBtn').hidden = !(st.stage === 'run' && myUser && st.it === myUser.id);
+    } });
+  function openTag() { closeOthers(); $('#tagModal').hidden = false; tagUI.setOpen(true); }
+  function closeTag() { if (!$('#tagModal').hidden) { $('#tagModal').hidden = true; tagUI.setOpen(false); } }
+  function catchNearest() {
+    const mine = players.get(me.id); if (!mine) return;
+    const c = curPos(mine);
+    let best = null, bd = Infinity;
+    players.forEach((p) => {
+      if (p.data.id === me.id || !here(p.data.id) || !tagUI.inGame(p.data.uid)) return;
+      const q = curPos(p), d = Math.hypot(q.x - c.x, q.y - c.y);
+      if (d < bd) { bd = d; best = p; }
+    });
+    if (best && bd < 140) send({ t: 'tag', act: 'tag', to: best.data.id }); else toast('조금 더 가까이 가야 잡을 수 있어요!');
+  }
+  $('#catchBtn').addEventListener('click', catchNearest);
+  function onTagged(m) {
+    const b = players.get(m.to); if (!b || !here(m.to)) return;
+    const c = curPos(b);
+    const el = document.createElement('div'); el.className = 'fhit red'; el.textContent = '잡았다!';
+    el.style.left = c.x + 'px'; el.style.top = (c.y - 110) + 'px';
+    $('#fx').appendChild(el); setTimeout(() => el.remove(), 1000);
+    Sound.Sfx.ho();
+  }
+
   // ───────── 🛠️ 개발자 도구 ─────────
   $('#adminBtn').addEventListener('click', () => { $('#adminModal').hidden = false; });
   document.querySelectorAll('[data-close-admin]').forEach((b) => b.addEventListener('click', () => { $('#adminModal').hidden = true; }));
@@ -705,7 +821,7 @@
     $('#snowmen').innerHTML = snowmen.map((m) => `<div class="snowman ${myUser && m.uid === myUser.id ? 'mine' : ''}" data-sid="${m.id}" style="left:${m.x}px;top:${m.y}px;z-index:${m.y}" title="${esc(m.name)} · ${esc(m.nick)} 님의 눈사람">${Outdoor.snowmanSVG(m, { name: true })}</div>`).join('');
   }
   const snowUI = SnowmanUI({ send, toast, Sound, close: () => closeSnow() });
-  function closeOthers() { closeCake(); closeKitchen(); closeTree(); closeGift(); closeSnow(); closeRace(); closeFight(); closeCastle(); }
+  function closeOthers() { closeCake(); closeKitchen(); closeTree(); closeGift(); closeSnow(); closeRace(); closeFight(); closeCastle(); closeKnit(); closeCook(); closeHide(); closeTag(); }
   function openSnow() {
     closeOthers();
     const mine = snowmen.find((m) => myUser && m.uid === myUser.id);
@@ -780,13 +896,21 @@
     const mine = players.get(me.id);
     if (!mine) return;
     if (e.target.closest('.cake-table')) { openCake(); return; }
-    if (e.target.closest('.kitchen')) { openKitchen(); return; }
+    if (e.target.closest('.kitchen')) { goRoom('kit'); return; }
+    const kh = e.target.closest('.khs');
+    if (kh) {
+      const k = kh.dataset.k;
+      if (k === 'fridge' || k === 'pantry') { send({ t: 'cook', act: 'rummage', src: k }); KitchenRoom.openDoor(k); Sound.Sfx.plop(); }
+      else if (k === 'stove') openCook();
+      else if (k === 'counter') openKitchen();
+      return;
+    }
     if (e.target.closest('.deco-tree')) { openTree(); return; }
     if (e.target.closest('.gift-xbox')) { openGift(); return; }
     if (e.target.closest('.in-door')) { goRoom('out'); return; }
     if (e.target.closest('.santa-npc')) { send({ t: 'santaCatch', id: santaId }); return; }
     const hs = e.target.closest('.ohs');
-    if (hs) { if (hs.dataset.k === 'door') goRoom('in'); else if (hs.dataset.k === 'workshop') openSnow(); else if (hs.dataset.k === 'race') openRace(); return; }
+    if (hs) { if (hs.dataset.k === 'kitdoor') goRoom('in'); else if (hs.dataset.k === 'door') goRoom('in'); else if (hs.dataset.k === 'workshop') openSnow(); else if (hs.dataset.k === 'race') openRace(); return; }
     if (e.target.closest('.yard-castle')) { openCastle(); return; }
     const smEl = e.target.closest('.snowman');
     if (smEl) {
@@ -805,9 +929,12 @@
     const other = e.target.closest('.player');
     if (other) {
       const id = Number(other.dataset.id);
+      const op = players.get(id);
+      if (id && id !== me.id && tagUI.isIt() && op && tagUI.inGame(op.data.uid)) { send({ t: 'tag', act: 'tag', to: id }); return; }
       if (id && id !== me.id) send({ t: 'throw', to: id });
       return;
     }
+    if (amHidden()) { toast('🤫 숨어 있는 중이에요! 움직이면 들켜요'); return; }
     const pt = stagePoint(e);
     const x = clamp(pt.x, BOUNDS.minX, BOUNDS.maxX);
     const y = clamp(pt.y, BOUNDS.minY, BOUNDS.maxY);
@@ -829,12 +956,13 @@
   window.addEventListener('keydown', (e) => {
     if (!me || typing() || !$('#profileModal').hidden || !$('#inviteModal').hidden) return;
     if (e.key === 'Enter') { $('#chatInput').focus(); e.preventDefault(); return; }
-    if (!$('#cakeModal').hidden || !$('#kitchenModal').hidden || !$('#treeModal').hidden || !$('#giftModal').hidden || !$('#snowModal').hidden || !$('#raceModal').hidden || !$('#castleModal').hidden) return;
+    if (!$('#cakeModal').hidden || !$('#kitchenModal').hidden || !$('#treeModal').hidden || !$('#giftModal').hidden || !$('#snowModal').hidden || !$('#raceModal').hidden || !$('#castleModal').hidden || !$('#knitModal').hidden || !$('#cookModal').hidden) return;
     if ((e.key === 'q' || e.key === 'Q' || e.key === 'ㅂ') && !e.repeat) { eatHeld(); return; }
     if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (!e.repeat) send({ t: 'jump' }); return; }
     if ((e.key === 'e' || e.key === 'E' || e.key === 'ㄷ') && !e.repeat) { send({ t: 'snow' }); return; }
     if ((e.key === 'f' || e.key === 'F' || e.key === 'ㄹ') && !e.repeat) { send({ t: 'fw' }); return; }
     if ((e.key === 'g' || e.key === 'G' || e.key === 'ㅎ') && !e.repeat && myRoom === 'out') { send({ t: 'angel' }); return; }
+    if ((e.key === 't' || e.key === 'T' || e.key === 'ㅅ') && !e.repeat && !$('#catchBtn').hidden) { catchNearest(); return; }
     if ((e.key === 't' || e.key === 'T' || e.key === 'ㅅ') && !e.repeat && !$('#throwBtn').hidden) { throwNearest(); return; }
     if (!KEYS[e.key]) return;
     e.preventDefault();
@@ -848,6 +976,7 @@
     if (!mine || held.size === 0) { kbPos = null; if (mine) mine.el.classList.remove('walking'); return; }
     const dt = Math.min(0.05, (now - lastFrame) / 1000);
     lastFrame = now;
+    if (amHidden()) { held.clear(); kbPos = null; return; }
     if (!kbPos) {
       kbPos = curPos(mine);
       if (mine.data.seat) { mine.data.seat = null; refreshSeats(); }
@@ -1085,7 +1214,7 @@
   function showNotice(m) {
     noticeKind = m.kind;
     $('#noticeText').textContent = m.text;
-    $('#noticeGo').hidden = !['cake', 'gift', 'race', 'fight'].includes(m.kind);
+    $('#noticeGo').hidden = !['cake', 'gift', 'race', 'fight', 'hide', 'tag'].includes(m.kind);
     const n = $('#notice');
     n.hidden = false;
     n.classList.remove('show'); void n.offsetWidth; n.classList.add('show');
@@ -1093,7 +1222,7 @@
     clearTimeout(noticeTimer);
     noticeTimer = setTimeout(() => { n.hidden = true; }, 10000);
   }
-  $('#noticeGo').addEventListener('click', () => { $('#notice').hidden = true; if (noticeKind === 'cake') openCake(); else if (noticeKind === 'gift') openGift(true); else if (noticeKind === 'race') { goRoom('out'); openRace(); } else if (noticeKind === 'fight') { goRoom('out'); openFight(); } });
+  $('#noticeGo').addEventListener('click', () => { $('#notice').hidden = true; if (noticeKind === 'cake') openCake(); else if (noticeKind === 'gift') openGift(true); else if (noticeKind === 'race') { goRoom('out'); openRace(); } else if (noticeKind === 'fight') { goRoom('out'); openFight(); } else if (noticeKind === 'hide') { goRoom(hideUI.state.room || 'in'); openHide(); } else if (noticeKind === 'tag') { goRoom(tagUI.state.room || 'in'); openTag(); } });
   $('#noticeX').addEventListener('click', () => { $('#notice').hidden = true; });
 
   // ───────── 🎒 인벤토리 ─────────
@@ -1189,7 +1318,7 @@
     craft: (item, cb) => { pendingCraft = cb; send({ t: 'craft', item }); setTimeout(() => { if (pendingCraft === cb) { pendingCraft = null; } }, 4000); },
     close: () => closeKitchen(),
   });
-  function openKitchen(which) { closeCake(); closeTree(); closeGift(); closeSnow(); closeRace(); $('#kitchenModal').hidden = false; kitchenUI.setOpen(true, which); }
+  function openKitchen(which) { closeCake(); closeTree(); closeGift(); closeSnow(); closeRace(); closeKnit(); closeCook(); closeHide(); closeTag(); $('#kitchenModal').hidden = false; kitchenUI.setOpen(true, which); }
   function closeKitchen() { $('#kitchenModal').hidden = true; kitchenUI.setOpen(false); }
 
   // ───────── 🎄 트리 꾸미기 ─────────
@@ -1228,7 +1357,7 @@
   const COMING = {
     mafia: '🎅 산타 마피아는 곧 열려요!',
   };
-  document.querySelectorAll('.place-btn').forEach((b) => b.addEventListener('click', () => goRoom(b.dataset.feature === 'out' ? 'out' : 'in')));
+  document.querySelectorAll('.place-btn').forEach((b) => b.addEventListener('click', () => goRoom(b.dataset.room)));
   document.querySelectorAll('.dock-item').forEach((b) =>
     b.addEventListener('click', () => {
       if (b.dataset.feature === 'cake') openCake();
@@ -1236,6 +1365,11 @@
       else if (b.dataset.feature === 'snowman') openSnow();
       else if (b.dataset.feature === 'race') openRace();
       else if (b.dataset.feature === 'fight') openFight();
+      else if (b.dataset.feature === 'cook') openCook();
+      else if (b.dataset.feature === 'drinks') openKitchen();
+      else if (b.dataset.feature === 'knit') openKnit('closet');
+      else if (b.dataset.feature === 'hide') openHide();
+      else if (b.dataset.feature === 'tag') openTag();
       else if (b.dataset.feature === 'castle') openCastle();
       else if (b.dataset.feature === 'tree') openTree();
       else if (b.dataset.feature === 'gift') openGift();

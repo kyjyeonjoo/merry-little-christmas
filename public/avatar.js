@@ -207,6 +207,24 @@
     return '';
   }
 
+  // 🧶 직접 뜬 목도리 · 털모자 (두 가지 실 색)
+  function knitScarf([c1, c2]) {
+    return `<g><path d="M26 76 Q50 88 74 76 L75 85 Q50 97 25 85 Z" fill="${c1}" stroke="${LINE}" stroke-width="2.3" stroke-linejoin="round"/>
+      <path d="M33 79 L33 89 M41 81 L41 92 M50 82 L50 93 M59 81 L59 92 M67 79 L67 89" stroke="${c2}" stroke-width="3.2" opacity=".9"/>
+      <path d="M58 85 L63 104 L74 101 L70 83 Z" fill="${c1}" stroke="${LINE}" stroke-width="2.3" stroke-linejoin="round"/>
+      <path d="M60 91 L71 88 M61 96 L72 93" stroke="${c2}" stroke-width="3"/>
+      <path d="M64 104 l-1 4 M68 103 l0 4 M72 102 l1 4" stroke="${c1}" stroke-width="2.2" stroke-linecap="round"/></g>`;
+  }
+  function knitHat([c1, c2], type) {
+    const y = type === 'bunny' ? -2 : 0;
+    return `<g transform="translate(0 ${y})">
+      <path d="M21 31 Q20 2 50 0 Q80 2 79 31 Z" fill="${c1}" stroke="${LINE}" stroke-width="2.4" stroke-linejoin="round"/>
+      <path d="M24 18 Q50 10 76 18" stroke="${c2}" stroke-width="5" fill="none"/><path d="M22 25 Q50 18 78 25" stroke="${c1}" stroke-width="2" fill="none" opacity=".4"/>
+      <rect x="17" y="25" width="66" height="12" rx="6" fill="${c2}" stroke="${LINE}" stroke-width="2.2"/>
+      <path d="M25 26 v10 M32 26 v10 M39 26 v10 M46 26 v10 M53 26 v10 M60 26 v10 M67 26 v10 M74 26 v10" stroke="${c1}" stroke-width="1.4" opacity=".55"/>
+      <circle cx="50" cy="-3" r="7.5" fill="${c2}" stroke="${LINE}" stroke-width="2.2"/><path d="M45 -6 q5 -3 10 0 M46 0 q4 2 8 0" stroke="${c1}" stroke-width="1.4" fill="none"/></g>`;
+  }
+
   function accList(a) {
     if (Array.isArray(a.accs)) return a.accs;
     return a.acc && a.acc !== 'none' ? [a.acc] : [];
@@ -245,17 +263,17 @@
       ${faceMarks(a.type, c)}
       ${frontEars(a.type, c)}
       ${face(a.type)}
-      ${has('scarf') ? accessory('scarf', a.type) : ''}
+      ${a.knit && a.knit.scarf ? knitScarf(a.knit.scarf) : has('scarf') ? accessory('scarf', a.type) : ''}
       ${has('bell') ? accessory('bell', a.type) : ''}
       ${has('earmuffs') ? accessory('earmuffs', a.type) : ''}
       ${has('rudolph') ? accessory('rudolph', a.type) : ''}
       ${has('glasses') ? accessory('glasses', a.type) : ''}
-      ${has('santa') ? accessory('santa', a.type) : ''}
+      ${a.knit && a.knit.hat ? knitHat(a.knit.hat, a.type) : has('santa') ? accessory('santa', a.type) : ''}
       ${has('ribbon') ? accessory('ribbon', a.type) : ''}
       ${has('star') ? accessory('star', a.type) : ''}
       ${has('holly') ? accessory('holly', a.type) : ''}
     </svg>`;
   }
 
-  window.Avatar = { TYPES, COLORS, ACCS, MAX_ACCS, svg, accList };
+  window.Avatar = { TYPES, COLORS, ACCS, MAX_ACCS, svg, accList, knitScarf, knitHat };
 })();
