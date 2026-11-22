@@ -170,7 +170,7 @@ const SEATS = {
   kseat2: { x: 568, y: 548, room: 'kit' },
 };
 const seatRoom = (id) => (SEATS[id] && SEATS[id].room) || 'in';
-const DOOR = { in: { x: 304, y: 368 }, out: { x: 160, y: 380 }, kit: { x: 880, y: 400 }, 'kit>in': { x: 76, y: 396 } }; // 방을 옮기면 문 앞에 나타나요
+const DOOR = { in: { x: 304, y: 368 }, out: { x: 160, y: 380 }, kit: { x: 880, y: 400 }, 'kit>in': { x: 64, y: 384 } }; // 방을 옮기면 문 앞에 나타나요
 const ROOMS = ['in', 'out', 'kit'];
 const seatOwner = {}; // seatId -> playerId
 const players = new Map(); // playerId -> { id, uid, nick, avatar, x, y, seat, facing, client }
