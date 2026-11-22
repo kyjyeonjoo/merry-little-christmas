@@ -444,7 +444,7 @@
       if (!open) return;
       renderSteps();
       $('#cakeView').innerHTML = view();
-      $('#cakePanel').innerHTML = panel();
+      $('#cakePanel').innerHTML = panel() + (isMember() && !['lobby', 'finished'].includes(cake.stage) ? '<button class="btn ghost small quit-btn" data-act="quit">🏳️ 나는 그만할래요</button>' : '');
       $('#cakeLog').innerHTML = cake.log.slice(-4).map((l) => `<li>${api.esc(l)}</li>`).join('');
       $('#cakeRestart').hidden = cake.stage === 'lobby' || !isMember();
     }
@@ -456,6 +456,7 @@
       if (!b || b.disabled) return;
       const a = b.dataset.act;
       if (a === 'seltop') { selTop = b.dataset.v; render(); return; }
+      if (a === 'quit') { if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = '한 번 더 누르면 그만둬요'; return; } }
       if (a === 'ingr' || a === 'cream') api.Sound.Sfx.plop();
       api.send({ t: 'cake', a, v: b.dataset.v });
     });

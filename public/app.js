@@ -14,6 +14,8 @@
     cush1: { x: 345, y: 500, kind: 'cush', face: 1 },
     cush2: { x: 655, y: 500, kind: 'cush', face: -1 },
     cush3: { x: 262, y: 512, kind: 'cush', face: 1 },
+    hearthL: { x: 382, y: 368, kind: 'hearth', face: 1 },
+    hearthR: { x: 604, y: 368, kind: 'hearth', face: -1 },
     poufL: { x: 105, y: 520, kind: 'pouf', face: 1 },
     poufR: { x: 895, y: 520, kind: 'pouf', face: -1 },
     // 눈마당
@@ -191,6 +193,7 @@
       case 'fight': onFight(m.fight); break;
       case 'fightHit': onFightHit(m); break;
       case 'castle': onCastle(m.cells); break;
+      case 'clearChat': $('#chatLog').innerHTML = ''; document.querySelectorAll('.mini-chat').forEach((u) => { u.innerHTML = ''; }); break;
       case 'angel': doAngel(m.id); break;
       case 'giftState': giftUI.setState(m.gift); giftBadge(); break;
       case 'giftPool': setGiftPool(m.n); break;
@@ -294,6 +297,7 @@
     if (m.race) raceUI.setRace(m.race);
     if (m.fight) onFight(m.fight);
     onCastle(m.castle || {});
+    $('#adminBtn').hidden = !m.admin;
     $('#inDoor').innerHTML = Outdoor.doorArt();
     { const mine = players.get(me.id); setScene(roomOf(mine)); }
     $('#kitchenCounter .art').innerHTML = Kitchen.counterArt();
@@ -404,6 +408,9 @@
         el.style.zIndex = s.y - 2;
       } else if (s.kind === 'cush') {
         el.innerHTML = `<div class="cushion"></div>`;
+        el.style.zIndex = 5;
+      } else if (s.kind === 'hearth') {
+        el.innerHTML = `<div class="cushion hearth-mat"></div>`;
         el.style.zIndex = 5;
       } else if (s.kind === 'bench' || s.kind === 'igloo') {
         el.innerHTML = `<div class="seat-hit"></div>`;
@@ -551,7 +558,8 @@
       ${host ? `<div class="crow"><button class="btn ghost" data-fact="shuffle">🎲 팀 섞기</button><button class="btn primary cnext" data-fact="start">시작!</button></div>` : '<p class="chint small">👑 방장이 시작 버튼을 눌러요</p>'}
       <p class="chint small">눈마당에서만 맞힐 수 있어요. 폰은 🎯 던지기 버튼을 누르면 가까운 상대에게 던져요</p>`;
     else if (f.stage === 'run') body = `<div class="fscore"><span class="fr">${f.score.red}</span> : <span class="fb">${f.score.blue}</span></div><div class="fteams">${col('red')}${col('blue')}</div>
-      <p class="chint">${mine ? '상대 팀을 눌러서 맞혀요! 창을 닫고 싸워도 돼요' : '응원 중이에요 📣'}</p>`;
+      <p class="chint">${mine ? '상대 팀을 눌러서 맞혀요! 창을 닫고 싸워도 돼요' : '응원 중이에요 📣'}</p>
+      ${mine ? '<button class="btn ghost small quit-btn" data-fact="giveup">🏳️ 그만할래요</button>' : ''}`;
     else body = `<p class="chint big">${f.winner === 'draw' ? '🤝 무승부!' : f.winner === 'red' ? '🔴 빨강팀 승리!' : '🔵 파랑팀 승리!'}</p>
       <div class="fscore"><span class="fr">${f.score.red}</span> : <span class="fb">${f.score.blue}</span></div>
       ${f.mvp ? `<p class="chint">🌟 MVP <b>${esc(f.mvp.nick)}</b> 님 (${f.mvp.hits}번 명중)</p>` : ''}
@@ -563,6 +571,7 @@
   function closeFight() { $('#fightModal').hidden = true; }
   $('#fightPanel').addEventListener('click', (e) => {
     const b = e.target.closest('[data-fact]'); if (!b) return;
+    if (b.dataset.fact === 'giveup' && b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = '한 번 더 누르면 빠져요'; return; }
     send({ t: 'fight', act: b.dataset.fact, team: b.dataset.team });
     Sound.Sfx.pop();
     if (b.dataset.fact === 'start') setTimeout(closeFight, 300);
@@ -600,13 +609,22 @@
   function onCastle(cells) {
     castleCells = cells || {};
     $('#yardCastle').innerHTML = Object.keys(castleCells).length ? Castle.svg(castleCells)
-      : `<svg viewBox="-6 -4 332 176"><ellipse cx="160" cy="164" rx="166" ry="7" fill="#dbe6f7"/><rect x="40" y="96" width="240" height="64" rx="14" fill="none" stroke="#b9cbea" stroke-width="3" stroke-dasharray="8 7"/>
+      : `<svg viewBox="-6 -4 332 176"><ellipse cx="160" cy="164" rx="166" ry="7" fill="#dbe6f7"/><rect x="40" y="96" width="240" height="64" rx="14" fill="rgba(255,255,255,.02)" stroke="#b9cbea" stroke-width="3" stroke-dasharray="8 7"/>
         <g transform="translate(160 118)"><rect x="-62" y="-16" width="124" height="30" rx="8" fill="#fffaf2" stroke="#5b4036" stroke-width="2.4"/><text y="5" text-anchor="middle" font-size="16" font-family="Jua, sans-serif" fill="#5b4036">눈성 쌓는 곳</text></g></svg>`;
     castleUI.setCells(castleCells);
   }
   function openCastle() { closeOthers(); $('#castleModal').hidden = false; castleUI.setOpen(true); }
   function closeCastle() { if (!$('#castleModal').hidden) { $('#castleModal').hidden = true; castleUI.setOpen(false); } }
 
+  // ───────── 🛠️ 개발자 도구 ─────────
+  $('#adminBtn').addEventListener('click', () => { $('#adminModal').hidden = false; });
+  document.querySelectorAll('[data-close-admin]').forEach((b) => b.addEventListener('click', () => { $('#adminModal').hidden = true; }));
+  $('#adminModal').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-admin]'); if (!b) return;
+    if (b.dataset.armed !== '1') { document.querySelectorAll('[data-admin]').forEach((x) => { if (x.dataset.armed === '1') { x.dataset.armed = ''; x.textContent = x.dataset.label; } }); b.dataset.label = b.dataset.label || b.textContent; b.dataset.armed = '1'; b.textContent = '정말요? 한 번 더!'; return; }
+    b.dataset.armed = ''; b.textContent = b.dataset.label;
+    send({ t: 'admin', act: b.dataset.admin }); Sound.Sfx.pop();
+  });
   // ───────── ⛄ 눈사람 ─────────
   let snowmen = [];
   function renderSnowmen(men) {

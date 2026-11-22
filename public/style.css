@@ -874,7 +874,7 @@ input:focus { border-color: #ffc9cf; }
 .in-door { position: absolute; left: 246px; top: 150px; width: 84px; height: 196px; z-index: 3; cursor: pointer; }
 .in-door svg { width: 100%; height: 100%; display: block; transition: transform .2s; transform-origin: 50% 100%; }
 .in-door:hover svg { transform: scale(1.03); }
-.snowman { position: absolute; width: 84px; height: 168px; transform: translate(-50%, calc(-100% + 19px)); pointer-events: none; }
+.snowman { position: absolute; width: 96px; height: 215px; transform: translate(-50%, calc(-100% + 20px)); pointer-events: none; }
 .snowman svg { width: 100%; height: 100%; display: block; overflow: visible; }
 .snowman:hover svg { transform: rotate(-2deg); transform-origin: 50% 90%; }
 .snow-card { width: min(760px, 100%); }
@@ -1016,3 +1016,77 @@ input:focus { border-color: #ffc9cf; }
 .oobj svg { width: 100%; height: 100%; display: block; overflow: visible; }
 .oobj.ohs:hover { background: none; box-shadow: none; }
 .oobj.ohs:hover svg { filter: drop-shadow(0 0 6px rgba(255,255,255,.95)); }
+
+/* ───── 📱 핸드폰 가로 화면 ───── */
+@media (orientation: landscape) and (max-height: 520px) {
+  #app { display: grid; grid-template-columns: 74px 1fr; grid-template-rows: auto 1fr auto; grid-template-areas: "top top" "dock stage" "dock input"; }
+  .topbar { grid-area: top; padding: 3px 10px; gap: 8px; box-shadow: 0 3px 0 #d9c3a5; }
+  .topbar::after { bottom: -7px; height: 4px; }
+  .logo { font-size: 15px; } .logo-text { display: inline; }
+  .online { display: inline-block; font-size: 11px; padding: 2px 8px; }
+  .invite-btn { font-size: 12px !important; padding: 4px 9px !important; }
+  .snd-btn { width: 30px; height: 30px; font-size: 15px; }
+  .me-chip { font-size: 13px; padding: 2px 10px 2px 3px; }
+  .me-avatar { width: 26px; height: 30px; }
+  .stage-wrap { grid-area: stage; }
+  .input-bar { grid-area: input; padding: 4px 8px; gap: 6px; flex-wrap: nowrap; }
+  .act-btn span { display: none; }
+  .act-btn { height: 34px; padding: 0 8px; font-size: 17px; }
+  #chatForm input { padding-top: 6px; padding-bottom: 6px; font-size: 15px; }
+  #chatForm .btn { padding: 6px 12px; font-size: 14px; }
+  /* 아래 메뉴 → 왼쪽 세로 메뉴 */
+  .dock { grid-area: dock; flex-direction: column; justify-content: flex-start; align-items: stretch; gap: 4px; padding: 10px 5px 6px; overflow-y: auto; box-shadow: 3px 0 0 #e7d2b4; }
+  .dock-place { flex-direction: column; margin: 0 0 4px; padding: 3px; }
+  .place-btn { font-size: 11px; padding: 4px 2px; } .place-btn i { display: none; }
+  .dock-acts { flex-direction: column; gap: 4px; flex: none; }
+  .dock-acts .dock-item, .dock-item { min-width: 0; width: 100%; padding: 4px 2px; border-radius: 12px; flex: none; }
+  .dock-item b { font-size: 19px; }
+  .dock-item span { font-size: 9.5px !important; white-space: nowrap; letter-spacing: -.5px; }
+  .dbadge { top: -3px; right: -3px; }
+  /* 채팅창은 작게 오른쪽 위 */
+  .chat-panel { top: 44px !important; right: 8px !important; left: auto !important; width: 230px !important; max-height: calc(100dvh - 104px) !important; }
+  .chat-log { min-height: 40px; }
+  .chat-log li { font-size: 13px; }
+  .chat-head { font-size: 14px; padding: 4px 8px 4px 12px; }
+  .zoom-btn { width: 34px; height: 34px; font-size: 18px; }
+  .inv .slot { width: 36px; height: 36px; }
+  .notice { top: 4px; font-size: 12px; }
+  .toast { top: 46px; font-size: 14px; }
+  .fight-board { top: 40px; font-size: 14px; padding: 3px 12px; }
+  /* 창(모달)은 화면에 맞게 두 칸으로 */
+  .modal { padding: 6px; }
+  .modal-card { max-height: calc(100dvh - 12px); padding: 12px 14px; border-radius: 18px; }
+  .modal-card h2 { font-size: 18px; margin: 0 0 6px; }
+  .modal.float { inset: 40px 4px 46px 78px; padding: 4px; }
+  .modal.float .modal-card { width: 100%; max-width: 900px; padding: 10px 12px; }
+  .cake-main, .castle-card .cake-main, .race-main { grid-template-columns: 1.1fr 1fr !important; gap: 10px; }
+  .cake-view svg, .tree-view svg, .snow-view svg, .castle-view svg { max-height: calc(100dvh - 160px) !important; }
+  .gcanvas { max-height: calc(100dvh - 160px); width: auto; height: calc(100dvh - 160px); margin: 0 auto; }
+  .snow-view, .gift-view { min-height: 0; }
+  .mini-chat { display: block; margin-top: 6px; }
+  .chint { font-size: 13px; }
+  .cbtns { gap: 4px !important; }
+  .rlane { height: 50px; } .rsled { transform: scale(.8); transform-origin: 0 100%; }
+  .rtap { padding: 12px 8px !important; font-size: 20px !important; }
+  .ktabs button { padding: 5px 4px; font-size: 13px; }
+  /* 로그인 · 캐릭터 고르기는 스크롤로 */
+  #authScreen { height: 100dvh; min-height: 0; overflow-y: auto; place-items: start center; padding: 10px; }
+  .auth-card { padding: 18px 20px 14px; }
+  .editor { flex-direction: row; align-items: flex-start; }
+  .preview-stage { width: 150px; height: 160px; }
+}
+.quit-btn { display: block; margin: 12px auto 0; opacity: .8; font-size: 13px !important; }
+.quit-btn[data-armed="1"] { opacity: 1; background: #fff0f1; color: var(--red); }
+.admin-btn { border: 0; background: #2c3e66; color: #fff; width: 34px; height: 34px; border-radius: 50%; cursor: pointer; font-size: 16px; box-shadow: var(--shadow); }
+.admin-card { width: min(460px, 100%); }
+.admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.admin-grid .btn { font-size: 14px; padding: 10px 8px; }
+.admin-grid .btn[data-armed="1"] { background: var(--red); color: #fff; }
+/* 난로 앞 뜨개 방석 */
+.cushion.hearth-mat { background: repeating-linear-gradient(90deg, #e8474f 0 6px, #f06b72 6px 12px); box-shadow: inset 0 0 0 3px #fff3e0, 0 3px 0 #b8323a; }
+.sitting[data-seat="hearth"] .sprite svg { animation: none; transform: translateY(-4px) scale(.95, .9); }
+/* 물건 터치 영역: 그림이 있는 곳만 눌려요 */
+.cake-table .art, .kitchen .art, .deco-tree, .gift-xbox, .in-door, .yard-castle, .oobj.ohs { pointer-events: none; }
+.cake-table .art svg, .kitchen .art svg, .deco-tree svg, .gift-xbox svg, .in-door svg, .yard-castle svg, .oobj.ohs svg { pointer-events: none; }
+.cake-table .art svg *, .kitchen .art svg *, .deco-tree svg *, .gift-xbox svg *, .in-door svg *, .yard-castle svg *, .oobj.ohs svg * { pointer-events: visiblePainted; }
+.cake-table .art svg ellipse[opacity], .deco-tree svg ellipse[opacity], .gift-xbox svg ellipse[opacity], .oobj.ohs svg ellipse:first-child { pointer-events: none; }

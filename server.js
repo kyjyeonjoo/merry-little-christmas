@@ -24,6 +24,19 @@ function cleanEnv(v, name) {
 }
 const UP_URL = cleanEnv(process.env.UPSTASH_REDIS_REST_URL, 'UPSTASH_REDIS_REST_URL').replace(/\/$/, '');
 const UP_TOKEN = cleanEnv(process.env.UPSTASH_REDIS_REST_TOKEN, 'UPSTASH_REDIS_REST_TOKEN');
+// 🛠️ 개발자 모드: 닉네임 "개발자" + 서버 환경 변수 ADMIN_PW (코드에는 비밀번호를 넣지 않아요)
+const ADMIN_NICK = '개발자';
+const ADMIN_PW = cleanEnv(process.env.ADMIN_PW, 'ADMIN_PW');
+let adminTries = [];
+function adminPwOk(pw) {
+  if (!ADMIN_PW) return false;
+  const now = Date.now();
+  adminTries = adminTries.filter((t) => now - t < 60000);
+  if (adminTries.length >= 5) return false; // 1분에 5번까지만 (비밀번호 맞히기 방지)
+  adminTries.push(now);
+  const a = Buffer.from(String(pw)), b = Buffer.from(ADMIN_PW);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
 const USE_REDIS = !!(UP_URL && UP_TOKEN);
 const REDIS_KEY = 'xmas:db';
 
@@ -140,6 +153,8 @@ const SEATS = {
   cush3: { x: 262, y: 512 },
   poufL: { x: 105, y: 520 },
   poufR: { x: 895, y: 520 },
+  hearthL: { x: 382, y: 368 }, // 난로 앞 방석
+  hearthR: { x: 604, y: 368 },
   // 눈마당
   bench1: { x: 357, y: 600, room: 'out' },
   bench2: { x: 413, y: 600, room: 'out' },
@@ -193,7 +208,7 @@ function enterRoom(client, user) {
   client.player = p;
   players.set(p.id, p);
   client.send({
-    t: 'welcome', me: p.id, user: publicUser(user), inv: Array.isArray(user.inv) ? user.inv : [],
+    t: 'welcome', me: p.id, user: publicUser(user), admin: isAdmin(user), inv: Array.isArray(user.inv) ? user.inv : [],
     players: [...players.values()].map(pub), history, cake, tree: db.tree, gift: giftState(user), giftPool: db.gifts.pool.length,
     snowmen: db.snow.men, race: racePub(), fight: fightPub(), castle: db.castle.cells,
   });
@@ -298,6 +313,18 @@ function handleCake(client, p, msg) {
       if (cake.stage !== 'lobby') return;
       cakeOnLeave(p.uid);
       return;
+    case 'quit': {
+      // 중간에 그만두기: 나만 빠지고, 아무도 안 남으면 케이크도 정리돼요
+      if (!member || cake.stage === 'lobby' || cake.stage === 'finished') return;
+      cake.members = cake.members.filter((m) => m.uid !== p.uid);
+      cakeLog(`${p.nick} 님이 그만뒀어요`);
+      if (!cake.members.length) { cake = newCake(); cakeSys('🎂 케이크 만들기가 끝났어요 (모두 그만뒀어요)'); break; }
+      if (cake.host === p.uid) {
+        const next = cake.members.find((m) => online(m.uid)) || cake.members[0];
+        cake.host = next.uid; cakeLog(`👑 ${next.nick} 님이 새 방장이 됐어요`);
+      }
+      break;
+    }
     case 'start':
       if (cake.stage !== 'lobby' || cake.host !== p.uid) return;
       cake.stage = 'ingredients';
@@ -641,7 +668,7 @@ function cleanSnowman(o) {
   const pick = (k) => (SM[k].includes(o[k]) ? o[k] : SM[k][0]);
   const sz = Array.isArray(o.sz) ? o.sz : [];
   const lv = o.lv === 2 ? 2 : 3;
-  const out = { lv, sz: [clampN(sz[0], 34, 52), clampN(sz[1], 24, 40), clampN(sz[2], 18, 30)] };
+  const out = { lv, sz: [clampN(sz[0], 34, 52), clampN(sz[1], 24, 40), clampN(sz[2], 18, 58)] };
   for (const k of Object.keys(SM)) out[k] = pick(k);
   out.blush = !!o.blush;
   out.name = String(o.name || '').replace(/[\u0000-\u001f]/g, '').trim().slice(0, 10) || '눈사람';
@@ -682,7 +709,7 @@ let raceDirty = false, raceTick = null;
 function racePub() {
   return {
     stage: race.stage, host: race.host, bets: race.bets, results: race.results,
-    racers: race.racers.map((r) => ({ uid: r.uid, nick: r.nick, avatar: r.avatar, pos: Math.round(r.pos * 10) / 10, place: r.place || 0 })),
+    racers: race.racers.map((r) => ({ uid: r.uid, nick: r.nick, avatar: r.avatar, pos: Math.round(r.pos * 10) / 10, place: r.gaveUp ? 0 : r.place || 0, gaveUp: !!r.gaveUp })),
     cd: race.stage === 'count' ? Math.max(0, race.startAt - Date.now()) : 0,
   };
 }
@@ -692,9 +719,9 @@ function raceFinish() {
   if (race.stage !== 'run') return;
   race.stage = 'done';
   clearInterval(raceTick); raceTick = null;
-  const ranked = race.racers.slice().sort((a, b) => (a.place || 99) - (b.place || 99) || b.pos - a.pos);
-  race.results = ranked.map((r, i) => ({ uid: r.uid, nick: r.nick, place: i + 1, done: !!r.place }));
-  const win = ranked[0];
+  const ranked = race.racers.slice().sort((a, b) => (a.gaveUp ? 1 : 0) - (b.gaveUp ? 1 : 0) || (a.place || 99) - (b.place || 99) || b.pos - a.pos);
+  race.results = ranked.map((r, i) => ({ uid: r.uid, nick: r.nick, place: i + 1, done: !!r.place && !r.gaveUp, gaveUp: !!r.gaveUp }));
+  const win = ranked.find((r) => !r.gaveUp);
   if (win && race.racers.length > 1) {
     // 1등 + 1등을 맞힌 사람은 황금 마시멜로를 받아요 (인벤토리에 자리가 있으면)
     const lucky = [win.uid, ...Object.entries(race.bets).filter(([, v]) => v === win.uid).map(([k]) => k)];
@@ -742,6 +769,12 @@ function handleRace(client, p, msg) {
       race.racers.push({ uid: p.uid, nick: p.nick, avatar: p.avatar, pos: 0 });
       break;
     case 'leave': return raceLeave(p.uid);
+    case 'giveup': {
+      if (race.stage !== 'run' || !me || me.place) return;
+      me.gaveUp = true; me.place = 99;
+      if (race.racers.every((r) => r.place)) { raceFinish(); return; }
+      break;
+    }
     case 'bet': {
       if ((race.stage !== 'lobby' && race.stage !== 'count') || me) return;
       if (!race.racers.some((r) => r.uid === msg.uid)) return;
@@ -845,6 +878,14 @@ function handleFight(client, p, msg) {
       break;
     }
     case 'leave': return fightLeave(p.uid);
+    case 'giveup': {
+      if (fight.stage !== 'run' || !teamOf(p.uid)) return;
+      fight.red = fight.red.filter((m) => m.uid !== p.uid); fight.blue = fight.blue.filter((m) => m.uid !== p.uid);
+      const sys = { kind: 'sys', text: `❄️ ${p.nick} 님이 눈싸움에서 빠졌어요`, ts: Date.now() };
+      pushHistory(sys); broadcast({ t: 'sys', ...sys });
+      if (!fight.red.length || !fight.blue.length) { fightEnd(); return; }
+      break;
+    }
     case 'shuffle': {
       if (fight.stage !== 'lobby' || fight.host !== p.uid) return;
       const all = [...fight.red, ...fight.blue].sort(() => Math.random() - 0.5);
@@ -899,6 +940,33 @@ function handleCastle(client, p, msg) {
   broadcast({ t: 'castle', cells });
 }
 
+// ───────────────────────── 🛠️ 개발자 모드 ─────────────────────────
+function isAdmin(user) { return !!(user && user.admin && user.nick.toLowerCase() === ADMIN_NICK && ADMIN_PW); }
+function handleAdmin(client, p, msg) {
+  const user = db.users[p.uid];
+  if (!isAdmin(user)) return;
+  const done = (m) => client.send({ t: 'toast', msg: '🛠️ ' + m });
+  switch (msg.act) {
+    case 'tree': db.tree = { items: [], top: 'star', next: 1 }; broadcast({ t: 'tree', tree: db.tree }); done('트리를 처음 상태로 돌렸어요'); break;
+    case 'snowmen': db.snow = { men: [], next: db.snow.next || 1 }; broadcast({ t: 'snowmen', men: [] }); done('눈사람을 모두 녹였어요'); break;
+    case 'castle': db.castle = { cells: {} }; broadcast({ t: 'castle', cells: {} }); done('눈성을 허물었어요'); break;
+    case 'gifts':
+      db.gifts.pool.forEach((g) => delImg(g.id)); db.gifts.pool = []; db.gifts.waiting = [];
+      broadcast({ t: 'giftPool', n: 0 }); players.forEach((q) => sendGiftState(q.uid)); done('선물 교환 상자를 비웠어요'); break;
+    case 'cake': cake = newCake(); cakeBroadcast(); done('케이크를 처음 상태로 돌렸어요'); break;
+    case 'games':
+      clearInterval(raceTick); raceTick = null; race = { stage: 'idle', host: null, racers: [], bets: {}, startAt: 0, endAt: 0, results: [] }; raceSend();
+      clearTimeout(fightTimer); fight = newFight(); fightSend();
+      if (typeof resetExtraGames === 'function') resetExtraGames();
+      done('진행 중인 미니게임을 모두 멈췄어요'); break;
+    case 'chat': history.length = 0; broadcast({ t: 'clearChat' }); done('채팅 기록을 지웠어요'); break;
+    default: return;
+  }
+  const sys = { kind: 'sys', text: '🛠️ 개발자가 정리했어요', ts: Date.now() };
+  if (msg.act !== 'chat') { pushHistory(sys); broadcast({ t: 'sys', ...sys }); }
+  saveDb();
+}
+
 // ───────────────────────── 메시지 처리 ─────────────────────────
 function handle(client, msg) {
   if (!msg || typeof msg.t !== 'string') return;
@@ -910,11 +978,14 @@ function handle(client, msg) {
       if (!validNick(nick)) return client.send({ t: 'authErr', msg: '닉네임은 공백 없이 2~12자로 지어주세요.' });
       if (!validPw(msg.pw)) return client.send({ t: 'authErr', msg: '비밀번호는 4자 이상이에요.' });
       if (findUserByNick(nick)) return client.send({ t: 'authErr', msg: '이미 누가 쓰고 있는 닉네임이에요 🥲' });
+      const isAdminNick = nick.toLowerCase() === ADMIN_NICK;
+      if (isAdminNick && !adminPwOk(msg.pw)) return client.send({ t: 'authErr', msg: '이 닉네임은 쓸 수 없어요 🙅' });
       const salt = crypto.randomBytes(16).toString('hex');
       const user = {
         id: crypto.randomUUID(), nick, salt, hash: hashPw(msg.pw, salt),
         avatar: randomAvatar(), created: Date.now(),
       };
+      if (isAdminNick) user.admin = true;
       db.users[user.id] = user;
       saveDb();
       client.send({ t: 'authOk', token: newToken(user.id), isNew: true });
@@ -922,7 +993,11 @@ function handle(client, msg) {
     }
     case 'login': {
       const user = findUserByNick(String(msg.nick || '').trim());
-      if (!user || !validPw(msg.pw) || !checkPw(user, msg.pw))
+      if (user && user.nick.toLowerCase() === ADMIN_NICK) {
+        // 개발자 계정은 서버에 정해 둔 비밀번호로만 들어와요
+        if (!adminPwOk(msg.pw)) return client.send({ t: 'authErr', msg: '닉네임이나 비밀번호가 달라요.' });
+        if (!user.admin || !checkPw(user, msg.pw)) { user.admin = true; user.salt = crypto.randomBytes(16).toString('hex'); user.hash = hashPw(msg.pw, user.salt); saveDb(); }
+      } else if (!user || !validPw(msg.pw) || !checkPw(user, msg.pw))
         return client.send({ t: 'authErr', msg: '닉네임이나 비밀번호가 달라요.' });
       client.send({ t: 'authOk', token: newToken(user.id) });
       return enterRoom(client, user);
@@ -1047,6 +1122,7 @@ function handle(client, msg) {
     case 'race': handleRace(client, p, msg); break;
     case 'fight': handleFight(client, p, msg); break;
     case 'castle': handleCastle(client, p, msg); break;
+    case 'admin': handleAdmin(client, p, msg); break;
     case 'cake': handleCake(client, p, msg); break;
     case 'tree': handleTree(client, p, msg); break;
     case 'gift': handleGift(client, p, msg).catch((e) => console.error(e)); break;

@@ -177,8 +177,16 @@
     let arms = '';
     if (sm.arms !== 'none') {
       const ay = torsoY - torsoR * 0.15, ax = torsoR * 0.9;
-      const twig = (d) => `<g transform="scale(${d} 1)"><path d="M${ax} ${ay} L${ax + 30} ${ay - 22} M${ax + 18} ${ay - 13} L${ax + 22} ${ay - 26} M${ax + 24} ${ay - 18} L${ax + 36} ${ay - 18}" stroke="#7a4a2e" stroke-width="3.4" stroke-linecap="round" fill="none"/>
-        ${sm.arms === 'mitten' ? `<g transform="translate(${ax + 32} ${ay - 24})"><path d="M-6 4 Q-8 -6 0 -8 Q8 -8 7 2 Q6 8 0 8 Q-5 8 -6 4 Z" fill="#e8474f" stroke="${LINE}" stroke-width="1.8"/><path d="M-6 -1 Q-11 -4 -9 -8 Q-6 -10 -4 -6" fill="#e8474f" stroke="${LINE}" stroke-width="1.6"/><rect x="-6" y="5" width="12" height="4" rx="2" fill="#fff" stroke="${LINE}" stroke-width="1.4"/></g>` : ''}</g>`;
+      const mit = sm.arms === 'mitten';
+      const twig = (d) => `<g transform="scale(${d} 1)">${mit
+        ? `<path d="M${ax} ${ay} L${ax + 27} ${ay - 20}" stroke="#7a4a2e" stroke-width="3.6" stroke-linecap="round"/>
+          <g transform="translate(${ax + 28} ${ay - 21}) rotate(-36)">
+            <path d="M0 -6.5 Q10 -8.5 14 -2 Q15.5 4 9 7 L0 7 Z" fill="#e8474f" stroke="${LINE}" stroke-width="1.8" stroke-linejoin="round"/>
+            <path d="M4 -6.5 Q5 -13 9.5 -11.5 Q12 -10 9 -5.5" fill="#e8474f" stroke="${LINE}" stroke-width="1.6" stroke-linejoin="round"/>
+            <rect x="-4" y="-8" width="5.5" height="16.5" rx="2.4" fill="#fff" stroke="${LINE}" stroke-width="1.5"/>
+            <path d="M5 1 l2 0 M9 -1 l2 0" stroke="#fff" stroke-width="1.4" stroke-linecap="round" opacity=".8"/>
+          </g>`
+        : `<path d="M${ax} ${ay} L${ax + 30} ${ay - 22} M${ax + 18} ${ay - 13} L${ax + 22} ${ay - 26} M${ax + 24} ${ay - 18} L${ax + 36} ${ay - 18}" stroke="#7a4a2e" stroke-width="3.4" stroke-linecap="round" fill="none"/>`}</g>`;
       arms = twig(1) + twig(-1);
     }
     // 단추
@@ -249,7 +257,7 @@
     const nameTag = opt.name ? `<g transform="translate(0 16)"><rect x="-40" y="-11" width="80" height="20" rx="10" fill="#fff" opacity=".92"/><text y="4" text-anchor="middle" font-size="12" font-family="Jua, sans-serif" fill="${LINE}">${esc(sm.name || '눈사람')}</text></g>` : '';
     return `<ellipse cy="2" rx="${rB * 1.05}" ry="${rB * 0.2}" fill="#9fb4d6" opacity=".35"/>${arms}${body}${buttons}${scarf}${eyes}${nose}${mouth}${blush}${hat}${nameTag}`;
   }
-  const snowmanSVG = (sm, opt = {}) => `<svg viewBox="-75 -265 150 ${opt.name ? 300 : 272}" xmlns="http://www.w3.org/2000/svg">${snowman(sm, opt)}</svg>`;
+  const snowmanSVG = (sm, opt = {}) => `<svg viewBox="-85 -345 170 ${opt.name ? 380 : 352}" xmlns="http://www.w3.org/2000/svg">${snowman(sm, opt)}</svg>`;
 
   window.Outdoor = { scene, objects, doorArt, snowmanSVG, sledArt };
 
@@ -264,7 +272,7 @@
     buttons: [['coal', '석탄 단추'], ['color', '알록달록'], ['none', '없음']],
   };
   const DECO_TABS = [['hat', '모자'], ['scarf', '목도리'], ['face', '얼굴'], ['body', '팔 · 단추']];
-  const MIN = [34, 24, 18], MAX = [52, 40, 30], START = [14, 10, 8];
+  const MIN = [34, 24, 18], MAX = [52, 40, 58], START = [14, 10, 8]; // 머리는 몸보다 크게도 만들 수 있어요
 
   window.SnowmanUI = function (api) {
     const $ = (s) => document.querySelector(s);
@@ -283,7 +291,7 @@
       const Y = { 0: [yB, rB], 1: [yM, rM], 2: [yH, rH] };
       const ball = (k) => { const [y, r] = Y[k]; return `<g class="sm-ball ${k === cur ? 'sm-spin' : ''}" style="transform-origin:0px ${y}px"><circle cy="${y}" r="${r}" fill="#fff" stroke="${LINE}" stroke-width="2.6"/>
         <path d="M${-r * 0.45} ${y - r * 0.3} q${r * 0.2} -${r * 0.16} ${r * 0.42} 0 M${r * 0.05} ${y + r * 0.38} q${r * 0.2} -${r * 0.13} ${r * 0.38} 0" stroke="#d9e4f4" stroke-width="2.6" fill="none" stroke-linecap="round"/></g>`; };
-      return `<svg viewBox="-75 -265 150 272" xmlns="http://www.w3.org/2000/svg"><ellipse cy="2" rx="${rB * 1.05}" ry="${rB * 0.2}" fill="#9fb4d6" opacity=".35"/>${upto.map(ball).join('')}</svg>`;
+      return `<svg viewBox="-85 -345 170 352" xmlns="http://www.w3.org/2000/svg"><ellipse cy="2" rx="${rB * 1.05}" ry="${rB * 0.2}" fill="#9fb4d6" opacity=".35"/>${upto.map(ball).join('')}</svg>`;
     }
     function render() {
       if (!open) return;
@@ -400,7 +408,7 @@
       const rs = race.racers;
       const lanes = rs.length ? rs.map((r, i) => `
         <div class="rlane ${r.uid === myUid() ? 'me' : ''}">
-          <span class="rname">${esc(r.nick)}${r.place ? ` <b>${r.place}등</b>` : ''}</span>
+          <span class="rname">${esc(r.nick)}${r.gaveUp ? ' <b>포기</b>' : r.place ? ` <b>${r.place}등</b>` : ''}</span>
           <div class="rsled" data-uid="${esc(r.uid)}" style="left:calc(${(Math.min(100, r.pos) * 0.84).toFixed(1)}% + 4px)">
             <div class="rrider">${api.avatarSVG(r.avatar)}</div>
             <svg class="rsledsvg" viewBox="-40 -14 80 24">${sledArt(0, 0, 1, LANE_COL[i % 6])}</svg>
@@ -426,15 +434,16 @@
           <p class="chint small">1등에게는 황금 마시멜로를 줘요 (2명 이상 달릴 때)</p>`;
         case 'count': return `<p class="chint big">준비… ${me ? '버튼에 손가락 올려요! 👆' : ''}</p>${me ? '<button class="btn primary cnext rtap" disabled>연타!</button>' : ''}`;
         case 'run':
-          if (me && !me.place) return `<button class="btn primary cnext rtap" data-act="tap">🛷 연타! 연타!</button><p class="chint small">PC는 스페이스바도 돼요</p>`;
+          if (me && me.gaveUp) return `<p class="chint big">🏳️ 포기했어요</p><p class="chint">다른 친구들을 응원해요 📣</p>`;
+          if (me && !me.place) return `<button class="btn primary cnext rtap" data-act="tap">🛷 연타! 연타!</button><p class="chint small">PC는 스페이스바도 돼요</p><button class="btn ghost small quit-btn" data-act="giveup">🏳️ 포기하기</button>`;
           if (me) return `<p class="chint big">🏁 ${me.place}등으로 들어왔어요!</p><p class="chint">다른 친구들을 기다려요…</p>`;
           return `<p class="chint big">📣 응원 중!</p>${myBet ? `<p class="chint">내가 찍은 사람: <b>${esc((race.racers.find((r) => r.uid === myBet) || {}).nick || '')}</b></p>` : ''}`;
         case 'done': {
           const res = race.results || [];
           const win = res[0];
           const right = win ? Object.entries(race.bets).filter(([, v]) => v === win.uid).map(([k]) => k) : [];
-          return `<div class="rpodium">${res.slice(0, 3).map((r) => `<div class="rp p${r.place}"><b>${['🥇', '🥈', '🥉'][r.place - 1]}</b><span>${esc(r.nick)}</span></div>`).join('')}</div>
-            ${res.length > 3 ? `<p class="chint small">${res.slice(3).map((r) => `${r.place}등 ${esc(r.nick)}`).join(' · ')}</p>` : ''}
+          return `<div class="rpodium">${res.slice(0, 3).filter((r) => !r.gaveUp).map((r) => `<div class="rp p${r.place}"><b>${['🥇', '🥈', '🥉'][r.place - 1]}</b><span>${esc(r.nick)}</span></div>`).join('')}</div>
+            ${res.length > 3 || res.some((r) => r.gaveUp) ? `<p class="chint small">${res.slice(3).concat(res.slice(0, 3).filter((r) => r.gaveUp)).map((r) => r.gaveUp ? `${esc(r.nick)} 포기` : `${r.place}등 ${esc(r.nick)}`).join(' · ')}</p>` : ''}
             ${Object.keys(race.bets).length ? `<p class="chint">${right.includes(uid) ? '🎯 내기 성공! 황금 마시멜로 받았어요' : race.bets[uid] ? '😢 아쉽게 못 맞혔어요' : `🎯 1등을 맞힌 사람 ${right.length}명`}</p>` : ''}
             <button class="btn primary cnext" data-act="open">🛷 한 판 더!</button>`;
         }
@@ -483,6 +492,7 @@
       const b = e.target.closest('button'); if (!b || b.disabled) return;
       if (b.dataset.bet) { api.send({ t: 'race', act: 'bet', uid: b.dataset.bet }); api.Sound.Sfx.pop(); return; }
       const a = b.dataset.act;
+      if (a === 'giveup' && b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = '한 번 더 누르면 포기해요'; return; }
       if (a && a !== 'tap') { api.send({ t: 'race', act: a }); if (a === 'join') api.Sound.Sfx.jump(); }
     });
     window.addEventListener('keydown', (e) => {

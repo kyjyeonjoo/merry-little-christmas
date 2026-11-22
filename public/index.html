@@ -54,6 +54,7 @@
           <a class="sp-credit" href="credits.html" target="_blank">음악 출처 보기</a>
         </div>
       </div>
+      <button class="admin-btn" id="adminBtn" hidden title="개발자 도구">🛠️</button>
       <button class="me-chip" id="meChip" title="내 캐릭터 꾸미기">
         <span class="me-avatar" id="meAvatar"></span>
         <span id="meNick">-</span>
@@ -301,6 +302,22 @@
           <div class="cake-panel race-panel" id="racePanel"></div>
           <ul class="mini-chat"></ul>
         </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal" id="adminModal" hidden>
+    <div class="modal-card admin-card">
+      <button class="icon-btn close" data-close-admin>✕</button>
+      <h2>🛠️ 개발자 도구</h2>
+      <p class="chint">누르면 바로 모두에게 적용돼요. 실수 방지를 위해 두 번 눌러야 해요.</p>
+      <div class="admin-grid">
+        <button class="btn ghost" data-admin="tree">🎄 트리 초기화</button>
+        <button class="btn ghost" data-admin="snowmen">⛄ 눈사람 모두 녹이기</button>
+        <button class="btn ghost" data-admin="castle">🏰 눈성 허물기</button>
+        <button class="btn ghost" data-admin="gifts">🎁 선물 교환 상자 비우기</button>
+        <button class="btn ghost" data-admin="cake">🎂 케이크 초기화</button>
+        <button class="btn ghost" data-admin="games">🛷 미니게임 모두 멈추기</button>
+        <button class="btn ghost" data-admin="chat">💬 채팅 기록 지우기</button>
       </div>
     </div>
   </div>
